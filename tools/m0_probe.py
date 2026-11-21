@@ -376,8 +376,12 @@ def convert(browser, provider, item, watch, folder):
     context.route("**/*", lambda route: (
         route.continue_() if provider_url(route.request.url, provider) else route.abort()
     ))
+    stage = "landing"
+    response_codes = set()
     try:
         page = context.new_page()
+        page.on("response", lambda response: response_codes.add(response.status)
+                if response.request.resource_type in {"xhr", "fetch"} else None)
         page.set_default_timeout(8000)
         response = page.goto(landing, wait_until="domcontentloaded", timeout=15000)
         if response is None:
@@ -386,6 +390,7 @@ def convert(browser, provider, item, watch, folder):
             return {"status": "browser_http_error", "http_status": response.status}
         if browser_blocked(page):
             return {"status": "challenge_detected"}
+        stage = "form"
         if provider == "mp7":
             page.locator("#url").fill(watch)
             format_name = "mp3" if item["kind"] == "audio" else "mp4"
@@ -417,13 +422,18 @@ def convert(browser, provider, item, watch, folder):
             if not submit_public_form(page, watch, item["kind"]):
                 return {"status": "challenge_detected" if browser_blocked(page) else "public_form_unavailable"}
             selector = generic_download_selector(item["kind"])
+        stage = "result_link"
         url, status = wait_for_link(page, selector, provider)
         if url is None:
-            return {"status": status}
+            return {"status": status, "stage": stage, "request_statuses": sorted(response_codes)}
         if not provider_url(url, provider):
-            return {"status": "unsupported_download_origin"}
+            return {"status": "unsupported_download_origin", "stage": stage}
+        stage = "media_transfer"
         result = run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"))
-        return {**result, "method": "headless_then_http"}
+        return {**result, "method": "headless_then_http", "stage": stage}
+    except Exception as error:
+        return {"status": "browser_error", "stage": stage,
+                "error_type": type(error).__name__, "request_statuses": sorted(response_codes)}
     finally:
         context.close()
 

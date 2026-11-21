@@ -69,3 +69,5 @@ Added a clip-window planner that keeps a candidate timestamp in bounds, preserve
 ## M0 Stage B first report
 
 AnalyticsDashboard's completed report measured zero verified downloads and zero selected timestamps across the 20 motivation targets. Chromium launched and the separate controls verified 10 audio and nine video assets. M0 and M2 remain unchecked. See RESEARCH.md for the per-provider breakdown and re-probe priorities.
+
+The probe now distinguishes browser landing, form interaction, result-link lookup and media transfer failures. Result-link diagnostics include fetch/XHR status codes without request URLs or response content. The local suite passed 25 tests. Live browser outcomes still require a diagnostic run on AnalyticsDashboard.
