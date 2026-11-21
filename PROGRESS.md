@@ -11,7 +11,7 @@ Session 1. Start with M0 Stage A. M1 is the only milestone that may proceed befo
   - [ ] Compare plain HTTP and headless Chrome for applicable steps and report headless/browser/IP blocks with evidence. Skip CAPTCHA and bot checks.
   - [ ] Study 10 leading faceless competitors in the chosen niche. Record formats, hooks, duration, cadence and observed performance. Propose F4 only if supported by observations.
   - For failed download or timestamp gates, add candidates or methods and re-probe. Only M1 may be built before the gate passes.
-- [ ] **M1 Scaffold.** Fresh repo, runtime config and .env.example, logging, folder layout, automated tests and README. Exercise normal startup and invalid config, local runtime directory creation and repeat startup.
+- [x] **M1 Scaffold.** Fresh repo, runtime config and .env.example, logging, folder layout, automated tests and README. Exercise normal startup and invalid config, local runtime directory creation and repeat startup.
 - [ ] **M2 Downloader.** Configurable registry with 10+ candidates each for audio and video and health scores. Verify adapters, automatic rotation, health checks, retries, cache, isolated audio/video-only ffprobe validation and song duration matching within 3 seconds.
 - [ ] **M3 Song library.** Source from public Spotify playlist pages and articles, dedupe and rank by frequency and recency, select and record cross-checked timestamps, download correct versions and cut. Prove 30+ songs with verified segments.
 - [ ] **M4 Video library.** Source, rank, select and record cross-checked timestamps, download and cut trending speech, movie, sports and podcast clips. Prove 30+ clips with verified segments.
@@ -29,3 +29,7 @@ Session 1. Start with M0 Stage A. M1 is the only milestone that may proceed befo
 ## Completion protocol
 
 On every resume read the four root handoff files first. Continue the first unchecked, unblocked item. After each finished unit, run tests, record evidence here, commit and push to main. Before any tick, run the full suite and audit the unit against every criterion, including applicable bad inputs, dead sites, empty results and restarts. Fix failures and record the audit below. Mocks do not count as proof of real downloads, integrations, renders or server behavior. Near a usage limit, checkpoint and put the exact next action at the top.
+
+## M1 audit
+
+The full suite passed with six tests via `python3 -m unittest discover -s tests -v`. It exercised normal startup, restart with existing state, environment precedence, malformed and duplicate configuration, invalid log level and unusable state path. Compileall and staged whitespace checks passed. Git ignore matched the local .env, a sample media path and Python cache.
