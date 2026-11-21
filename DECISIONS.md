@@ -27,3 +27,9 @@ For user-only work, document the exact machine and single-line non-interactive c
 
 - Stage B's gate counts only the public motivation corpus. Keep publisher tracks and open films as a separately reported control group.
 - Before Stage B, build site-agnostic M2 registry, adapter contract, rotation and media validation. Keep M2 unchecked and site availability unknown until real evidence supports promotion.
+
+## AnalyticsDashboard Chromium sandbox
+
+- Manas confirmed Chromium preflight passed on Ubuntu 24 after an AppArmor fix for `No usable sandbox`. Unprivileged user namespace restrictions caused the failure. The host uses `/etc/apparmor.d/playwright-chromium` with ABI 4.0, attachment `/home/ubuntu/.cache/ms-playwright/chromium*/**/chrome*`, `flags=(unconfined)`, and a `userns,` rule, loaded with `apparmor_parser -r`.
+- M13 deployment must install or verify that narrowly scoped profile and reload it when changed. The health check must verify the profile is loaded and perform a Chromium launch as the runtime user with sandboxing enabled. Never fall back to `--no-sandbox`.
+- While the server probe runs, site-independent M2 and M3–M7 groundwork is authorized. Continue to require the applicable live evidence for milestone completion.

@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 3 checkpoint. Run the revised M0 probe from NEEDS_MANAS.md on AnalyticsDashboard. Its provider counts use real motivation targets and exclude publisher baseline assets. M1 remains complete. Only site-agnostic M2 foundations may proceed before the M0 gate.
+Session 4 checkpoint. The AnalyticsDashboard probe is running and will push its report to main. Check for research/m0_server_results.json on each follow-up. Site-independent M2 and M3–M7 groundwork may continue. M1 remains complete.
 
 ## Milestones
 
@@ -61,3 +61,7 @@ The target matrix now uses 10 gym-edit tracks from public Spotify workout playli
 The runtime now has a JSON provider registry, stream adapter interface, health-weighted rotation, bounded staging and ffprobe checks for actual container, streams, duration tolerance and video resolution. Fixture tests cover disabled and unavailable adapters, fallback ordering, duplicate names, cleanup on failure and the size limit. Real FFmpeg/ffprobe tests cover exact three-second tolerance, wrong duration, HTML rejection and 360p versus 720p. M2 is unchecked. Production site adapters, live evidence, persistent health, cache and scheduled health checks remain for Stage B and later work.
 
 The revised two-row HTTP-only diagnostic completed against LOS VOLTAJE and the Rocky Balboa speech. Both watch pages returned HTTP 200 without parseable replay markers. Three old landing URLs returned 200, six returned 403/503, and Loader redirected to a canonical first-party page. The probe now uses that canonical URL. This was a local diagnostic with Chrome disabled, so it supplies no converter or Lightsail success evidence. The full suite passed 22 tests after the M2 foundation and the final probe preflight changes.
+
+## Provider-independent clip groundwork
+
+Added a clip-window planner that keeps a candidate timestamp in bounds, preserves lead-in where possible, and handles short source media. Added tests for both edges, short media and invalid timestamps. All 25 tests passed. Recorded the successful AnalyticsDashboard AppArmor setup and the M13 deployment and health-check requirements in DECISIONS.md.
