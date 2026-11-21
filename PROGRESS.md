@@ -75,3 +75,7 @@ The probe now distinguishes browser landing, form interaction, result-link looku
 ## M6 caption groundwork
 
 Added clip-relative SRT export from timestamped transcription cues. It clips cue timing at both boundaries and rebases to the exported clip. All 27 local tests passed. This is subtitle groundwork. Real transcription and word highlighting remain unverified. The separate Lightsail diagnostic had not arrived on main.
+
+## M7 vertical framing groundwork
+
+Added an FFmpeg center-crop filter that accounts for source display aspect ratio. Real local FFmpeg runs produced 1080×1920 square-pixel output for standard landscape and anamorphic fixtures. All 28 tests passed. The full renderer and editorial checks remain open.
