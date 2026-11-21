@@ -1,6 +1,7 @@
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+import json
 import re
 import shutil
 import subprocess
@@ -28,7 +29,8 @@ class DashboardControlsTest(unittest.TestCase):
                            check=True, timeout=15)
             pipeline = Pipeline(root / "state", [source])
             pipeline.add_song(song)
-            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report")) as server:
+            job = root / "jobs" / "next_job.json"
+            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report", job_file=job)) as server:
                 http = Thread(target=server.serve_forever)
                 http.start()
                 connection = HTTPConnection(*server.server_address, timeout=30)
@@ -52,6 +54,12 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("library-timestamp", id=2), 303)
                     self.assertEqual(post("library-timestamp", id=1), 400)
                     self.assertEqual(pipeline.library()[1][3:], (1, 0, 0.0))
+                    self.assertEqual(post("site-toggle", site="unknown"), 400)
+                    self.assertEqual(post("site-toggle", site="mp7"), 303)
+                    self.assertFalse(Pipeline(root / "state", [source]).sites()["mp7"])
+                    self.assertEqual(post("site-retest"), 303)
+                    initial_job = json.loads(job.read_text())
+                    self.assertEqual(set(initial_job), {"id", "limit", "no_browser"})
                     settings = dict(posting_slots="18:00,09:00", volume=2, mode="auto",
                                     refresh_cadence="monthly", format_weights="3,2,1")
                     self.assertEqual(post("settings", **settings), 303)
@@ -85,6 +93,10 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(pipeline.posting_queue(), [3, 1])
                     self.assertEqual(post("library-retire", id=2), 303)
                     self.assertEqual(post("library-pin", id=2), 400)
+                    self.assertEqual(post("site-toggle", site="mp7"), 303)
+                    self.assertTrue(pipeline.sites()["mp7"])
+                    self.assertEqual(post("site-retest"), 303)
+                    self.assertNotEqual(json.loads(job.read_text())["id"], initial_job["id"])
                     self.assertEqual(post("stop"), 303)
                     pipeline.worker.join(5)
                     self.assertFalse(pipeline.worker.is_alive())

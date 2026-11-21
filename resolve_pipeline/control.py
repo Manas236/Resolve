@@ -1,6 +1,10 @@
 """Local reel generation and review state shared by dashboard controls."""
 
 from contextlib import closing
+from dataclasses import replace
+import json
+from tempfile import NamedTemporaryFile
+from uuid import uuid4
 from pathlib import Path
 import sqlite3
 import time
@@ -9,7 +13,7 @@ from threading import Event, Lock, Thread
 
 from urllib.parse import urlsplit
 
-from tools.m0_probe import probe_energy
+from tools.m0_probe import PROVIDERS, probe_energy
 
 from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
@@ -40,6 +44,7 @@ class Pipeline:
             db.executemany("INSERT OR IGNORE INTO library(path,kind) VALUES (?, 'clip')",
                            ((str(source),) for source in self.sources))
 
+            db.execute("CREATE TABLE IF NOT EXISTS site_overrides (name TEXT PRIMARY KEY, enabled INTEGER NOT NULL)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -48,6 +53,35 @@ class Pipeline:
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
+
+    def sites(self):
+        configured = {provider.name: provider.enabled for provider in self.downloader.registry.providers}
+        with closing(sqlite3.connect(self.database)) as db:
+            overrides = dict(db.execute("SELECT name,enabled FROM site_overrides"))
+        return {name: bool(overrides.get(name, configured.get(name, True)))
+                for name in sorted(set(PROVIDERS) | set(configured))}
+
+    def toggle_site(self, name):
+        configured = {provider.name: provider.enabled for provider in self.downloader.registry.providers}
+        if name not in PROVIDERS and name not in configured:
+            raise ValueError("Unknown site")
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("INSERT INTO site_overrides VALUES (?,?) ON CONFLICT(name) DO UPDATE "
+                       "SET enabled=1-enabled", (name, int(not configured.get(name, True))))
+
+    def request_site_retest(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        job = {"id": "m0-retest-" + uuid4().hex, "limit": 2, "no_browser": False}
+        with NamedTemporaryFile(mode="w", dir=path.parent, delete=False, encoding="utf-8") as out:
+            temporary = Path(out.name)
+            try:
+                json.dump(job, out, indent=2)
+                out.write("\n")
+                out.close()
+                temporary.replace(path)
+            finally:
+                temporary.unlink(missing_ok=True)
 
     def add_song(self, path):
         path = Path(path).resolve(strict=True)
@@ -101,7 +135,16 @@ class Pipeline:
                 or parsed.username or parsed.password or any(c.isspace() for c in url)):
             raise ValueError("Enter a public HTTP or HTTPS media URL")
         try:
-            download = self.downloader.download(DownloadRequest(url, "video"))
+            with self.render_lock:
+                registry = self.downloader.registry
+                enabled = self.sites()
+                self.downloader.registry = Registry(tuple(
+                    replace(provider, enabled=enabled[provider.name]) for provider in registry.providers
+                ))
+                try:
+                    download = self.downloader.download(DownloadRequest(url, "video"))
+                finally:
+                    self.downloader.registry = registry
         except DownloadExhausted as error:
             raise ValueError("No configured provider could verify video for this URL") from error
         with self.render_lock, closing(sqlite3.connect(self.database)) as db:

@@ -31,7 +31,7 @@ def report_html(report):
     )
 
 
-def handler_for(pipeline, report, auth=None):
+def handler_for(pipeline, report, auth=None, job_file=None):
     token = token_urlsafe(32)
 
     def form(action, fields, label):
@@ -168,6 +168,13 @@ document.addEventListener("submit", async (event) => {
                 data = json.loads(report.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 data = {}
+            controls += "<h2>Site registry</h2>"
+            for name, enabled in pipeline.sites().items():
+                controls += f"<p>{escape(name)} · {'Enabled' if enabled else 'Disabled'}</p>"
+                controls += form("site-toggle", f'<input type="hidden" name="site" value="{escape(name)}">',
+                                 "Disable" if enabled else "Enable")
+            if job_file is not None:
+                controls += form("site-retest", "", "Write retest job")
             payload = report_html(data).replace("</html>", ' <p id="feedback" role="status"></p><section id="pipeline">' + controls + "</section>" + script + "</html>").encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -206,6 +213,10 @@ document.addEventListener("submit", async (event) => {
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
                 elif self.path in ("/library-pin", "/library-retire", "/library-timestamp"):
                     pipeline.library_action(int(fields["id"][0]), self.path.removeprefix("/library-"))
+                elif self.path == "/site-toggle":
+                    pipeline.toggle_site(fields["site"][0])
+                elif self.path == "/site-retest" and job_file is not None:
+                    pipeline.request_site_retest(job_file)
                 elif self.path == "/settings":
                     pipeline.save_settings({key: values[0] for key, values in fields.items()})
                 elif self.path == "/make-url":
@@ -241,6 +252,7 @@ def main():
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
     parser.add_argument("--source", type=Path, action="append", required=True)
     parser.add_argument("--song", type=Path, action="append", default=[])
+    parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
     args = parser.parse_args()
     settings = read_env_file(Path(".env")) | dict(os.environ)
     try:
@@ -250,7 +262,7 @@ def main():
     pipeline = Pipeline(args.state, args.source)
     for song in args.song:
         pipeline.add_song(song)
-    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth)) as server:
+    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth, args.job_file)) as server:
         try:
             server.serve_forever()
         finally:
