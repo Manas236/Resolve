@@ -20,7 +20,7 @@ import re
 import subprocess
 import tempfile
 import time
-from urllib.parse import parse_qs, urljoin, urlsplit
+from urllib.parse import urlencode, parse_qs, urljoin, urlsplit
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -308,7 +308,7 @@ def browser_blocked(page):
 
 
 def wait_for_link(page, selector, provider):
-    deadline = time.monotonic() + 45
+    deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
         if browser_blocked(page):
             return None, "challenge_detected"
@@ -369,6 +369,46 @@ def generic_download_selector(kind):
             "a:has-text('Download 720p'), a:has-text('Download 1080p'), a[href$='.mp4' i]")
 
 
+def mp7_convert(item, watch, folder):
+    base = PROVIDERS["mp7"]
+    media_format = "mp3" if item["kind"] == "audio" else "mp4"
+    request = Request(
+        urljoin(base, "/convert"),
+        data=urlencode({"url": watch, "format": media_format}).encode(),
+        headers={"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"},
+    )
+    stage = "submit"
+    try:
+        result = read_json(request)
+        deadline = time.monotonic() + 120
+        while isinstance(result, dict):
+            if blocked_text(str(result.get("error", ""))):
+                return {"status": "challenge_detected", "stage": stage}
+            if not result.get("success") or result.get("status") == "failed":
+                return {"status": "provider_rejected", "stage": stage}
+            if result.get("status") == "complete":
+                link = result.get("download_url")
+                if not isinstance(link, str) or not provider_url(urljoin(base, link), "mp7"):
+                    return {"status": "unsupported_download_origin", "stage": stage}
+                media = run_sample(item["id"], item["kind"], urljoin(base, link), folder,
+                                   item.get("reference_seconds"))
+                return {**media, "method": "http_json", "stage": "media_transfer"}
+            if time.monotonic() >= deadline:
+                return {"status": "provider_job_timeout", "stage": stage}
+            job_id = result.get("job_id") if stage == "submit" else job_id
+            if not isinstance(job_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", job_id):
+                break
+            stage = "poll"
+            time.sleep(2)
+            result = read_json(urljoin(base, "/status/" + job_id))
+    except HTTPError as error:
+        error.close()
+        return {"status": "http_error", "http_status": error.code, "stage": stage}
+    except (OSError, ValueError, HTTPException) as error:
+        return {"status": "provider_response_unavailable", "error_type": type(error).__name__, "stage": stage}
+    return {"status": "unexpected_provider_response", "stage": stage}
+
+
 def convert(browser, provider, item, watch, folder):
     landing = item.get("provider_pages", {}).get(provider, PROVIDERS[provider])
     if not provider_url(landing, provider):
@@ -392,12 +432,7 @@ def convert(browser, provider, item, watch, folder):
         if browser_blocked(page):
             return {"status": "challenge_detected"}
         stage = "form"
-        if provider == "mp7":
-            page.locator("#url").fill(watch)
-            format_name = "mp3" if item["kind"] == "audio" else "mp4"
-            page.locator(f"#convert-form [data-format={format_name}]").click()
-            selector = "#download-link"
-        elif provider == "notube":
+        if provider == "notube":
             page.locator("#keyword").fill(watch)
             audio = item["kind"] == "audio"
             if page.locator("#myDropdown").is_visible():
@@ -417,6 +452,25 @@ def convert(browser, provider, item, watch, folder):
                 selector = "#panel-mp3 a[href]:not([href='#'])"
             else:
                 selector = "#dl-video-list li:has-text('720p') a[href], #dl-video-list li:has-text('1080p') a[href]"
+        elif provider == "cnvmp3":
+            fields = page.locator("#video-url")
+            field = next((candidate for candidate in fields.all() if candidate.is_visible()), None)
+            if field is None:
+                return {"status": "public_form_unavailable", "stage": stage}
+            field.fill(watch)
+            page.locator("#format-select-display").click()
+            option = 1 if item["kind"] == "audio" else 0
+            page.locator(f".format-select-options[data-format='{option}']").click()
+            page.locator("#convert-button-1").first.click()
+            selector = "a#download-button[href], " + generic_download_selector(item["kind"])
+        elif provider == "ythd":
+            page.locator(".convert-form input[name=url]").fill(watch)
+            page.locator(".convert-form button[type=submit]").click()
+            label = "MP3" if item["kind"] == "audio" else "MP4"
+            choice = page.get_by_role("button", name=label, exact=True)
+            if choice.count():
+                choice.first.click()
+            selector = generic_download_selector(item["kind"])
         elif provider in DIRECT_MP3:
             selector = generic_download_selector("audio")
         else:
@@ -730,6 +784,10 @@ def run_matrix(args):
                 elif (name in blocked or landing["status"] == "challenge_detected" or
                         landing.get("http_status") in {401, 403, 429}):
                     attempts[name] = {"status": "skipped_provider_block"}
+                elif name == "mp7":
+                    attempts[name] = mp7_convert(target, watch, folder)
+                elif name == "loader":
+                    attempts[name] = {"status": "skipped_provider_challenge"}
                 elif browser is None:
                     attempts[name] = {"status": "skipped_browser_unavailable"}
                 else:

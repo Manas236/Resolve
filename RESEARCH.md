@@ -94,3 +94,47 @@ The complete schema 3 report used probe revision `683e228`. Chromium started suc
 Across both target kinds, HTTP and headless watch inspection returned no parseable replay markers on all 20 items. The social method had no validated source mapping, Gemini was skipped without a billing-disabled key, and the audio fallback had no verified target media. The report cannot distinguish an IP block from a provider policy or probe limitations. In particular, a missing download link leaves the public-page selector unverified.
 
 Acceptance failed for downloads and target timestamps. Before a new server run, validate candidate public flows and media extraction against a small diagnostic and record the failure stage distinctly. Keep blocked pages out of further attempts. Competitor sampling remains open.
+
+### Additional publisher and creator route leads
+
+HTTP checks from the development environment on 21 November 2026 used GET and followed standard redirects. Status 000 denotes no HTTP response. A successful listing or help page establishes reachability only. Confirm the individual asset download, reuse terms and availability before adding it to the library. SoundCloud downloads depend on the creator enabling that feature and applicable account requirements.
+
+| Media | Route | HTTP |
+| --- | --- | --- |
+| audio | <https://archive.org/details/audio> | 200 |
+| audio | <https://audius.co/> | 403 |
+| audio | <https://bandcamp.com/tag/phonk> | 200 |
+| audio | <https://dig.ccmixter.org/> | 200 |
+| audio | <https://freemusicarchive.org/> | 200 |
+| audio | <https://help.soundcloud.com/hc/en-us/articles/115003448787-Downloading-tracks> | 200 |
+| audio | <https://mixkit.co/free-stock-music/> | 200 |
+| audio | <https://pixabay.com/music/search/phonk/> | 200 |
+| audio | <https://soundcloud.com/you/tracks> | 401 |
+| audio | <https://uppbeat.io/music/category/phonk> | 200 |
+| audio | <https://www.beatstars.com/> | 200 |
+| audio | <https://www.bensound.com/royalty-free-music> | 200 |
+| audio | <https://www.chosic.com/free-music/all/> | 403 |
+| audio | <https://www.freesound.org/> | 200 |
+| audio | <https://www.jamendo.com/> | 200 |
+| audio | <https://www.nolimitsphonk.com/tools/music-for-video/> | 200 |
+| audio | <https://www.scottbuckley.com.au/library/> | 200 |
+| video | <https://archive.org/details/movies> | 200 |
+| video | <https://commons.wikimedia.org/wiki/Category:Videos> | 200 |
+| video | <https://images.nasa.gov/> | 200 |
+| video | <https://mixkit.co/free-stock-video/gym/> | 200 |
+| video | <https://pixabay.com/videos/search/gym/> | 200 |
+| video | <https://www.clipstill.com/> | 403 |
+| video | <https://www.coverr.co/> | 200 |
+| video | <https://www.dareful.com/> | 403 |
+| video | <https://www.lifeofvids.com/> | 503 |
+| video | <https://www.mazwai.com/> | 301 |
+| video | <https://www.motionplaces.com/> | 200 |
+| video | <https://www.pexels.com/search/videos/gym/> | 200 |
+| video | <https://www.splitshire.com/> | 403 |
+| video | <https://www.videezy.com/> | 200 |
+| video | <https://www.videvo.net/> | 301 |
+| video | <https://www.vidsplay.com/> | 000 |
+
+### Converter source follow-up
+
+The fetched MP7 JavaScript uses a form-encoded submission and polls a returned job ID until completion. The probe now follows that flow with a bounded wait and the existing origin, challenge and media checks. CnvMP3 sets the selected format before delegating to its download handler. YTHD exposes a Convert button followed by a media choice. Both now use targeted public form interactions. Loader currently references a proof-of-work token script, so the probe records a challenge skip. Live transfers remain unverified.
