@@ -38,6 +38,36 @@ def handler_for(pipeline, report, auth=None):
                 f'<input type="hidden" name="token" value="{token}">{fields}'
                 f'<button>{label}</button></form>')
 
+    script = """
+<script>
+document.addEventListener("submit", async (event) => {
+    const form = event.target;
+    if (!document.getElementById("pipeline") || !form.closest("#pipeline") ||
+        form.action.endsWith("/logout")) return;
+    event.preventDefault();
+    const button = form.querySelector("button");
+    const feedback = document.getElementById("feedback");
+    button.disabled = true;
+    try {
+        const response = await fetch(form.action, {
+            method: "POST",
+            body: new URLSearchParams(new FormData(form)),
+        });
+        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+        if (!response.ok) throw new Error(doc.querySelector("p")?.textContent || response.statusText);
+        const updated = doc.getElementById("pipeline");
+        if (!updated) throw new Error("Session expired. Reload to log in.");
+        document.getElementById("pipeline").replaceWith(updated);
+        feedback.textContent = "Saved";
+    } catch (error) {
+        feedback.textContent = error.message;
+    } finally {
+        button.disabled = false;
+    }
+});
+</script>
+"""
+
     class Handler(BaseHTTPRequestHandler):
         def session(self):
             try:
@@ -76,6 +106,12 @@ def handler_for(pipeline, report, auth=None):
             order = ",".join(map(str, pipeline.posting_queue()))
             controls += form("reorder", f'<label>Posting order <input name="order" value="{order}"></label>',
                              "Save posting order")
+            settings_fields = "".join(
+                f'<label>{label} <input name="{key}" value="{escape(value)}"></label>'
+                for (key, value), label in zip(pipeline.settings().items(),
+                    ("Posting slots", "Daily volume", "Approval mode", "Refresh cadence", "Format weights"))
+            )
+            controls += "<h2>Settings</h2>" + form("settings", settings_fields, "Save settings")
             editorial = pipeline.editorial()
             for reel_id, state, error in pipeline.list_reels():
                 controls += f"<p>Reel {reel_id} · {state} {escape(error or '')}</p>"
@@ -96,7 +132,7 @@ def handler_for(pipeline, report, auth=None):
                 data = json.loads(report.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 data = {}
-            payload = report_html(data).replace("</html>", controls + "</html>").encode()
+            payload = report_html(data).replace("</html>", ' <p id="feedback" role="status"></p><section id="pipeline">' + controls + "</section>" + script + "</html>").encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -132,6 +168,8 @@ def handler_for(pipeline, report, auth=None):
                     pipeline.make_now(int(fields["count"][0]))
                 elif self.path in ("/approve", "/reject"):
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
+                elif self.path == "/settings":
+                    pipeline.save_settings({key: values[0] for key, values in fields.items()})
                 elif self.path == "/make-url":
                     pipeline.make_from_url(fields["url"][0])
                 elif self.path == "/reorder":

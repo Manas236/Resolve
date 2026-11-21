@@ -9,6 +9,7 @@ from threading import Event, Lock, Thread
 
 from urllib.parse import urlsplit
 
+from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .framing import render_vertical
 from .segments import clip_window
@@ -31,6 +32,7 @@ class Pipeline:
             db.execute("CREATE TABLE IF NOT EXISTS reels (id INTEGER PRIMARY KEY, "
                        "source TEXT NOT NULL, status TEXT NOT NULL, error TEXT)")
 
+            db.execute("CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -39,6 +41,16 @@ class Pipeline:
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
+
+    def settings(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return DEFAULTS | dict(db.execute("SELECT name,value FROM settings"))
+
+    def save_settings(self, values):
+        validated = validate_settings({key: values[key] for key in DEFAULTS})
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.executemany("INSERT INTO settings VALUES (?,?) ON CONFLICT(name) DO UPDATE "
+                           "SET value=excluded.value", validated.items())
 
     def make_from_url(self, url):
         parsed = urlsplit(url)

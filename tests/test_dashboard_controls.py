@@ -39,6 +39,14 @@ class DashboardControlsTest(unittest.TestCase):
                         response.read()
                         return response.status
 
+                    self.assertIn('replaceWith(updated)', page)
+                    settings = dict(posting_slots="18:00,09:00", volume=2, mode="auto",
+                                    refresh_cadence="monthly", format_weights="3,2,1")
+                    self.assertEqual(post("settings", **settings), 303)
+                    self.assertEqual(Pipeline(root / "state", [source]).settings()["posting_slots"],
+                                     "09:00,18:00")
+                    self.assertEqual(post("settings", **(settings | {"volume": 3})), 400)
+                    self.assertEqual(pipeline.settings()["volume"], "2")
                     self.assertEqual(post("make", count=2, token="wrong"), 403)
                     self.assertEqual(post("make", count=2), 303)
                     self.assertFalse(pipeline.running)
