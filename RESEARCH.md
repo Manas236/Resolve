@@ -60,3 +60,9 @@ This is a discovery sample, with adjacent brand and comedy accounts kept as comp
 | @gymhumourjunction | About 14.5K followers, video-led gym humor and relatable effort hooks | [Pictame](https://pictame.com/en/instagram/gymhumourjunction/64287041487) |
 
 F4 hypothesis for later validation: start with a familiar gym friction point, show a quick turning point in the training footage, and finish with one action the viewer can take next session. Both the independent montage/story observations and the gym humor lead suggest testing a concrete situation over a generic exhortation. No F4 build decision yet. Need qualified reel samples with comparable duration, cadence and play data.
+
+### Browser adapter source inspection
+
+The public MP7 form exposes separate MP3 and MP4 buttons and adds a download link after processing. DirectYT renders first-party download links inside its audio and video tabs. The noTube public form exposes MP3 and MP4 HD and uses numbered first-party service hosts for processing. These observations support the three experimental recipes. No delivery, browser execution or media verification for these converters has been established. Requests stop on detected challenges and report missing or unapproved download origins.
+
+Searches for all ten catalog tracks returned publisher uploads, alternate uploads or unrelated credits. No public Instagram/TikTok result found in those searches identified an original-upload offset for the exact benchmark track. Keep missing mappings explicit rather than treating use of a track name as timestamp evidence.

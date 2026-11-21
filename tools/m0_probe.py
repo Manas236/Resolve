@@ -37,6 +37,10 @@ MAX_BYTES = 256 * 1024 * 1024
 ALLOWED_FORMATS = {"mp3", "mov", "mp4", "webm", "matroska", "wav", "ogg", "flac"}
 
 
+class MediaRejected(ValueError):
+    """A fixed, report-safe reason for rejecting a media response."""
+
+
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, message, headers, newurl):
         return None
@@ -47,22 +51,22 @@ def validate_media(metadata, kind, reference_seconds=None):
     format_info = metadata["format"]
     duration = float(format_info["duration"])
     if not math.isfinite(duration) or duration <= 0:
-        raise ValueError("invalid_duration")
+        raise MediaRejected("invalid_duration")
     if not ALLOWED_FORMATS.intersection(format_info["format_name"].split(",")):
-        raise ValueError("unsupported_container")
+        raise MediaRejected("unsupported_container")
     if any(stream["codec_type"] not in {"audio", "video"} for stream in streams):
-        raise ValueError("unexpected_stream")
+        raise MediaRejected("unexpected_stream")
     video = [
         stream for stream in streams
         if stream["codec_type"] == "video" and not stream.get("disposition", {}).get("attached_pic")
     ]
     audio = [stream for stream in streams if stream["codec_type"] == "audio"]
     if kind == "audio" and (video or not audio):
-        raise ValueError("expected_audio")
+        raise MediaRejected("expected_audio")
     if kind == "video" and not video:
-        raise ValueError("expected_video")
+        raise MediaRejected("expected_video")
     if reference_seconds is not None and abs(duration - reference_seconds) > 3:
-        raise ValueError("wrong_duration")
+        raise MediaRejected("wrong_duration")
     result = {"duration_seconds": duration, "audio_streams": len(audio)}
     if video:
         dimensions = [(stream["width"], stream["height"]) for stream in video]
@@ -129,9 +133,9 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
             result["content_type"] = content_type
             length = response.headers.get("Content-Length", "")
             if length.isdigit() and int(length) > MAX_BYTES:
-                raise ValueError("size_limit")
+                raise MediaRejected("size_limit")
             if not content_type.startswith(("audio/", "video/")) and content_type != "application/octet-stream":
-                raise ValueError("unexpected_content_type")
+                raise MediaRejected("unexpected_content_type")
             deadline = time.monotonic() + 90
             with path.open("xb") as destination:
                 while block := response.read1(64 * 1024):
@@ -139,11 +143,11 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
                         raise TimeoutError("transfer_deadline")
                     size += len(block)
                     if size > MAX_BYTES:
-                        raise ValueError("size_limit")
+                        raise MediaRejected("size_limit")
                     digest.update(block)
                     destination.write(block)
             if length.isdigit() and size != int(length):
-                raise ValueError("transfer_length_mismatch")
+                raise MediaRejected("transfer_length_mismatch")
         process = subprocess.run(
             [
                 "ffprobe", "-v", "error", "-protocol_whitelist", "file",
@@ -157,10 +161,10 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
             check=False,
         )
         if process.returncode:
-            raise ValueError("ffprobe_rejected")
+            raise MediaRejected("ffprobe_rejected")
         result.update(validate_media(json.loads(process.stdout), kind, reference_seconds))
         if kind == "video" and not result["meets_720p"]:
-            raise ValueError("below_720p")
+            raise MediaRejected("below_720p")
         if result["audio_streams"]:
             try:
                 result["energy"] = probe_energy(path)
@@ -174,8 +178,10 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
         result.update(status="network_error", error_type=type(error.reason).__name__)
     except (OSError, HTTPException, subprocess.TimeoutExpired) as error:
         result.update(status="local_or_transport_error", error_type=type(error).__name__)
+    except MediaRejected as error:
+        result.update(status="rejected", reason=str(error))
     except (KeyError, TypeError, ValueError) as error:
-        result.update(status="rejected", reason=str(error) if type(error) is ValueError else type(error).__name__)
+        result.update(status="rejected", reason="invalid_media_metadata", error_type=type(error).__name__)
     finally:
         path.unlink(missing_ok=True)
     return result
@@ -263,6 +269,16 @@ PROVIDERS = {
 }
 
 
+def provider_url(url, provider):
+    try:
+        host = urlsplit(url).netloc
+    except ValueError:
+        return False
+    if provider == "notube" and (host == "cdn.notube.net" or re.fullmatch(r"s[0-9]{2}\.notube\.net", host)):
+        return public_url(url, host)
+    return public_url(url, urlsplit(PROVIDERS[provider]).netloc)
+
+
 def blocked_text(value):
     value = value.casefold()
     return any(fragment in value for fragment in BLOCK_MESSAGES + (
@@ -297,12 +313,8 @@ def wait_for_link(page, selector, provider):
 def convert(browser, provider, item, watch, folder):
     landing = PROVIDERS[provider]
     context = browser.new_context(accept_downloads=False, service_workers="block")
-    allowed_hosts = {urlsplit(landing).netloc}
-    if provider == "notube":
-        allowed_hosts.add("cdn.notube.net")
     context.route("**/*", lambda route: (
-        route.continue_() if any(public_url(route.request.url, host) for host in allowed_hosts)
-        else route.abort()
+        route.continue_() if provider_url(route.request.url, provider) else route.abort()
     ))
     try:
         page = context.new_page()
@@ -323,7 +335,7 @@ def convert(browser, provider, item, watch, folder):
             page.locator("#keyword").fill(watch)
             page.locator("#myDropdown").select_option("mp3" if item["kind"] == "audio" else "mp4hd")
             page.locator("#submit-button").click()
-            selector = "a[download], a[href*='/download/']:text-is('Download')"
+            selector = "a[download], a[href*='/download/']:text-is('Download'), a:text-is('Download')"
         else:
             if page.locator("#consent-decline").is_visible():
                 page.locator("#consent-decline").click()
@@ -337,7 +349,7 @@ def convert(browser, provider, item, watch, folder):
         url, status = wait_for_link(page, selector, provider)
         if url is None:
             return {"status": status}
-        if not any(public_url(url, host) for host in allowed_hosts):
+        if not provider_url(url, provider):
             return {"status": "unsupported_download_origin"}
         return run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"))
     finally:
@@ -416,7 +428,10 @@ SOCIAL_HOSTS = {"www.instagram.com", "www.tiktok.com"}
 
 def social_offset(links, youtube_id):
     for url in links:
-        parsed = urlsplit(url)
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            continue
         if not public_url(url, "www.youtube.com") or parsed.path != "/watch":
             continue
         parameters = parse_qs(parsed.query)
@@ -541,6 +556,7 @@ def run_matrix(args):
     if args.limit:
         corpus = [item for kind in ("audio", "video")
                   for item in [entry for entry in corpus if entry["kind"] == kind][:args.limit]]
+    versions = tool_versions()
     landings = {name: landing_http(url) for name, url in PROVIDERS.items()}
     rows = []
     key = os.getenv("GEMINI_API_KEY") if args.gemini_free_project else None
@@ -599,16 +615,35 @@ def run_matrix(args):
                     "selected": chosen_timestamp(replay, headless_replay, social, gemini, control),
                 },
             })
-            write_report(args.output, matrix_report(args, rows, landings, browser_status, grounding, False))
-    return matrix_report(args, rows, landings, browser_status, grounding, True)
+            write_report(args.output, matrix_report(args, rows, landings, browser_status, grounding, False, versions))
+    return matrix_report(args, rows, landings, browser_status, grounding, True, versions)
 
 
-def matrix_report(args, rows, landings, browser_status, grounding, complete):
+def tool_version(command):
+    try:
+        result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=5, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    lines = result.stdout.splitlines()
+    return lines[0] if not result.returncode and lines else None
+
+
+def tool_versions():
+    return {
+        "python": sys.version.split()[0],
+        "ffmpeg": tool_version(["ffmpeg", "-version"]),
+        "ffprobe": tool_version(["ffprobe", "-version"]),
+        "repo_revision": tool_version(["git", "rev-parse", "HEAD"]),
+    }
+
+
+def matrix_report(args, rows, landings, browser_status, grounding, complete, versions):
     return {
         "schema_version": 2,
         "scope": "m0_matrix_sample" if args.limit else "m0_matrix",
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
         "complete": complete,
+        "tools": versions,
         "browser_status": browser_status,
         "http_landing_checks": landings,
         "provider_summary": provider_summary(landings, rows),

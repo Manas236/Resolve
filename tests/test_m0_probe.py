@@ -82,3 +82,11 @@ class ProbeValidationTests(unittest.TestCase):
         empty = {"status": "no_data"}
         selected = chosen_timestamp(empty, empty, check_offset(10, control), empty, control)
         self.assertEqual(selected, {"method": "social", "start_seconds": 10})
+
+    def test_provider_origins_are_restricted(self):
+        from tools.m0_probe import provider_url
+
+        self.assertTrue(provider_url("https://s42.notube.net/download", "notube"))
+        self.assertFalse(provider_url("https://s42.notube.net.invalid/download", "notube"))
+        self.assertFalse(provider_url("https://mp7.dev@169.254.169.254/file", "mp7"))
+        self.assertFalse(provider_url("file:///tmp/file", "mp7"))
