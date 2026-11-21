@@ -96,3 +96,7 @@ A two-second render from the SampleLib publisher control produced H.264 at 1080Ã
 ## Dashboard controls groundwork
 
 The loopback dashboard now renders batches from configured local media, persists approval decisions in SQLite, and starts or stops a worker that processes queued renders. Stop lets the active render finish. These controls use the local renderer. Live sourcing, posting, password login and full dashboard acceptance remain open.
+
+## A. Four-target server diagnostic
+
+Queued `m0-browser-diagnostic-02` with browser enabled and two targets per media kind. A fresh ID prevents the previous one-per-kind report from suppressing execution. Use a reviewed checkout containing the rewritten adapters and replay parser. The probe runs the existing provider matrix, including MP7, CnvMP3 and YTHD. Server execution remains pending.
