@@ -9,6 +9,8 @@ from threading import Event, Lock, Thread
 
 from urllib.parse import urlsplit
 
+from tools.m0_probe import probe_energy
+
 from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .framing import render_vertical
@@ -33,6 +35,11 @@ class Pipeline:
                        "source TEXT NOT NULL, status TEXT NOT NULL, error TEXT)")
 
             db.execute("CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS library (id INTEGER PRIMARY KEY, path TEXT UNIQUE, "
+                       "kind TEXT NOT NULL, pinned INTEGER DEFAULT 0, retired INTEGER DEFAULT 0, peak REAL)")
+            db.executemany("INSERT OR IGNORE INTO library(path,kind) VALUES (?, 'clip')",
+                           ((str(source),) for source in self.sources))
+
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -41,6 +48,42 @@ class Pipeline:
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
+
+    def add_song(self, path):
+        path = Path(path).resolve(strict=True)
+        if not path.is_file():
+            raise ValueError("Song source must be a file")
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("INSERT OR IGNORE INTO library(path,kind) VALUES (?, 'song')", (str(path),))
+
+    def library(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return db.execute("SELECT id,path,kind,pinned,retired,peak FROM library ORDER BY kind,id").fetchall()
+
+    def library_action(self, asset_id, action):
+        with closing(sqlite3.connect(self.database)) as db, db:
+            if action == "pin":
+                changed = db.execute("UPDATE library SET pinned=1-pinned WHERE id=? AND retired=0",
+                                     (asset_id,)).rowcount
+            elif action == "retire":
+                changed = db.execute("UPDATE library SET retired=1,pinned=0 WHERE id=? AND retired=0",
+                                     (asset_id,)).rowcount
+            elif action == "timestamp":
+                row = db.execute("SELECT path FROM library WHERE id=? AND retired=0", (asset_id,)).fetchone()
+                if row is None:
+                    raise ValueError("Asset is unavailable")
+                try:
+                    energy = probe_energy(Path(row[0]))
+                except (OSError, subprocess.SubprocessError) as error:
+                    raise ValueError("Timestamp detection failed") from error
+                if energy["status"] != "energy_peak":
+                    raise ValueError("No audio energy peak found")
+                changed = db.execute("UPDATE library SET peak=? WHERE id=? AND retired=0",
+                                     (energy["start_seconds"], asset_id)).rowcount
+            else:
+                raise ValueError("Unknown library action")
+            if not changed:
+                raise ValueError("Asset is unavailable")
 
     def settings(self):
         with closing(sqlite3.connect(self.database)) as db:
@@ -105,11 +148,15 @@ class Pipeline:
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
         with closing(sqlite3.connect(self.database)) as db, db:
+            sources = [row[0] for row in db.execute(
+                "SELECT path FROM library WHERE kind='clip' AND retired=0 ORDER BY pinned DESC,id")]
+            if not sources:
+                raise ValueError("No active clips available")
             first = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                               (str(self.sources[0]),)).lastrowid
+                               (sources[0],)).lastrowid
             for offset in range(1, count):
                 db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                           (str(self.sources[offset % len(self.sources)]),))
+                           (sources[offset % len(sources)],))
         return range(first, first + count)
 
     def make_now(self, count):

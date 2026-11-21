@@ -4,6 +4,7 @@ import argparse
 from html import escape
 from http.cookies import SimpleCookie, CookieError
 import os
+from shutil import copyfileobj
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from hmac import compare_digest
@@ -84,6 +85,30 @@ document.addEventListener("submit", async (event) => {
             self.end_headers()
 
         def do_GET(self):
+            if self.path.startswith("/preview/"):
+                if auth is not None and not auth.valid(self.session()):
+                    self.send_error(403)
+                    return
+                entry = next((row for row in pipeline.library()
+                              if str(row[0]) == self.path.removeprefix("/preview/")), None)
+                if entry is None:
+                    self.send_error(404)
+                    return
+                path = Path(entry[1])
+                mime = {".mp4": "video/mp4", ".webm": "video/webm", ".mp3": "audio/mpeg",
+                        ".wav": "audio/wav", ".m4a": "audio/mp4", ".ogg": "audio/ogg"}.get(path.suffix.lower())
+                if mime is None or not path.is_file():
+                    self.send_error(404)
+                    return
+                with path.open("rb") as stream:
+                    self.send_response(200)
+                    self.send_header("Content-Type", mime)
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Content-Length", str(os.fstat(stream.fileno()).st_size))
+                    self.end_headers()
+                    copyfileobj(stream, self.wfile)
+                return
             if self.path != "/":
                 self.send_error(404)
                 return
@@ -112,6 +137,17 @@ document.addEventListener("submit", async (event) => {
                     ("Posting slots", "Daily volume", "Approval mode", "Refresh cadence", "Format weights"))
             )
             controls += "<h2>Settings</h2>" + form("settings", settings_fields, "Save settings")
+            controls += "<h2>Media libraries</h2>"
+            for asset_id, path, kind, pinned, retired, peak in pipeline.library():
+                controls += (f"<p>{kind} · {escape(Path(path).name)} · "
+                             f"{'Retired' if retired else 'Pinned' if pinned else 'Active'}"
+                             f"{'' if peak is None else f' · {peak:g}s'} "
+                             f'<a href="/preview/{asset_id}" target="_blank" rel="noopener">Preview</a></p>')
+                if not retired:
+                    asset = f'<input type="hidden" name="id" value="{asset_id}">'
+                    for action, label in (("pin", "Unpin" if pinned else "Pin"),
+                                          ("retire", "Retire"), ("timestamp", "Detect timestamp")):
+                        controls += form("library-" + action, asset, label)
             editorial = pipeline.editorial()
             for reel_id, state, error in pipeline.list_reels():
                 controls += f"<p>Reel {reel_id} · {state} {escape(error or '')}</p>"
@@ -168,6 +204,8 @@ document.addEventListener("submit", async (event) => {
                     pipeline.make_now(int(fields["count"][0]))
                 elif self.path in ("/approve", "/reject"):
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
+                elif self.path in ("/library-pin", "/library-retire", "/library-timestamp"):
+                    pipeline.library_action(int(fields["id"][0]), self.path.removeprefix("/library-"))
                 elif self.path == "/settings":
                     pipeline.save_settings({key: values[0] for key, values in fields.items()})
                 elif self.path == "/make-url":
@@ -202,6 +240,7 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
     parser.add_argument("--source", type=Path, action="append", required=True)
+    parser.add_argument("--song", type=Path, action="append", default=[])
     args = parser.parse_args()
     settings = read_env_file(Path(".env")) | dict(os.environ)
     try:
@@ -209,6 +248,8 @@ def main():
     except ValueError as error:
         parser.error(str(error))
     pipeline = Pipeline(args.state, args.source)
+    for song in args.song:
+        pipeline.add_song(song)
     with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth)) as server:
         try:
             server.serve_forever()

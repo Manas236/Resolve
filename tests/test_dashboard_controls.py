@@ -23,7 +23,11 @@ class DashboardControlsTest(unittest.TestCase):
             subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
                             "color=s=160x90:r=2:d=1", "-c:v", "mpeg4", str(source)],
                            check=True, timeout=15)
+            song = root / "song.wav"
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=d=4", str(song)],
+                           check=True, timeout=15)
             pipeline = Pipeline(root / "state", [source])
+            pipeline.add_song(song)
             with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report")) as server:
                 http = Thread(target=server.serve_forever)
                 http.start()
@@ -40,6 +44,14 @@ class DashboardControlsTest(unittest.TestCase):
                         return response.status
 
                     self.assertIn('replaceWith(updated)', page)
+                    connection.request("GET", "/preview/2")
+                    response = connection.getresponse()
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(response.read(), song.read_bytes())
+                    self.assertEqual(post("library-pin", id=2), 303)
+                    self.assertEqual(post("library-timestamp", id=2), 303)
+                    self.assertEqual(post("library-timestamp", id=1), 400)
+                    self.assertEqual(pipeline.library()[1][3:], (1, 0, 0.0))
                     settings = dict(posting_slots="18:00,09:00", volume=2, mode="auto",
                                     refresh_cadence="monthly", format_weights="3,2,1")
                     self.assertEqual(post("settings", **settings), 303)
@@ -71,6 +83,8 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("reorder", order="3,3"), 400)
                     self.assertEqual(post("reorder", order="3,1"), 303)
                     self.assertEqual(pipeline.posting_queue(), [3, 1])
+                    self.assertEqual(post("library-retire", id=2), 303)
+                    self.assertEqual(post("library-pin", id=2), 400)
                     self.assertEqual(post("stop"), 303)
                     pipeline.worker.join(5)
                     self.assertFalse(pipeline.worker.is_alive())
