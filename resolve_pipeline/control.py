@@ -79,9 +79,27 @@ class Pipeline:
         if not changed:
             raise ValueError("Reel is no longer awaiting review")
 
+    def regenerate(self, reel_id):
+        with self.render_lock, closing(sqlite3.connect(self.database)) as db:
+            with db:
+                row = db.execute("SELECT source FROM reels WHERE id=? AND status IN "
+                                 "('review','rejected','failed')", (reel_id,)).fetchone()
+                if row is None:
+                    raise ValueError("Reel cannot be regenerated")
+                replacement = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
+                                         row).lastrowid
+            self._render(replacement)
+
+    def delete(self, reel_id):
+        with self.render_lock, closing(sqlite3.connect(self.database)) as db, db:
+            changed = db.execute("UPDATE reels SET status='deleted' WHERE id=? AND "
+                                 "status IN ('review','rejected','failed','queued')", (reel_id,)).rowcount
+            if not changed:
+                raise ValueError("Reel cannot be deleted")
+
     def list_reels(self):
         with closing(sqlite3.connect(self.database)) as db:
-            return db.execute("SELECT id,status,error FROM reels ORDER BY id DESC").fetchall()
+            return db.execute("SELECT id,status,error FROM reels WHERE status != 'deleted' ORDER BY id DESC").fetchall()
 
     def _loop(self):
         while not self.stop_signal.is_set():

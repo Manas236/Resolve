@@ -58,6 +58,11 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("stop"), 303)
                     pipeline.worker.join(5)
                     self.assertFalse(pipeline.worker.is_alive())
+                    self.assertEqual(post("regenerate", id=2), 303)
+                    self.assertEqual(pipeline.list_reels()[0], (4, "review", None))
+                    self.assertEqual(post("delete", id=4), 303)
+                    self.assertEqual(post("approve", id=4), 400)
+                    self.assertEqual(post("delete", id=1), 400)
                 finally:
                     connection.close()
                     pipeline.stop()

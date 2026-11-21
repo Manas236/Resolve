@@ -100,3 +100,7 @@ The loopback dashboard now renders batches from configured local media, persists
 ## A. Four-target server diagnostic
 
 Queued `m0-browser-diagnostic-02` with browser enabled and two targets per media kind. A fresh ID prevents the previous one-per-kind report from suppressing execution. Use a reviewed checkout containing the rewritten adapters and replay parser. The probe runs the existing provider matrix, including MP7, CnvMP3 and YTHD. Server execution remains pending.
+
+## B. Dashboard authentication and review actions
+
+The loopback CLI now requires a salted scrypt password hash, issues an expiring HttpOnly and SameSite session cookie, supports logout, and locks login for 60 seconds after five failures. The review queue supports regeneration as a separate candidate and soft deletion. Tests exercise lockout, expiry, logout, real regenerated output state and invalid review transitions. The remaining dashboard controls and complete milestone test are open.
