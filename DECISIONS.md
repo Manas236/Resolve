@@ -19,3 +19,8 @@ Two reels per day, configurable slots and format weights. Telegram Approve, Reje
 
 For user-only work, document the exact machine and single-line non-interactive commands in NEEDS_MANAS.md. Wrap long-running commands in screen. Provide placeholders for secrets and continue unrelated work.
 - Treat smoke results as their own report scope. Record sizes, hashes and media metadata while deleting temporary downloads, so proof can travel in Git without media. Use three-second RMS windows only as a baseline for the energy fallback.
+
+## M0 measurement decisions
+
+- Use a fixed publisher-backed transport benchmark so version drift and changed durations can be measured. Keep publisher direct controls separate from independent converter counts and treat blocked/skipped rows as zero successes against the full denominator.
+- Keep the probe encapsulated in one script with a checked-in corpus. Use Playwright only for public user-facing forms and explicit public timestamp links. Capture status and bounded FFmpeg metadata without browser profiles, response bodies, generated URLs or downloaded files in the report.

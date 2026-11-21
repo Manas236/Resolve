@@ -35,3 +35,28 @@ Exclude clones until independently verified. Keep direct-download controls separ
 ### Competitor evidence so far
 
 [HypeAuditor's November profile](https://hypeauditor.com/instagram/dark_mindset___/) lists @dark_mindset___ at 1.2M followers and describes anime edits, discipline quotes and gym motivation. Treat this as a candidate for direct reel sampling. [Aubrium's gym-motivation sample](https://aubrium.com/blog/how-to-go-viral-in-gym-motivation) reports montages and stories as common in its preselected viral set. This indicates existing reach, while the selection makes it unsuitable for estimating the chance that a new reel goes viral. Hooks, cadence and comparative performance for ten verified faceless accounts still need a direct post-level review. Hold F4 until then.
+
+### Publisher benchmark and probe limits
+
+The benchmark uses 10 epic tracks and their public watch IDs and reference lengths from [Kevin MacLeod's published catalog](https://incompetech.com/music/royalty-free/pieces.json), and 10 open films with direct reference files from [Blender's official video site](https://video.blender.org/). This is a reproducible transport and timestamp benchmark. It does not establish which tracks and scenes are currently trending. Converter counts exclude publisher controls. A converter eligibility pass needs downloads against this fixed input set, and the report leaves explicit failed or skipped rows.
+
+The two-item local matrix sample validated the publisher audio and video files and ran the public watch-HTML lookup on both, without finding replay markers. Browser startup failed locally. HTTP 403 on a landing page cannot distinguish a site rule, source-IP restriction or intermediary. The server probe records both HTTP and browser outcomes when safe to compare. Gemini is gated on a billing-disabled project and actual grounding metadata. The social adapter currently requires a documented public post that explicitly links to an offset in the exact watch upload. No corpus entries currently have that mapping.
+
+### Competitor shortlist
+
+This is a discovery sample, with adjacent brand and comedy accounts kept as comparators. Public listings do not establish that every account qualifies as faceless motivation. Counts are observations from the linked pages and have different capture dates.
+
+| Account | Observable signal | Source |
+| --- | --- | --- |
+| @dark_mindset___ | 1.2M followers, anime edits and discipline quote themes | [HypeAuditor](https://hypeauditor.com/instagram/dark_mindset___/) |
+| @gymmotivation | 1.22M followers, bodybuilding motivation | [HypeAuditor](https://hypeauditor.com/instagram/gymmotivation/) |
+| @gymmotivation_1 | Branded gym-page positioning, overlap with @gymmotivation must be checked before counting | [Qoruz](https://qoruz.com/gymmotivation_1) |
+| @gymbeastig | Workout and motivation page, reel sample unavailable in the public listing | [Imginn](https://imginn.com/gymbeastig/) |
+| @bodybuildingnation | 1.38M followers, source reports 387 average likes across content | [HypeAuditor](https://hypeauditor.com/instagram/bodybuildingnation/) |
+| @generationiron | 1.46M followers, nine Reels among 12 displayed posts, including pinned posts | [PicMany](https://picmany.com/generationiron) |
+| @gymshark | 8.81M followers, two Reels in a 12-post snapshot. The two recorded 1.2M and 2.4M plays | [PicMany](https://picmany.com/gymshark) |
+| @musclenation | Fitness and coaching alongside products, adjacent commercial account | [StarNgage](https://starngage.com/plus/en-us/brands/instagram/musclenation) |
+| @bodybuildingcom | 2.7M followers, adjacent fitness publishing account | [Instme](https://instme.com/profile/bodybuildingcom) |
+| @gymhumourjunction | About 14.5K followers, video-led gym humor and relatable effort hooks | [Pictame](https://pictame.com/en/instagram/gymhumourjunction/64287041487) |
+
+F4 hypothesis for later validation: start with a familiar gym friction point, show a quick turning point in the training footage, and finish with one action the viewer can take next session. Both the independent montage/story observations and the gym humor lead suggest testing a concrete situation over a generic exhortation. No F4 build decision yet. Need qualified reel samples with comparable duration, cadence and play data.

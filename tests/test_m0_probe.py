@@ -55,3 +55,30 @@ class ProbeValidationTests(unittest.TestCase):
         self.assertEqual(replay_result(page)["start_seconds"], 4)
         self.assertEqual(replay_result("")["status"], "no_heatmap_in_html")
         self.assertEqual(replay_result(page + " Verify you are human")["status"], "challenge_detected")
+
+    def test_corpus_and_matrix_preserve_denominator(self):
+        from tools.m0_probe import provider_summary, read_corpus
+
+        corpus = read_corpus()
+        self.assertEqual(len(corpus), 20)
+        results = [
+            {"kind": "audio", "converters": {"source": {"status": "verified"}}},
+            {"kind": "audio", "converters": {"source": {"status": "skipped_provider_block"}}},
+        ]
+        summary = provider_summary(["source"], results)["source"]["audio"]
+        self.assertEqual(summary, dict(target=10, observed=2, verified=1, attempted=1, corpus_success_rate=0.1))
+
+    def test_timestamp_requires_matching_source_and_nearby_peak(self):
+        from tools.m0_probe import check_offset, chosen_timestamp, social_offset
+
+        watch = "https://www.youtube.com/watch?v=aqz-KE-bpKQ"
+        self.assertIsNone(social_offset([watch + "&t=9s"], "wrong"))
+        self.assertEqual(social_offset([watch + "&t=9s"], "aqz-KE-bpKQ"), 9)
+        control = {"duration_seconds": 50, "energy": {
+            "status": "energy_peak", "start_seconds": 9, "strong_local_peaks_seconds": [9],
+        }}
+        self.assertEqual(check_offset(40, control)["status"], "rejected_no_nearby_audio_peak")
+        self.assertEqual(check_offset(float("inf"), control)["status"], "invalid_or_unverified_offset")
+        empty = {"status": "no_data"}
+        selected = chosen_timestamp(empty, empty, check_offset(10, control), empty, control)
+        self.assertEqual(selected, {"method": "social", "start_seconds": 10})

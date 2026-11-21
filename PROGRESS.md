@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 1 checkpoint. Continue M0 Stage A by assembling matched corpora of 10 songs and 10 videos with reference durations, testing provider flows in a headless-capable environment, and completing the server matrix and competitor sample. M1 is complete. M2 onward awaits Stage B. Read DECISIONS.md, RESEARCH.md and NEEDS_MANAS.md alongside this file.
+Session 2. The 20-item M0 probe and exact AnalyticsDashboard commands are in NEEDS_MANAS.md. Continue competitor sampling and validation while awaiting the first server report. M1 is complete. M2 onward awaits Stage B. Read DECISIONS.md, RESEARCH.md and NEEDS_MANAS.md alongside this file.
 
 ## Milestones
 
@@ -39,3 +39,9 @@ The full suite passed with six tests via `python3 -m unittest discover -s tests 
 The self-contained probe implements bounded, isolated direct downloads, ffprobe container/stream and resolution validation, an audio-energy smoke test, and public watch-HTML replay detection. It marks the output as smoke scope. The full suite has 11 passing tests, including duration tolerance, low resolution, nonmedia stream rejection, empty and silent audio, absent heatmap and visible challenge text. The code still needs the matched test corpus, provider adapters, headless and social timestamp comparisons, a live Gemini check when eligible, and the complete competitor study. The local Chromium launch failed before navigation because socket creation was denied. This is an executor limitation, not evidence of a remote browser or IP block.
 
 Real local probe evidence in `research/m0_local_smoke.json`: HTTP downloaded and ffprobe verified one 372.715-second MP3 (8,945,229 bytes) and one 1920×1080 MP4 (11,916,526 bytes). FFmpeg decoded both and found RMS peaks at 351s and 9s respectively. SampleLib audio returned 301 and was recorded as a failed attempt. The YouTube watch page returned 200 with no parseable replay markers. This run establishes local smoke behavior. The server gate remains open.
+
+## M0 Stage A matrix checkpoint
+
+The probe now schedules 10 publisher-referenced epic tracks and 10 Blender open films with matching watch IDs. It records direct controls, MP7/noTube/DirectYT browser candidate outcomes, public watch HTML and headless replay observations, optional billing-disabled Gemini grounding and grounded timestamp requests, social links mapped to the exact upload where available, and audio-energy checks. Social coverage is partial because the benchmark currently has no verified per-item social links. The browser recipes require live server confirmation. Reports checkpoint after each item and include explicit skips, verified counts and fixed denominators.
+
+13 automated tests passed. In the two-item diagnostic (`research/m0_local_matrix_sample.json`), one in-range publisher MP3 and one 1280×720 publisher MP4 passed real download and media validation. Plain HTTP returned 200 for the MP7 landing and 403 for the noTube and DirectYT landings. Chromium failed to start in this workspace, so the diagnostic proves no converter results. A 20-item HTTP-only diagnostic is in progress. Stage B and the 10-account study remain unchecked.

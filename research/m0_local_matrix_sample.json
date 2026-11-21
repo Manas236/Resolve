@@ -1,0 +1,199 @@
+{
+  "schema_version": 2,
+  "scope": "m0_matrix_sample",
+  "recorded_at_utc": "2026-11-21T10:11:47.484568+00:00",
+  "complete": true,
+  "browser_status": "TargetClosedError",
+  "http_landing_checks": {
+    "mp7": {
+      "http_status": 200,
+      "status": "landing_reached"
+    },
+    "notube": {
+      "http_status": 403,
+      "status": "http_error"
+    },
+    "directyt": {
+      "http_status": 403,
+      "status": "http_error"
+    }
+  },
+  "provider_summary": {
+    "mp7": {
+      "audio": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "notube": {
+      "audio": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "directyt": {
+      "audio": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 1,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    }
+  },
+  "gemini_grounding": {
+    "status": "skipped_no_billing_disabled_key"
+  },
+  "results": [
+    {
+      "id": "USUAN1900052",
+      "kind": "audio",
+      "title": "Strength of the Titans",
+      "publisher_control": {
+        "id": "USUAN1900052",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 61.910204,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 51,
+          "window_seconds": 3,
+          "rms": 0.214685
+        },
+        "status": "verified",
+        "bytes": 2612191,
+        "sha256": "7b97a9253a244cb1d279c3294269bde3cc4e5971d389df0af0ec969b03fbd52c"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=Hu_CpBu4pO8",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "timestamp_not_probed"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 51,
+          "window_seconds": 3,
+          "rms": 0.214685
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 51
+        }
+      }
+    },
+    {
+      "id": "pAQiVCgv2CsLg79KKXUoMw",
+      "kind": "video",
+      "title": "Big Buck Bunny",
+      "publisher_control": {
+        "id": "pAQiVCgv2CsLg79KKXUoMw",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 596.566,
+        "audio_streams": 1,
+        "width": 1280,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 528,
+          "window_seconds": 3,
+          "rms": 0.066411
+        },
+        "status": "verified",
+        "bytes": 110916740,
+        "sha256": "bdadaa934c09a43f198684ae2031c754d5dc9c925f64b9601a8eac77d1842cf4"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "timestamp_not_probed"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 528,
+          "window_seconds": 3,
+          "rms": 0.066411
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 528
+        }
+      }
+    }
+  ]
+}
