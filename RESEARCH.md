@@ -78,3 +78,19 @@ The analogous public Instagram/TikTok searches for the ten open films did not ex
 The target corpus records exact watch URLs and public provenance. The ten songs were selected from current public workout/edit playlists, including [GYM PHONK](https://open.spotify.com/embed/playlist/6gM109fGbzurLncnPx45Cq), [Magic Records](https://open.spotify.com/embed/playlist/0xF0eHm3eguBqBvgVyQ3UB) and [HOUSE OF PHONK](https://open.spotify.com/embed/playlist/3OL5heo9PTgpS07zRxdmZ1). This is a playlist-based selection signal. Each row records the listed duration and distinguishes slowed edits. The ten video targets include movie scenes surfaced by public motivation roundups, plus public podcast excerpts and speeches from channel searches. Example discovery sources include [Three Great Inspirational Scenes from Movies](https://www.statementsofintent.co.uk/three-great-inspirational-scenes-from-movies) and the [Huberman Lab willpower clip](https://www.youtube.com/watch?v=84dYijIpWjQ). A selection can be representative of a recurring edit theme even when its source upload is older.
 
 The eight declared dual-format trials are MP7, noTube, DirectYT, CnvMP3, EAO Tools, YTHD, YTMP3 Space and Loader.to. The probe also evaluates matched direct-download pages from Audio.com and SoundWorldz. These are candidates with experimental public-page selectors. HTTP blocks, selector mismatches, unsupported download hosts, wrong versions and undersized videos are recorded as failures or explicit skips. The report excludes all publisher baseline rows from these counts.
+
+### AnalyticsDashboard report, 21 November 2026
+
+The complete schema 3 report used probe revision `683e228`. Chromium started successfully. Across the 10 audio and 10 video targets, each eligible provider recorded **0/10 verified** and no production provider qualified. Publisher controls independently verified 10/10 audio files and 9/10 videos.
+
+| Provider | Observed outcome |
+| --- | --- |
+| MP7 | Landing HTTP 200, all 20 browser submissions reported provider rejection |
+| CnvMP3, YTHD, Loader | Landing HTTP 200, no download link in 20 browser attempts each |
+| EAO | Landing unavailable, 20 browser errors |
+| noTube, DirectYT, YTMP3 Space | HTTP 403, browser trials skipped |
+| Audio.com, SoundWorldz | HTTP 403 on each provider's one matched track, nine unmatched rows each |
+
+Across both target kinds, HTTP and headless watch inspection returned no parseable replay markers on all 20 items. The social method had no validated source mapping, Gemini was skipped without a billing-disabled key, and the audio fallback had no verified target media. The report cannot distinguish an IP block from a provider policy or probe limitations. In particular, a missing download link leaves the public-page selector unverified.
+
+Acceptance failed for downloads and target timestamps. Before a new server run, validate candidate public flows and media extraction against a small diagnostic and record the failure stage distinctly. Keep blocked pages out of further attempts. Competitor sampling remains open.

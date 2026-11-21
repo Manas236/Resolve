@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 4 checkpoint. The AnalyticsDashboard probe is running and will push its report to main. Check for research/m0_server_results.json on each follow-up. Site-independent M2 and M3–M7 groundwork may continue. M1 remains complete.
+Session 5 checkpoint. Stage B evidence is on main and the M0 gate failed. See RESEARCH.md for measured results. Continue site-independent groundwork pending a successful re-probe and competitor evidence.
 
 ## Milestones
 
@@ -65,3 +65,7 @@ The revised two-row HTTP-only diagnostic completed against LOS VOLTAJE and the R
 ## Provider-independent clip groundwork
 
 Added a clip-window planner that keeps a candidate timestamp in bounds, preserves lead-in where possible, and handles short source media. Added tests for both edges, short media and invalid timestamps. All 25 tests passed. Recorded the successful AnalyticsDashboard AppArmor setup and the M13 deployment and health-check requirements in DECISIONS.md.
+
+## M0 Stage B first report
+
+AnalyticsDashboard's completed report measured zero verified downloads and zero selected timestamps across the 20 motivation targets. Chromium launched and the separate controls verified 10 audio and nine video assets. M0 and M2 remain unchecked. See RESEARCH.md for the per-provider breakdown and re-probe priorities.
