@@ -83,3 +83,5 @@ Added an FFmpeg center-crop filter that accounts for source display aspect ratio
 ## Server runner and replay parsing groundwork
 
 Added an opt-in server runner and handoff notes, including no-paid fallback tradeoffs. The queue can select only a bounded probe job. Executable probe code comes from a separate locally reviewed checkout. The replay parser now decodes complete heat-marker objects instead of dropping objects containing nested metadata. Live replay availability and server runner execution remain unverified.
+
+Queued the two-target Chromium diagnostic as `m0-browser-diagnostic-01`. It can run once the AnalyticsDashboard runner is installed and points to a reviewed checkout that includes the updated probe. Its separate report will appear at `research/server_jobs/m0-browser-diagnostic-01.json`. Added a regression test for nested replay marker metadata. All 29 local tests passed. No live execution or download success has been verified.

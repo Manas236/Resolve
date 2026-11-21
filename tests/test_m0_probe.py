@@ -127,3 +127,18 @@ class ProbeValidationTests(unittest.TestCase):
         with patch.object(sys, "version_info", (3, 10)):
             with self.assertRaisesRegex(SystemExit, "requires Python 3.11 or newer"):
                 runpy.run_path(str(script), run_name="__main__")
+
+class NestedReplayMarkerTests(unittest.TestCase):
+    def test_replay_reads_nested_marker_and_picks_peak(self):
+        from tools.m0_probe import replay_result
+
+        data = (
+            '{"heatMarkerRenderer":{"timeRangeStartMillis":"2000",'
+            '"metadata":{"nested":true},"heatMarkerIntensityScoreNormalized":0.4}},'
+            '{"heatMarkerRenderer":{"timeRangeStartMillis":5000,'
+            '"heatMarkerIntensityScoreNormalized":0.9}}'
+        )
+        result = replay_result(data)
+        self.assertEqual(result["status"], "peak")
+        self.assertEqual(result["start_seconds"], 5)
+        self.assertEqual(result["marker_count"], 2)
