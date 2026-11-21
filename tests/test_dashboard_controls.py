@@ -13,11 +13,17 @@ from urllib.parse import urlencode
 
 from resolve_pipeline.control import Pipeline
 from resolve_pipeline.dashboard import handler_for
+from resolve_pipeline.dashboard_auth import DashboardAuth, password_hash
 
 
 @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg tools required")
 class DashboardControlsTest(unittest.TestCase):
     def test_http_controls_render_review_and_manage_worker(self):
+        for initially_running in (False, True):
+            with self.subTest(initially_running=initially_running):
+                self.exercise_controls(initially_running)
+
+    def exercise_controls(self, initially_running):
         with TemporaryDirectory() as folder:
             root = Path(folder)
             source = root / "source.mp4"
@@ -30,7 +36,11 @@ class DashboardControlsTest(unittest.TestCase):
             pipeline = Pipeline(root / "state", [source])
             pipeline.add_song(song)
             job = root / "jobs" / "next_job.json"
-            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report", job_file=job,
+            salt = b"dashboard test salt"
+            auth = DashboardAuth(salt.hex() + "$" + password_hash("test-password", salt))
+            if initially_running:
+                pipeline.start()
+            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report", auth=auth, job_file=job,
                                          performance={"song": {"<fixture>": 12}})) as server:
                 http = Thread(target=server.serve_forever)
                 http.start()
@@ -38,17 +48,29 @@ class DashboardControlsTest(unittest.TestCase):
                 try:
                     connection.request("GET", "/")
                     page = connection.getresponse().read().decode()
-                    self.assertIn("&lt;fixture&gt; · 12 views", page)
                     token = re.search(r'name="token" value="([^"]+)"', page)[1]
 
+                    cookie = ""
+
                     def post(action, **fields):
-                        connection.request("POST", "/" + action, urlencode({"token": token, **fields}))
+                        connection.request("POST", "/" + action, urlencode({"token": token, **fields}),
+                                           {"Cookie": cookie})
                         response = connection.getresponse()
                         response.read()
                         return response.status
 
+                    self.assertIn("Log in", page)
+                    self.assertEqual(post("make", count=1), 403)
+                    connection.request("POST", "/login", urlencode({"token": token, "password": "test-password"}))
+                    login = connection.getresponse()
+                    self.assertEqual(login.status, 303)
+                    cookie = login.getheader("Set-Cookie").split(";", 1)[0]
+                    login.read()
+                    connection.request("GET", "/", headers={"Cookie": cookie})
+                    page = connection.getresponse().read().decode()
+                    self.assertIn("&lt;fixture&gt; · 12 views", page)
                     self.assertIn('replaceWith(updated)', page)
-                    connection.request("GET", "/preview/2")
+                    connection.request("GET", "/preview/2", headers={"Cookie": cookie})
                     response = connection.getresponse()
                     self.assertEqual(response.status, 200)
                     self.assertEqual(response.read(), song.read_bytes())
@@ -71,7 +93,7 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(pipeline.settings()["volume"], "2")
                     self.assertEqual(post("make", count=2, token="wrong"), 403)
                     self.assertEqual(post("make", count=2), 303)
-                    self.assertFalse(pipeline.running)
+                    self.assertEqual(pipeline.running, initially_running)
                     for reel in (1, 2):
                         self.assertGreater((pipeline.directory / f"{reel}.mp4").stat().st_size, 0)
                     self.assertEqual(post("make-url", url="https://example.com/a.mp4"), 400)
@@ -93,23 +115,28 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("reorder", order="3,3"), 400)
                     self.assertEqual(post("reorder", order="3,1"), 303)
                     self.assertEqual(pipeline.posting_queue(), [3, 1])
+                    if not initially_running:
+                        self.assertEqual(post("stop"), 303)
+                        pipeline.worker.join(5)
                     self.assertEqual(post("library-retire", id=2), 303)
                     self.assertEqual(post("library-pin", id=2), 400)
                     self.assertEqual(post("site-toggle", site="mp7"), 303)
                     self.assertTrue(pipeline.sites()["mp7"])
                     self.assertEqual(post("site-retest"), 303)
                     self.assertNotEqual(json.loads(job.read_text())["id"], initial_job["id"])
-                    self.assertEqual(post("stop"), 303)
-                    pipeline.worker.join(5)
-                    self.assertFalse(pipeline.worker.is_alive())
                     self.assertEqual(post("regenerate", id=2), 303)
                     self.assertEqual(pipeline.list_reels()[0], (4, "review", None))
                     self.assertEqual(post("delete", id=4), 303)
                     self.assertEqual(post("approve", id=4), 400)
                     self.assertEqual(post("delete", id=1), 400)
                     self.assertEqual(pipeline.recent_actions()[0][1:], ("/delete", "rejected"))
-                    connection.request("GET", "/")
+                    connection.request("GET", "/", headers={"Cookie": cookie})
                     self.assertIn("Logs and failures", connection.getresponse().read().decode())
+                    self.assertEqual(post("stop"), 303)
+                    pipeline.worker.join(5)
+                    self.assertFalse(pipeline.worker.is_alive())
+                    self.assertEqual(post("logout"), 303)
+                    self.assertEqual(post("make", count=1), 403)
                 finally:
                     connection.close()
                     pipeline.stop()
