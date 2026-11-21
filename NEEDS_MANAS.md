@@ -13,10 +13,22 @@ GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main
 On **AnalyticsDashboard Lightsail**, launch setup of the isolated probe environment and headless Chromium. Check the setup log before starting the probe.
 
 ```sh
-screen -L -Logfile resolve-m0-setup.log -dmS resolve-m0-setup sh -c 'python3 -m venv .venv && .venv/bin/python -m pip --disable-pip-version-check --no-input install playwright==1.62.0 && .venv/bin/python -m playwright install chromium'
+screen -L -Logfile resolve-m0-setup.log -dmS resolve-m0-setup sh -c 'python3 tools/m0_probe.py --help >/dev/null && python3 -m venv .venv && .venv/bin/python -m pip --disable-pip-version-check --no-input install playwright==1.62.0 && .venv/bin/python -m playwright install chromium'
 ```
 
-On **AnalyticsDashboard Lightsail**, start the 20-item probe:
+On **AnalyticsDashboard Lightsail**, install Playwright's Chromium system dependencies. This uses your existing non-interactive sudo access. Check the dependency log for package errors.
+
+```sh
+screen -L -Logfile resolve-m0-deps.log -dmS resolve-m0-deps sudo -n "$PWD/.venv/bin/python" -m playwright install-deps chromium
+```
+
+On **AnalyticsDashboard Lightsail**, run the Chromium preflight after both setup sessions finish:
+
+```sh
+.venv/bin/python tools/m0_probe.py --check-browser
+```
+
+On **AnalyticsDashboard Lightsail**, start the probe for 20 motivation targets and 20 separate publisher baseline items:
 
 ```sh
 screen -L -Logfile resolve-m0-server.log -dmS resolve-m0-server .venv/bin/python tools/m0_probe.py --output research/m0_server_results.json

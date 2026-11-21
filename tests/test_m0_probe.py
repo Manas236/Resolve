@@ -99,3 +99,28 @@ class ProbeValidationTests(unittest.TestCase):
         self.assertEqual(timestamp_reference(failed, {"provider": media}), ("provider", media))
         self.assertEqual(timestamp_reference(media, {"provider": media}), ("publisher", media))
         self.assertEqual(timestamp_reference(failed, {"provider": failed}), (None, {}))
+
+    def test_target_and_baseline_separation_and_provider_coverage(self):
+        from tools.m0_probe import DIRECT_MP3, PROVIDERS, matrix_report, read_corpus
+        from argparse import Namespace
+
+        targets, baseline = read_corpus(), read_corpus(baseline=True)
+        self.assertEqual(len({item["youtube_id"] for item in targets + baseline}), 40)
+        self.assertGreaterEqual(len(set(PROVIDERS) - DIRECT_MP3), 8)
+        self.assertTrue(all(item["watch_url"].endswith(item["youtube_id"]) for item in targets))
+        row = {"corpus": "baseline", "kind": "audio", "publisher_control": {"status": "verified"},
+               "timestamps": {"selected": None}, "converters": {"mp7": {"status": "verified"}}}
+        report = matrix_report(Namespace(limit=None, no_browser=False), [row], {"mp7": {}},
+                               "ready", None, True, {})
+        self.assertEqual(report["provider_summary"]["mp7"]["audio"]["verified"], 0)
+        self.assertEqual(report["baseline_summary"]["audio"]["publisher_verified"], 1)
+
+    def test_old_python_message_precedes_imports(self):
+        import runpy
+        from pathlib import Path
+        import sys
+        from unittest.mock import patch
+
+        with patch.object(sys, "version_info", (3, 10)):
+            with self.assertRaisesRegex(SystemExit, "requires Python 3.11 or newer"):
+                runpy.run_path(str(Path(__file__).resolve().parents[1] / "tools/m0_probe.py"), run_name="__main__")

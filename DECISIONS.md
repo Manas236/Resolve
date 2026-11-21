@@ -24,3 +24,6 @@ For user-only work, document the exact machine and single-line non-interactive c
 
 - Use a fixed publisher-backed transport benchmark so version drift and changed durations can be measured. Keep publisher direct controls separate from independent converter counts and treat blocked/skipped rows as zero successes against the full denominator.
 - Keep the probe encapsulated in one script with a checked-in corpus. Use Playwright only for public user-facing forms and explicit public timestamp links. Capture status and bounded FFmpeg metadata without browser profiles, response bodies, generated URLs or downloaded files in the report.
+
+- Stage B's gate counts only the public motivation corpus. Keep publisher tracks and open films as a separately reported control group.
+- Before Stage B, build site-agnostic M2 registry, adapter contract, rotation and media validation. Keep M2 unchecked and site availability unknown until real evidence supports promotion.

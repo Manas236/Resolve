@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Measure Resolve M0 download and timestamp candidates without retaining media."""
 
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Resolve M0 requires Python 3.11 or newer (running %s)." % sys.version.split()[0])
+
 import argparse
 from array import array
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 import hashlib
 from http.client import HTTPException
@@ -12,7 +18,6 @@ import os
 from pathlib import Path
 import re
 import subprocess
-import sys
 import tempfile
 import time
 from urllib.parse import parse_qs, urljoin, urlsplit
@@ -266,7 +271,17 @@ PROVIDERS = {
     "mp7": "https://mp7.dev/",
     "notube": "https://notube.net/en",
     "directyt": "https://directytdownloader.com/",
+    "cnvmp3": "https://ww7.cnvmp3.org/",
+    "eao": "https://tools.eao-lab.com/",
+    "ythd": "https://www.ythd.site/en",
+    "ytmp3space": "https://ytmp3.space/",
+    "loader": "https://loader.to/en/",
+    "audiocom": "https://audio.com/",
+    "soundworldz": "https://soundworldz.com/",
+
 }
+
+DIRECT_MP3 = {"audiocom", "soundworldz"}
 
 
 def provider_url(url, provider):
@@ -310,8 +325,53 @@ def wait_for_link(page, selector, provider):
     return None, "no_download_link"
 
 
+def submit_public_form(page, watch, kind):
+    """Use labelled controls on the public page, without submitting an ambiguous form."""
+    fields = page.locator(
+        "input[type=url], input[placeholder*='youtube' i], input[placeholder*='paste' i]"
+    )
+    field = next((candidate for candidate in fields.all() if candidate.is_visible()), None)
+    if field is None:
+        return False
+    field.fill(watch)
+    formats = ("mp3",) if kind == "audio" else ("720p", "mp4 hd", "1080p", "mp4")
+    for menu in page.locator("select").all():
+        if not menu.is_visible():
+            continue
+        options = menu.locator("option")
+        for fmt in formats:
+            match = next((option for option in options.all()
+                          if fmt in (option.text_content() or "").casefold()), None)
+            if match is not None:
+                menu.select_option(value=match.get_attribute("value") or match.text_content())
+                break
+    if browser_blocked(page):
+        return False
+    format_button = page.get_by_role("button", name=re.compile(
+        r"^(?:convert to |get )?(?:" + ("mp3" if kind == "audio" else "mp4|720p") + r")$", re.I
+    ))
+    submit = page.get_by_role("button", name=re.compile(
+        r"^(?:convert|start|download|get video|get audio|go)(?: now)?$", re.I
+    ))
+    for controls in (format_button, submit):
+        button = next((candidate for candidate in controls.all() if candidate.is_visible()), None)
+        if button is not None:
+            button.click()
+            return True
+    return False
+
+
+def generic_download_selector(kind):
+    if kind == "audio":
+        return "a[download][href*='.mp3' i], a:has-text('Download MP3'), a[href$='.mp3' i]"
+    return ("a[download][href*='.mp4' i], a:has-text('Download MP4'), "
+            "a:has-text('Download 720p'), a:has-text('Download 1080p'), a[href$='.mp4' i]")
+
+
 def convert(browser, provider, item, watch, folder):
-    landing = PROVIDERS[provider]
+    landing = item.get("provider_pages", {}).get(provider, PROVIDERS[provider])
+    if not provider_url(landing, provider):
+        return {"status": "unsupported_page_origin"}
     context = browser.new_context(accept_downloads=False, service_workers="block")
     context.route("**/*", lambda route: (
         route.continue_() if provider_url(route.request.url, provider) else route.abort()
@@ -341,7 +401,7 @@ def convert(browser, provider, item, watch, folder):
                 page.locator("#fmtPanel").get_by_text("MP3" if audio else "MP4 HD", exact=True).click()
             page.locator("#submit-button").click()
             selector = "a[download], a[href*='/download/']:text-is('Download'), a:text-is('Download')"
-        else:
+        elif provider == "directyt":
             if page.locator("#consent-decline").is_visible():
                 page.locator("#consent-decline").click()
             page.locator("#dl-url").fill(watch)
@@ -351,6 +411,12 @@ def convert(browser, provider, item, watch, folder):
                 selector = "#panel-mp3 a[href]:not([href='#'])"
             else:
                 selector = "#dl-video-list li:has-text('720p') a[href], #dl-video-list li:has-text('1080p') a[href]"
+        elif provider in DIRECT_MP3:
+            selector = generic_download_selector("audio")
+        else:
+            if not submit_public_form(page, watch, item["kind"]):
+                return {"status": "challenge_detected" if browser_blocked(page) else "public_form_unavailable"}
+            selector = generic_download_selector(item["kind"])
         url, status = wait_for_link(page, selector, provider)
         if url is None:
             return {"status": status}
@@ -520,19 +586,28 @@ def chosen_timestamp(replay, browser_result, social, gemini, control):
     return None
 
 
-def read_corpus():
-    items = json.loads((ROOT / "research/m0_corpus.json").read_text(encoding="utf-8"))
+def read_corpus(baseline=False):
+    filename = "m0_baseline.json" if baseline else "m0_corpus.json"
+    items = json.loads((ROOT / "research" / filename).read_text(encoding="utf-8"))
     for kind in ("audio", "video"):
         if sum(item["kind"] == kind for item in items) != 10:
             raise ValueError("expected ten items of each kind")
-    if len(items) != 20 or len({item["id"] for item in items}) != 20:
-        raise ValueError("expected twenty distinct items")
+    if len(items) != 20 or len({item["youtube_id"] for item in items}) != 20:
+        raise ValueError("expected twenty distinct watch IDs")
     for item in items:
         if not re.fullmatch(r"[A-Za-z0-9_-]{11}", item["youtube_id"]):
             raise ValueError("invalid watch identifier")
-        if item["kind"] == "audio" and not public_url(item["direct_url"], "incompetech.com"):
+        watch = f"https://www.youtube.com/watch?v={item['youtube_id']}"
+        if not baseline and (item.get("watch_url") != watch or not item.get("source_url")):
+            raise ValueError("invalid target provenance")
+        if item["kind"] == "audio" and (
+            type(item.get("reference_seconds")) not in (int, float)
+            or not math.isfinite(item["reference_seconds"]) or item["reference_seconds"] <= 0
+        ):
+            raise ValueError("invalid audio reference duration")
+        if baseline and item["kind"] == "audio" and not public_url(item["direct_url"], "incompetech.com"):
             raise ValueError("invalid audio reference origin")
-        if item["kind"] == "video" and not re.fullmatch(r"[A-Za-z0-9]{22}", item["peertube_id"]):
+        if baseline and item["kind"] == "video" and not re.fullmatch(r"[A-Za-z0-9]{22}", item["peertube_id"]):
             raise ValueError("invalid Blender video identifier")
     return items
 
@@ -542,6 +617,8 @@ def provider_summary(providers, rows):
     for provider in providers:
         summaries[provider] = {}
         for kind in ("audio", "video"):
+            if provider in DIRECT_MP3 and kind == "video":
+                continue
             attempts = [row["converters"][provider] for row in rows
                         if row["kind"] == kind and provider in row["converters"]]
             verified = sum(attempt["status"] == "verified" for attempt in attempts)
@@ -579,46 +656,65 @@ def outcome_summary(rows):
     return summary
 
 
-def run_matrix(args):
-    from contextlib import ExitStack
+@contextmanager
+def start_browser(executable):
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as error:
+        raise RuntimeError("Playwright is missing. Run the probe setup in NEEDS_MANAS.md.") from error
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch(
+                executable_path=executable, headless=True, chromium_sandbox=True, timeout=15000,
+            )
+        except Exception as error:
+            raise RuntimeError(
+                "Chromium preflight failed. Install the browser and Linux system dependencies "
+                "with the commands in NEEDS_MANAS.md. If already installed, check sandbox or "
+                f"permission errors in the Chromium diagnostic below.\n{error}"
+            ) from error
+        try:
+            yield browser
+        finally:
+            browser.close()
 
-    corpus = read_corpus()
+
+def run_matrix(args):
+    corpus = [(False, item) for item in read_corpus()]
     if args.limit:
-        corpus = [item for kind in ("audio", "video")
-                  for item in [entry for entry in corpus if entry["kind"] == kind][:args.limit]]
+        corpus = [pair for kind in ("audio", "video")
+                  for pair in [entry for entry in corpus if entry[1]["kind"] == kind][:args.limit]]
+    if not args.limit:
+        corpus.extend((True, item) for item in read_corpus(baseline=True))
     versions = tool_versions()
-    landings = {name: landing_http(url) for name, url in PROVIDERS.items()}
     rows = []
     key = os.getenv("GEMINI_API_KEY") if args.gemini_free_project else None
-    grounding = gemini_grounding(key)
     blocked = set()
     with ExitStack() as stack:
         folder = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="resolve-m0-")))
         browser = None
         browser_status = "disabled"
         if not args.no_browser:
-            try:
-                from playwright.sync_api import sync_playwright
-                playwright = stack.enter_context(sync_playwright())
-                browser = playwright.chromium.launch(
-                    executable_path=args.chromium, headless=True, chromium_sandbox=True, timeout=15000,
-                )
-                stack.callback(browser.close)
-                browser_status = "ready"
-            except Exception as error:
-                browser_status = type(error).__name__
-        for item in corpus:
+            browser = stack.enter_context(start_browser(args.chromium))
+            browser_status = "ready"
+        landings = {name: landing_http(url) for name, url in PROVIDERS.items()}
+        grounding = gemini_grounding(key)
+        for baseline, item in corpus:
             watch = f"https://www.youtube.com/watch?v={item['youtube_id']}"
             print(f"Probing {item['kind']} {item['title']}", flush=True)
-            control = direct_control(item, folder)
+            control = direct_control(item, folder) if baseline else {"status": "not_applicable"}
             replay = probe_replay(watch)
             headless_replay = browser_replay(browser, watch, replay)
             attempts = {}
             target = {**item}
             if item["kind"] == "video":
                 target["reference_seconds"] = control.get("duration_seconds")
-            for name, landing in landings.items():
-                if (name in blocked or landing["status"] == "challenge_detected" or
+            for name, landing in ({} if baseline else landings).items():
+                if name in DIRECT_MP3 and item["kind"] == "video":
+                    continue
+                if name in DIRECT_MP3 and name not in item.get("provider_pages", {}):
+                    attempts[name] = {"status": "skipped_no_matched_direct_page"}
+                elif (name in blocked or landing["status"] == "challenge_detected" or
                         landing.get("http_status") in {401, 403, 429}):
                     attempts[name] = {"status": "skipped_provider_block"}
                 elif browser is None:
@@ -636,6 +732,7 @@ def run_matrix(args):
             gemini = gemini_timestamp(key, grounding["status"] == "grounded", item, watch, reference_media)
             rows.append({
                 "id": item["id"], "kind": item["kind"], "title": item["title"],
+                "corpus": "baseline" if baseline else "target", "watch_url": watch,
                 "publisher_control": control, "converters": attempts,
                 "timestamps": {
                     "youtube_replay": replay,
@@ -670,16 +767,19 @@ def tool_versions():
 
 
 def matrix_report(args, rows, landings, browser_status, grounding, complete, versions):
+    target = [row for row in rows if row["corpus"] == "target"]
+    baseline = [row for row in rows if row["corpus"] == "baseline"]
     return {
-        "schema_version": 2,
-        "scope": "m0_matrix_sample" if args.limit else "m0_matrix",
+        "schema_version": 3,
+        "scope": "m0_diagnostic" if args.limit or args.no_browser else "m0_matrix",
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
         "complete": complete,
         "tools": versions,
         "browser_status": browser_status,
         "http_landing_checks": landings,
-        "provider_summary": provider_summary(landings, rows),
-        "outcome_summary": outcome_summary(rows),
+        "provider_summary": provider_summary(landings, target),
+        "outcome_summary": outcome_summary(target),
+        "baseline_summary": outcome_summary(baseline),
         "gemini_grounding": grounding,
         "results": rows,
     }
@@ -702,12 +802,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--check-browser", action="store_true", help="launch Chromium without probing any site")
     parser.add_argument("--limit", type=int, choices=range(1, 11), help="diagnostic rows per media kind")
     parser.add_argument("--chromium", help="path to installed Chrome or Chromium")
     parser.add_argument("--no-browser", action="store_true", help="run HTTP diagnostics only")
     parser.add_argument("--gemini-free-project", action="store_true",
                         help="use exported GEMINI_API_KEY only if its project has billing disabled")
     args = parser.parse_args()
+    if args.check_browser:
+        try:
+            with start_browser(args.chromium):
+                print("Chromium preflight passed.")
+        except RuntimeError as error:
+            parser.exit(2, str(error) + "\n")
+        return 0
     if args.output is None:
         filename = "m0_server_results.json"
         if args.smoke:
@@ -726,7 +834,10 @@ def main():
             "replay_smoke": probe_replay(),
         }
     else:
-        report = run_matrix(args)
+        try:
+            report = run_matrix(args)
+        except RuntimeError as error:
+            parser.exit(2, str(error) + "\n")
     write_report(args.output, report)
     print(f"Wrote {args.output}")
     return 0

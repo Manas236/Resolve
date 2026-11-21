@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 2 checkpoint. M1 is complete. M0's server matrix and handoff are ready. Await the completed AnalyticsDashboard report and the missing direct-competitor Reel evidence in NEEDS_MANAS.md. Then analyse the server report in RESEARCH.md and re-probe any failed M0 criteria. M2 onward awaits the M0 gate.
+Session 3 checkpoint. Run the revised M0 probe from NEEDS_MANAS.md on AnalyticsDashboard. Its provider counts use real motivation targets and exclude publisher baseline assets. M1 remains complete. Only site-agnostic M2 foundations may proceed before the M0 gate.
 
 ## Milestones
 
@@ -10,7 +10,7 @@ Session 2 checkpoint. M1 is complete. M0's server matrix and handoff are ready. 
   - [ ] On 10 songs and 10 videos, report all four timestamp methods and which worked. Verify Gemini free-tier Search grounding and cross-check social/Gemini timestamps against audio.
   - [ ] Compare plain HTTP and headless Chrome for applicable steps and report headless/browser/IP blocks with evidence. Skip CAPTCHA and bot checks.
   - [ ] Study 10 leading faceless competitors in the chosen niche. Record formats, hooks, duration, cadence and observed performance. Propose F4 only if supported by observations.
-  - For failed download or timestamp gates, add candidates or methods and re-probe. Only M1 may be built before the gate passes.
+  - For failed download or timestamp gates, add candidates or methods and re-probe. M1 and the site-agnostic M2 foundation are allowed before the gate passes.
 - [x] **M1 Scaffold.** Fresh repo, runtime config and .env.example, logging, folder layout, automated tests and README. Exercise normal startup and invalid config, local runtime directory creation and repeat startup.
 - [ ] **M2 Downloader.** Configurable registry with 10+ candidates each for audio and video and health scores. Verify adapters, automatic rotation, health checks, retries, cache, isolated audio/video-only ffprobe validation and song duration matching within 3 seconds.
 - [ ] **M3 Song library.** Source from public Spotify playlist pages and articles, dedupe and rank by frequency and recency, select and record cross-checked timestamps, download correct versions and cut. Prove 30+ songs with verified segments.
@@ -51,3 +51,7 @@ The browser candidate audit checked the current public page markup. The noTube p
 The full local HTTP diagnostic finished all 20 rows (`research/m0_local_http_matrix.json`). The publisher controls verified 10/10 audio files within duration tolerance and 7/10 videos at 720p or better. Three video downloads timed out. Audio energy selected offsets for all 17 verified files. Sixteen watch pages yielded no replay markers and four returned HTTP errors. Headless conversion was excluded from this run, so these counts are publisher and timestamp evidence only. Full suite passed 15 tests. The current probe adds outcome summaries and uses a verified converter's audio when the publisher control fails. The documented commands use a full run with browser enabled.
 
 A bounded repeat of the three timed-out publisher controls verified Agent 327 and Spring at 720p or better. Caminandes: Llamigos timed out again. The first-pass rate remains 7/10, and nine distinct video controls verified across the two runs. The current schema's two-item diagnostic completed successfully, recorded its code/tool versions, and reported a Big Buck Bunny transfer timeout where the earlier run had succeeded. These are local transport observations. Await Lightsail for converter and network conclusions.
+
+## M0 target corpus revision
+
+The target matrix now uses 10 gym-edit tracks from public Spotify workout playlists and 10 motivational movie, podcast and speech uploads. It measures 8 dual-format converter candidates and 2 additional direct MP3 leads. Two direct pages have matched tracks, and remaining direct rows explicitly record missing matches. The prior 20 publisher items run separately and contribute zero to converter gate counts. Python 3.10 fails before probe startup. Chromium preflight exited clearly on this workspace's launcher restriction. The full suite passed 17 tests including the fixed target denominator and baseline separation. Provider availability and browser conversion remain pending real Lightsail measurements.
