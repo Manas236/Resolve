@@ -275,7 +275,7 @@ PROVIDERS = {
     "eao": "https://tools.eao-lab.com/",
     "ythd": "https://www.ythd.site/en",
     "ytmp3space": "https://ytmp3.space/",
-    "loader": "https://loader.to/en/",
+    "loader": "https://en.loader.to/4/",
     "audiocom": "https://audio.com/",
     "soundworldz": "https://soundworldz.com/",
 
