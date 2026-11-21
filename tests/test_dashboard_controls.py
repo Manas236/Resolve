@@ -30,13 +30,15 @@ class DashboardControlsTest(unittest.TestCase):
             pipeline = Pipeline(root / "state", [source])
             pipeline.add_song(song)
             job = root / "jobs" / "next_job.json"
-            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report", job_file=job)) as server:
+            with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(pipeline, root / "report", job_file=job,
+                                         performance={"song": {"<fixture>": 12}})) as server:
                 http = Thread(target=server.serve_forever)
                 http.start()
                 connection = HTTPConnection(*server.server_address, timeout=30)
                 try:
                     connection.request("GET", "/")
                     page = connection.getresponse().read().decode()
+                    self.assertIn("&lt;fixture&gt; · 12 views", page)
                     token = re.search(r'name="token" value="([^"]+)"', page)[1]
 
                     def post(action, **fields):
@@ -105,6 +107,9 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("delete", id=4), 303)
                     self.assertEqual(post("approve", id=4), 400)
                     self.assertEqual(post("delete", id=1), 400)
+                    self.assertEqual(pipeline.recent_actions()[0][1:], ("/delete", "rejected"))
+                    connection.request("GET", "/")
+                    self.assertIn("Logs and failures", connection.getresponse().read().decode())
                 finally:
                     connection.close()
                     pipeline.stop()

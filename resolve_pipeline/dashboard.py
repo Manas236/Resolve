@@ -21,17 +21,30 @@ def report_html(report):
     rows = []
     for provider, kinds in report.get("provider_summary", {}).items():
         for kind, stats in kinds.items():
-            cells = (provider, kind, stats.get("verified", 0), stats.get("target", 0))
+            cells = (provider, kind, stats.get("verified", 0), stats.get("target", 0),
+                     f'{stats["corpus_success_rate"]:.0%}' if "corpus_success_rate" in stats else "Unknown")
             rows.append("<tr>" + "".join(f"<td>{escape(str(value))}</td>" for value in cells) + "</tr>")
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8"><title>Resolve</title>'
         '<h1>Resolve probe results</h1><table><thead><tr><th>Provider</th>'
-        '<th>Media</th><th>Verified</th><th>Targets</th></tr></thead><tbody>'
+        '<th>Media</th><th>Verified</th><th>Targets</th><th>Health (probe success)</th></tr></thead><tbody>'
         + "".join(rows) + "</tbody></table></html>"
     )
 
 
-def handler_for(pipeline, report, auth=None, job_file=None):
+def performance_html(data):
+    rows = []
+    for dimension in ("reel", "song", "clip", "format"):
+        entries = data.get(dimension, {})
+        rows.append(f"<h3>{dimension.title()}</h3>")
+        if not entries:
+            rows.append("<p>No metrics available</p>")
+        for key, views in entries.items():
+            rows.append(f"<p>{escape(str(key))} · {escape(str(views))} views</p>")
+    return "<h2>Performance (fixture)</h2>" + "".join(rows)
+
+
+def handler_for(pipeline, report, auth=None, job_file=None, performance=None):
     token = token_urlsafe(32)
 
     def form(action, fields, label):
@@ -175,6 +188,12 @@ document.addEventListener("submit", async (event) => {
                                  "Disable" if enabled else "Enable")
             if job_file is not None:
                 controls += form("site-retest", "", "Write retest job")
+            controls += "<h2>Logs and failures</h2>"
+            controls += "".join(f"<p>{escape(when)} · {escape(action)} · {escape(outcome)}</p>"
+                                for when, action, outcome in pipeline.recent_actions())
+            controls += "".join(f"<p>Reel {reel_id} · {escape(error or 'Render failed')}</p>"
+                                for reel_id, state, error in pipeline.list_reels() if state == "failed")
+            controls += performance_html(performance or {})
             payload = report_html(data).replace("</html>", ' <p id="feedback" role="status"></p><section id="pipeline">' + controls + "</section>" + script + "</html>").encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -238,8 +257,11 @@ document.addEventListener("submit", async (event) => {
                     self.send_error(404)
                     return
             except (ValueError, KeyError) as error:
+                if self.path != "/login" and (auth is None or auth.valid(self.session())):
+                    pipeline.log_action(self.path.split("?", 1)[0][:64], "rejected")
                 self.send_error(400, explain=str(error))
                 return
+            pipeline.log_action(self.path, "accepted")
             self.redirect()
 
     return Handler
@@ -253,6 +275,7 @@ def main():
     parser.add_argument("--source", type=Path, action="append", required=True)
     parser.add_argument("--song", type=Path, action="append", default=[])
     parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
+    parser.add_argument("--performance-fixture", type=Path)
     args = parser.parse_args()
     settings = read_env_file(Path(".env")) | dict(os.environ)
     try:
@@ -262,7 +285,16 @@ def main():
     pipeline = Pipeline(args.state, args.source)
     for song in args.song:
         pipeline.add_song(song)
-    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth, args.job_file)) as server:
+    performance = None
+    if args.performance_fixture is not None:
+        try:
+            performance = json.loads(args.performance_fixture.read_text(encoding="utf-8"))
+            if not isinstance(performance, dict) or any(not isinstance(value, dict)
+                                                         for value in performance.values()):
+                raise ValueError("Expected a JSON object of performance dimensions")
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth, args.job_file, performance)) as server:
         try:
             server.serve_forever()
         finally:

@@ -45,6 +45,8 @@ class Pipeline:
                            ((str(source),) for source in self.sources))
 
             db.execute("CREATE TABLE IF NOT EXISTS site_overrides (name TEXT PRIMARY KEY, enabled INTEGER NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS dashboard_events (id INTEGER PRIMARY KEY, "
+                       "time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, action TEXT NOT NULL, outcome TEXT NOT NULL)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -82,6 +84,14 @@ class Pipeline:
                 temporary.replace(path)
             finally:
                 temporary.unlink(missing_ok=True)
+
+    def log_action(self, action, outcome):
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("INSERT INTO dashboard_events(action,outcome) VALUES (?,?)", (action, outcome))
+
+    def recent_actions(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return db.execute("SELECT time,action,outcome FROM dashboard_events ORDER BY id DESC LIMIT 50").fetchall()
 
     def add_song(self, path):
         path = Path(path).resolve(strict=True)
