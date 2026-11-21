@@ -25,7 +25,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 WATCH_SMOKE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-HEATMAP_START = re.compile(r'heatMarkerRenderer"\s*:\s*({[^{}]+})')
+HEATMAP_START = re.compile(r'"heatMarkerRenderer"\s*:\s*(?={)')
 BLOCK_MESSAGES = (
     "sign in to confirm you’re not a bot",
     "sign in to confirm you're not a bot",
@@ -197,9 +197,10 @@ def replay_result(html):
     if any(message in normalized for message in BLOCK_MESSAGES):
         return {"status": "challenge_detected"}
     markers = []
+    decoder = json.JSONDecoder()
     for match in HEATMAP_START.finditer(html):
         try:
-            marker = json.loads(match[1])
+            marker, _ = decoder.raw_decode(html, match.end())
         except json.JSONDecodeError:
             continue
         start = marker.get("timeRangeStartMillis")

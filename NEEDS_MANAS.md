@@ -74,3 +74,17 @@ The available public search and profile snapshots leave the leading faceless pag
 - **M9 Meta:** Create a new Meta app for Resolve and connect the intended Instagram professional account and Facebook Page. Do this separately from the other projects. Exact permission and dry-run steps belong to M9.
 - **Channel name:** Confirm the public name before go-live. Resolve is the repository name.
 - **Deployment:** Choose packaging and resource limits before M13. Keep both options open until then.
+
+## Server job runner and offline alternatives
+
+Use a dedicated non-root queue clone on main and a separate, locally reviewed probe checkout with a working .venv and sandboxed Chromium. The queue can select probe options only. Updating executable probe code requires updating that separate checkout. Store a fine-grained GitHub token scoped to Resolve with Contents read/write in a file outside both checkouts, mode 600. Configure the queue clone Git identity before starting.
+
+On **AnalyticsDashboard Lightsail**, from the queue clone, set RESOLVE_PROBE_CHECKOUT and RESOLVE_TOKEN_FILE to the absolute paths, then start:
+
+```sh
+screen -L -Logfile resolve-runner.log -dmS resolve-runner bash tools/server_runner.sh "$PWD" "${RESOLVE_PROBE_CHECKOUT:?}" "${RESOLVE_TOKEN_FILE:?}"
+```
+
+A job at jobs/next_job.json takes id (unique), limit (1–10 targets per kind), and no_browser (boolean). Reports appear under research/server_jobs. Review a new probe revision locally before updating the separate checkout.
+
+If providers still fail, a weekly refresh on an existing home or office machine avoids paid services but depends on its uptime and requires syncing media. An existing permitted residential connection could relay traffic, but it adds operational work and any provider blocks still apply. A direct-download library or manual creator supply is free where offered and simpler to validate, but changes the available track and clip catalog. A paid residential proxy falls outside the current no-paid-services rule. No option is selected.

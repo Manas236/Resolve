@@ -79,3 +79,7 @@ Added clip-relative SRT export from timestamped transcription cues. It clips cue
 ## M7 vertical framing groundwork
 
 Added an FFmpeg center-crop filter that accounts for source display aspect ratio. Real local FFmpeg runs produced 1080×1920 square-pixel output for standard landscape and anamorphic fixtures. All 28 tests passed. The full renderer and editorial checks remain open.
+
+## Server runner and replay parsing groundwork
+
+Added an opt-in server runner and handoff notes, including no-paid fallback tradeoffs. The queue can select only a bounded probe job. Executable probe code comes from a separate locally reviewed checkout. The replay parser now decodes complete heat-marker objects instead of dropping objects containing nested metadata. Live replay availability and server runner execution remain unverified.
