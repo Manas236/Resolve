@@ -54,6 +54,16 @@ GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && git add research/m0_serv
 
 A complete report means the matrix finished collecting results. It may contain failures, including a Chromium startup error. If it does, retain the report and send the relevant lines from the setup or probe log. The report must come from AnalyticsDashboard to count for Stage B.
 
+## M0 follow-up diagnostic
+
+On **AnalyticsDashboard Lightsail**, pull main and use the existing probe environment to run one audio target and one video target. Preserve the first full report.
+
+```sh
+GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && screen -L -Logfile resolve-m0-diagnostic.log -dmS resolve-m0-diagnostic .venv/bin/python tools/m0_probe.py --limit 1 --output research/m0_server_diagnostic.json
+```
+
+Commit the separate diagnostic JSON to main after it reports completion. Keep the full probe report for comparison.
+
 ## M0 competitor evidence
 
 The available public search and profile snapshots leave the leading faceless pages' Reel duration, cadence and plays unverified. If those metrics are visible in your Instagram session, share a screenshot or screen recording of the Reels grids and the latest three Reel links for pages you recognize as direct competitors. Include dates, visible plays and duration where available. No login credentials are needed. This can be done independently of the Lightsail probe.
