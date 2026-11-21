@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 1. Start with M0 Stage A. M1 is the only milestone that may proceed before the Lightsail gate passes. Read DECISIONS.md, RESEARCH.md and NEEDS_MANAS.md alongside this file.
+Session 1 checkpoint. Continue M0 Stage A by assembling matched corpora of 10 songs and 10 videos with reference durations, testing provider flows in a headless-capable environment, and completing the server matrix and competitor sample. M1 is complete. M2 onward awaits Stage B. Read DECISIONS.md, RESEARCH.md and NEEDS_MANAS.md alongside this file.
 
 ## Milestones
 
@@ -33,3 +33,9 @@ On every resume read the four root handoff files first. Continue the first unche
 ## M1 audit
 
 The full suite passed with six tests via `python3 -m unittest discover -s tests -v`. It exercised normal startup, restart with existing state, environment precedence, malformed and duplicate configuration, invalid log level and unusable state path. Compileall and staged whitespace checks passed. Git ignore matched the local .env, a sample media path and Python cache.
+
+## M0 Stage A checkpoint — partial
+
+The self-contained probe implements bounded, isolated direct downloads, ffprobe container/stream and resolution validation, an audio-energy smoke test, and public watch-HTML replay detection. It marks the output as smoke scope. The full suite has 11 passing tests, including duration tolerance, low resolution, nonmedia stream rejection, empty and silent audio, absent heatmap and visible challenge text. The code still needs the matched test corpus, provider adapters, headless and social timestamp comparisons, a live Gemini check when eligible, and the complete competitor study. The local Chromium launch failed before navigation because socket creation was denied. This is an executor limitation, not evidence of a remote browser or IP block.
+
+Real local probe evidence in `research/m0_local_smoke.json`: HTTP downloaded and ffprobe verified one 372.715-second MP3 (8,945,229 bytes) and one 1920×1080 MP4 (11,916,526 bytes). FFmpeg decoded both and found RMS peaks at 351s and 9s respectively. SampleLib audio returned 301 and was recorded as a failed attempt. The YouTube watch page returned 200 with no parseable replay markers. This run establishes local smoke behavior. The server gate remains open.

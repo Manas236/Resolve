@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "scope": "stage_a_smoke_only",
+  "recorded_at_utc": "2026-11-21T09:53:17.351818+00:00",
+  "results": [
+    {
+      "id": "samplelib-audio",
+      "kind": "audio",
+      "url": "https://samplelib.com/preview/mp3/sample-15s.mp3",
+      "method": "http",
+      "status": "http_error",
+      "http_status": 301
+    },
+    {
+      "id": "samplelib-video",
+      "kind": "video",
+      "url": "https://samplelib.com/preview/mp4/sample-15s.mp4",
+      "method": "http",
+      "http_status": 200,
+      "content_type": "video/mp4",
+      "duration_seconds": 15.627007,
+      "audio_streams": 1,
+      "width": 1920,
+      "height": 1080,
+      "meets_720p": true,
+      "energy": {
+        "status": "energy_peak",
+        "scan_limit_seconds": 900,
+        "start_seconds": 9,
+        "window_seconds": 3,
+        "rms": 0.023528
+      },
+      "status": "verified",
+      "bytes": 11916526,
+      "sha256": "b0e9bdf0f8b8f589114fc9fcfd574e5233a219e826c97d6f00684079e140bdfc"
+    },
+    {
+      "id": "soundhelix-audio",
+      "kind": "audio",
+      "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "method": "http",
+      "http_status": 200,
+      "content_type": "audio/mpeg",
+      "duration_seconds": 372.715083,
+      "audio_streams": 1,
+      "energy": {
+        "status": "energy_peak",
+        "scan_limit_seconds": 900,
+        "start_seconds": 351,
+        "window_seconds": 3,
+        "rms": 0.352196
+      },
+      "status": "verified",
+      "bytes": 8945229,
+      "sha256": "cadd2666c5571e12fafdb21697b26aef6f196a5a9c28e708129870167679991d"
+    }
+  ],
+  "replay_smoke": {
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "method": "watch_html",
+    "http_status": 200,
+    "status": "no_heatmap_in_html"
+  }
+}
