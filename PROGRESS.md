@@ -92,3 +92,7 @@ MP7 now follows its source-observed asynchronous JSON flow. CnvMP3 and YTHD use 
 
 Added local vertical MP4 rendering, Telegram reviewer/chat callback validation, and a read-only loopback dashboard for probe reports. A first TTS benchmark generated local WAVs with three Flite voices on the same script. This is one engine and does not satisfy the three-engine or listening requirements. All 30 tests passed. Live provider tests, Telegram transport, and authenticated dashboard controls remain open.
 A two-second render from the SampleLib publisher control produced H.264 at 1080×1920 and AAC audio, verified with ffprobe.
+
+## Dashboard controls groundwork
+
+The loopback dashboard now renders batches from configured local media, persists approval decisions in SQLite, and starts or stops a worker that processes queued renders. Stop lets the active render finish. These controls use the local renderer. Live sourcing, posting, password login and full dashboard acceptance remain open.
