@@ -143,7 +143,7 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
                 raise MediaRejected("unexpected_content_type")
             deadline = time.monotonic() + 90
             with path.open("xb") as destination:
-                while block := response.read1(64 * 1024):
+                for block in iter(lambda: response.read1(64 * 1024), b""):
                     if time.monotonic() >= deadline:
                         raise TimeoutError("transfer_deadline")
                     size += len(block)
@@ -687,6 +687,8 @@ def run_matrix(args):
     if not args.limit:
         corpus.extend((True, item) for item in read_corpus(baseline=True))
     versions = tool_versions()
+    if not versions["ffmpeg"] or not versions["ffprobe"]:
+        raise RuntimeError("The M0 matrix requires working ffmpeg and ffprobe on PATH.")
     rows = []
     key = os.getenv("GEMINI_API_KEY") if args.gemini_free_project else None
     blocked = set()

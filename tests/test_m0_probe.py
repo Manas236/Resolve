@@ -116,11 +116,14 @@ class ProbeValidationTests(unittest.TestCase):
         self.assertEqual(report["baseline_summary"]["audio"]["publisher_verified"], 1)
 
     def test_old_python_message_precedes_imports(self):
+        import ast
         import runpy
         from pathlib import Path
         import sys
         from unittest.mock import patch
 
+        script = Path(__file__).resolve().parents[1] / "tools/m0_probe.py"
+        ast.parse(script.read_text(encoding="utf-8"), feature_version=(3, 6))
         with patch.object(sys, "version_info", (3, 10)):
             with self.assertRaisesRegex(SystemExit, "requires Python 3.11 or newer"):
-                runpy.run_path(str(Path(__file__).resolve().parents[1] / "tools/m0_probe.py"), run_name="__main__")
+                runpy.run_path(str(script), run_name="__main__")

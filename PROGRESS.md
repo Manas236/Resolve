@@ -55,3 +55,7 @@ A bounded repeat of the three timed-out publisher controls verified Agent 327 an
 ## M0 target corpus revision
 
 The target matrix now uses 10 gym-edit tracks from public Spotify workout playlists and 10 motivational movie, podcast and speech uploads. It measures 8 dual-format converter candidates and 2 additional direct MP3 leads. Two direct pages have matched tracks, and remaining direct rows explicitly record missing matches. The prior 20 publisher items run separately and contribute zero to converter gate counts. Python 3.10 fails before probe startup. Chromium preflight exited clearly on this workspace's launcher restriction. The full suite passed 17 tests including the fixed target denominator and baseline separation. Provider availability and browser conversion remain pending real Lightsail measurements.
+
+## M2 site-agnostic foundation
+
+The runtime now has a JSON provider registry, stream adapter interface, health-weighted rotation, bounded staging and ffprobe checks for actual container, streams, duration tolerance and video resolution. Fixture tests cover disabled and unavailable adapters, fallback ordering, duplicate names, cleanup on failure and the size limit. Real FFmpeg/ffprobe tests cover exact three-second tolerance, wrong duration, HTML rejection and 360p versus 720p. M2 is unchecked. Production site adapters, live evidence, persistent health, cache and scheduled health checks remain for Stage B and later work.
