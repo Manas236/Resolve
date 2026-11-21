@@ -71,3 +71,7 @@ Added a clip-window planner that keeps a candidate timestamp in bounds, preserve
 AnalyticsDashboard's completed report measured zero verified downloads and zero selected timestamps across the 20 motivation targets. Chromium launched and the separate controls verified 10 audio and nine video assets. M0 and M2 remain unchecked. See RESEARCH.md for the per-provider breakdown and re-probe priorities.
 
 The probe now distinguishes browser landing, form interaction, result-link lookup and media transfer failures. Result-link diagnostics include fetch/XHR status codes without request URLs or response content. The local suite passed 25 tests. Live browser outcomes still require a diagnostic run on AnalyticsDashboard.
+
+## M6 caption groundwork
+
+Added clip-relative SRT export from timestamped transcription cues. It clips cue timing at both boundaries and rebases to the exported clip. All 27 local tests passed. This is subtitle groundwork. Real transcription and word highlighting remain unverified. The separate Lightsail diagnostic had not arrived on main.
