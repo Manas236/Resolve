@@ -1,6 +1,6 @@
 # Resolve progress
 
-Session 2. The 20-item M0 probe and exact AnalyticsDashboard commands are in NEEDS_MANAS.md. Continue competitor sampling and validation while awaiting the first server report. M1 is complete. M2 onward awaits Stage B. Read DECISIONS.md, RESEARCH.md and NEEDS_MANAS.md alongside this file.
+Session 2 checkpoint. M1 is complete. M0's server matrix and handoff are ready. Await the completed AnalyticsDashboard report and the missing direct-competitor Reel evidence in NEEDS_MANAS.md. Then analyse the server report in RESEARCH.md and re-probe any failed M0 criteria. M2 onward awaits the M0 gate.
 
 ## Milestones
 
@@ -47,3 +47,5 @@ The probe now schedules 10 publisher-referenced epic tracks and 10 Blender open 
 13 automated tests passed. In the two-item diagnostic (`research/m0_local_matrix_sample.json`), one in-range publisher MP3 and one 1280×720 publisher MP4 passed real download and media validation. Plain HTTP returned 200 for the MP7 landing and 403 for the noTube and DirectYT landings. Chromium failed to start in this workspace, so the diagnostic proves no converter results. A 20-item HTTP-only diagnostic is in progress. Stage B and the 10-account study remain unchecked.
 
 The browser candidate audit checked the current public page markup. The noTube page uses numbered first-party service origins, so the browser allowlist now permits those exact HTTPS origins and rejects deceptive lookalikes. Reports include the Git revision and FFmpeg/ffprobe versions so server results can be tied to the probe revision. The full suite passed 14 tests.
+
+The full local HTTP diagnostic finished all 20 rows (`research/m0_local_http_matrix.json`). The publisher controls verified 10/10 audio files within duration tolerance and 7/10 videos at 720p or better. Three video downloads timed out. Audio energy selected offsets for all 17 verified files. Sixteen watch pages yielded no replay markers and four returned HTTP errors. Headless conversion was excluded from this run, so these counts are publisher and timestamp evidence only. Full suite passed 15 tests. The current probe adds outcome summaries and uses a verified converter's audio when the publisher control fails. The documented commands use a full run with browser enabled.

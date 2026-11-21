@@ -66,3 +66,9 @@ F4 hypothesis for later validation: start with a familiar gym friction point, sh
 The public MP7 form exposes separate MP3 and MP4 buttons and adds a download link after processing. DirectYT renders first-party download links inside its audio and video tabs. The noTube public form exposes MP3 and MP4 HD and uses numbered first-party service hosts for processing. These observations support the three experimental recipes. No delivery, browser execution or media verification for these converters has been established. Requests stop on detected challenges and report missing or unapproved download origins.
 
 Searches for all ten catalog tracks returned publisher uploads, alternate uploads or unrelated credits. No public Instagram/TikTok result found in those searches identified an original-upload offset for the exact benchmark track. Keep missing mappings explicit rather than treating use of a track name as timestamp evidence.
+
+### Public Reel visibility check
+
+Direct public Reel-grid lookups for @dark_mindset___, @gymmotivation, @bodybuildingnation and @gymbeastig could not retrieve the grids. Third-party results supplied profile totals and bios, but the direct competitors still lacked comparable hook, length and play-count rows. One adjacent account, Gymshark, had about one feed post daily from November 9–20, with only two of 12 displayed posts counted as Reels. The 2.4M-play Reel advertised a timely sale, so its comparison with the 1.2M-play Reel does not isolate hook or format. This evidence supports testing motion and immediacy, but cannot validate an F4 production format. The missing observations are recorded in NEEDS_MANAS.md.
+
+The analogous public Instagram/TikTok searches for the ten open films did not expose usable results. The web retrieval service reported robots exclusions. This leaves the exact-offset social mappings unverified. The probe records that gap separately for each item.

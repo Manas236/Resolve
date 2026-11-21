@@ -1,0 +1,1528 @@
+{
+  "schema_version": 2,
+  "scope": "m0_matrix",
+  "recorded_at_utc": "2026-11-21T10:20:29.405902+00:00",
+  "complete": true,
+  "browser_status": "disabled",
+  "http_landing_checks": {
+    "mp7": {
+      "http_status": 200,
+      "status": "landing_reached"
+    },
+    "notube": {
+      "http_status": 403,
+      "status": "http_error"
+    },
+    "directyt": {
+      "http_status": 403,
+      "status": "http_error"
+    }
+  },
+  "provider_summary": {
+    "mp7": {
+      "audio": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "notube": {
+      "audio": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "directyt": {
+      "audio": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 10,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    }
+  },
+  "gemini_grounding": {
+    "status": "skipped_no_billing_disabled_key"
+  },
+  "results": [
+    {
+      "id": "USUAN1900052",
+      "kind": "audio",
+      "title": "Strength of the Titans",
+      "publisher_control": {
+        "id": "USUAN1900052",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 61.910204,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 51,
+          "window_seconds": 3,
+          "rms": 0.214685,
+          "strong_local_peaks_seconds": [
+            3,
+            9,
+            15,
+            36,
+            45,
+            51
+          ]
+        },
+        "status": "verified",
+        "bytes": 2612191,
+        "sha256": "7b97a9253a244cb1d279c3294269bde3cc4e5971d389df0af0ec969b03fbd52c"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=Hu_CpBu4pO8",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 51,
+          "window_seconds": 3,
+          "rms": 0.214685,
+          "strong_local_peaks_seconds": [
+            3,
+            9,
+            15,
+            36,
+            45,
+            51
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 51
+        }
+      }
+    },
+    {
+      "id": "USUAN1900049",
+      "kind": "audio",
+      "title": "Gothamlicious",
+      "publisher_control": {
+        "id": "USUAN1900049",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 48.039184,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 24,
+          "window_seconds": 3,
+          "rms": 0.139913,
+          "strong_local_peaks_seconds": [
+            12,
+            24,
+            36
+          ]
+        },
+        "status": "verified",
+        "bytes": 2057350,
+        "sha256": "93a6849905d680e6c4dd5574b22cb5e28016a851426003f4fe8c497be2c45703"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=JGvWjEUINF4",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 24,
+          "window_seconds": 3,
+          "rms": 0.139913,
+          "strong_local_peaks_seconds": [
+            12,
+            24,
+            36
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 24
+        }
+      }
+    },
+    {
+      "id": "USUAN1700081",
+      "kind": "audio",
+      "title": "Hiding Your Reality",
+      "publisher_control": {
+        "id": "USUAN1700081",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 192.966563,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 72,
+          "window_seconds": 3,
+          "rms": 0.193638,
+          "strong_local_peaks_seconds": [
+            72,
+            81,
+            90
+          ]
+        },
+        "status": "verified",
+        "bytes": 6177188,
+        "sha256": "356f56b5231efe2c0507cbba22b6e61cc2acc40582933fb82f34112d94010cf5"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=8VZbdulQwQE",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 72,
+          "window_seconds": 3,
+          "rms": 0.193638,
+          "strong_local_peaks_seconds": [
+            72,
+            81,
+            90
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 72
+        }
+      }
+    },
+    {
+      "id": "USUAN1700047",
+      "kind": "audio",
+      "title": "Eternal Terminal",
+      "publisher_control": {
+        "id": "USUAN1700047",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 197.511844,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 126,
+          "window_seconds": 3,
+          "rms": 0.192344,
+          "strong_local_peaks_seconds": [
+            30,
+            36,
+            126,
+            132,
+            174,
+            180
+          ]
+        },
+        "status": "verified",
+        "bytes": 6322640,
+        "sha256": "46d6b13b7f6d3d78aff80fce8ee30b84118be053be2e8577e1e0d582f32949b4"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=UhugjXklW7A",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 126,
+          "window_seconds": 3,
+          "rms": 0.192344,
+          "strong_local_peaks_seconds": [
+            30,
+            36,
+            126,
+            132,
+            174,
+            180
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 126
+        }
+      }
+    },
+    {
+      "id": "USUAN1600024",
+      "kind": "audio",
+      "title": "Killers",
+      "publisher_control": {
+        "id": "USUAN1600024",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 305.214719,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 210,
+          "window_seconds": 3,
+          "rms": 0.274312,
+          "strong_local_peaks_seconds": [
+            201,
+            210
+          ]
+        },
+        "status": "verified",
+        "bytes": 9769089,
+        "sha256": "5a47315f15cae3148df295aef80c7ec64bf124f692b5464a835353bd4ec82d23"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=UhrAb_qON94",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 210,
+          "window_seconds": 3,
+          "rms": 0.274312,
+          "strong_local_peaks_seconds": [
+            201,
+            210
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 210
+        }
+      }
+    },
+    {
+      "id": "USUAN1600016",
+      "kind": "audio",
+      "title": "Rynos Theme",
+      "publisher_control": {
+        "id": "USUAN1600016",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 185.678375,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 129,
+          "window_seconds": 3,
+          "rms": 0.26589,
+          "strong_local_peaks_seconds": [
+            45,
+            54,
+            129
+          ]
+        },
+        "status": "verified",
+        "bytes": 5943945,
+        "sha256": "4d01ed07cb2b38dd73cbcb1e38250d7270c6e0c44e41e522e1adae0efae09e26"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=FTIdFrNaDqI",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 129,
+          "window_seconds": 3,
+          "rms": 0.26589,
+          "strong_local_peaks_seconds": [
+            45,
+            54,
+            129
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 129
+        }
+      }
+    },
+    {
+      "id": "USUAN1600014",
+      "kind": "audio",
+      "title": "Curse of the Scarab",
+      "publisher_control": {
+        "id": "USUAN1600014",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 327.235938,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 225,
+          "window_seconds": 3,
+          "rms": 0.149249,
+          "strong_local_peaks_seconds": [
+            81,
+            87,
+            96,
+            102,
+            111,
+            162,
+            168,
+            177,
+            192,
+            207,
+            219,
+            225,
+            234,
+            240
+          ]
+        },
+        "status": "verified",
+        "bytes": 10473824,
+        "sha256": "e1c825715a8e0e58eb7bf308438df68bcd2b9caf5df84d397e0466bcba89e193"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=GwLb-PeJYPo",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 225,
+          "window_seconds": 3,
+          "rms": 0.149249,
+          "strong_local_peaks_seconds": [
+            81,
+            87,
+            96,
+            102,
+            111,
+            162,
+            168,
+            177,
+            192,
+            207,
+            219,
+            225,
+            234,
+            240
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 225
+        }
+      }
+    },
+    {
+      "id": "USUAN1500085",
+      "kind": "audio",
+      "title": "Final Battle of the Dark Wizards",
+      "publisher_control": {
+        "id": "USUAN1500085",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 271.62125,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 261,
+          "window_seconds": 3,
+          "rms": 0.353233,
+          "strong_local_peaks_seconds": [
+            228,
+            252,
+            261
+          ]
+        },
+        "status": "verified",
+        "bytes": 8694170,
+        "sha256": "f4b4321aa1e4b7057c4e06e9c67f4f713d42555d9fec9950b07ec305af25f8dc"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=7T5KaIlcDHw",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 261,
+          "window_seconds": 3,
+          "rms": 0.353233,
+          "strong_local_peaks_seconds": [
+            228,
+            252,
+            261
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 261
+        }
+      }
+    },
+    {
+      "id": "USUAN1500011",
+      "kind": "audio",
+      "title": "The Curtain Rises",
+      "publisher_control": {
+        "id": "USUAN1500011",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 28.055531,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 15,
+          "window_seconds": 3,
+          "rms": 0.124675,
+          "strong_local_peaks_seconds": [
+            15,
+            21
+          ]
+        },
+        "status": "verified",
+        "bytes": 899992,
+        "sha256": "bfdbe77aaf8a14957f4a66b536213712037ba3108bc40609c55497af03e7e236"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=xHsdvIk6ib8",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 15,
+          "window_seconds": 3,
+          "rms": 0.124675,
+          "strong_local_peaks_seconds": [
+            15,
+            21
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 15
+        }
+      }
+    },
+    {
+      "id": "USUAN1500009",
+      "kind": "audio",
+      "title": "Urban Gauntlet",
+      "publisher_control": {
+        "id": "USUAN1500009",
+        "kind": "audio",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "application/octet-stream",
+        "duration_seconds": 209.031844,
+        "audio_streams": 1,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 159,
+          "window_seconds": 3,
+          "rms": 0.21296,
+          "strong_local_peaks_seconds": [
+            93,
+            153,
+            159,
+            180,
+            186
+          ]
+        },
+        "status": "verified",
+        "bytes": 6691269,
+        "sha256": "663078120ab0651f1992b8ea33e5f8752cbaeb7c2684b55408519b8cfe61d216"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=F02FkrE97WM",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 159,
+          "window_seconds": 3,
+          "rms": 0.21296,
+          "strong_local_peaks_seconds": [
+            93,
+            153,
+            159,
+            180,
+            186
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 159
+        }
+      }
+    },
+    {
+      "id": "pAQiVCgv2CsLg79KKXUoMw",
+      "kind": "video",
+      "title": "Big Buck Bunny",
+      "publisher_control": {
+        "id": "pAQiVCgv2CsLg79KKXUoMw",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 596.566,
+        "audio_streams": 1,
+        "width": 1280,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 528,
+          "window_seconds": 3,
+          "rms": 0.066411,
+          "strong_local_peaks_seconds": [
+            195,
+            261,
+            294,
+            345,
+            417,
+            507,
+            522,
+            528,
+            573
+          ]
+        },
+        "status": "verified",
+        "bytes": 110916740,
+        "sha256": "bdadaa934c09a43f198684ae2031c754d5dc9c925f64b9601a8eac77d1842cf4"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 528,
+          "window_seconds": 3,
+          "rms": 0.066411,
+          "strong_local_peaks_seconds": [
+            195,
+            261,
+            294,
+            345,
+            417,
+            507,
+            522,
+            528,
+            573
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 528
+        }
+      }
+    },
+    {
+      "id": "2PcJe5aZqozRvH7MJ8BTmC",
+      "kind": "video",
+      "title": "Sintel",
+      "publisher_control": {
+        "id": "2PcJe5aZqozRvH7MJ8BTmC",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 888.092993,
+        "audio_streams": 1,
+        "width": 1688,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 570,
+          "window_seconds": 3,
+          "rms": 0.266913,
+          "strong_local_peaks_seconds": [
+            543,
+            552,
+            558,
+            564,
+            570,
+            603
+          ]
+        },
+        "status": "verified",
+        "bytes": 199888486,
+        "sha256": "2329a5af417a54beea1b99b7a23bd64f1c45fa51f2c4ebfdd19e48accc370631"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=eRsGyueVLvQ",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 570,
+          "window_seconds": 3,
+          "rms": 0.266913,
+          "strong_local_peaks_seconds": [
+            543,
+            552,
+            558,
+            564,
+            570,
+            603
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 570
+        }
+      }
+    },
+    {
+      "id": "hs1zJY8mdr3iH2JNmxpeGV",
+      "kind": "video",
+      "title": "Tears of Steel",
+      "publisher_control": {
+        "id": "hs1zJY8mdr3iH2JNmxpeGV",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 734.216009,
+        "audio_streams": 1,
+        "width": 1728,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 459,
+          "window_seconds": 3,
+          "rms": 0.424552,
+          "strong_local_peaks_seconds": [
+            12,
+            426,
+            459
+          ]
+        },
+        "status": "verified",
+        "bytes": 225159290,
+        "sha256": "e4d6a1e1bcd603c7f0c3a6517e14b89bb3a7c0cebd20b64221a0e11d42a3d676"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=R6MlUcmOul8",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 459,
+          "window_seconds": 3,
+          "rms": 0.424552,
+          "strong_local_peaks_seconds": [
+            12,
+            426,
+            459
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 459
+        }
+      }
+    },
+    {
+      "id": "x3QKwgFXGZQ7yvCTD2wHJA",
+      "kind": "video",
+      "title": "Caminandes: Gran Dillama",
+      "publisher_control": {
+        "id": "x3QKwgFXGZQ7yvCTD2wHJA",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 146.1,
+        "audio_streams": 1,
+        "width": 1280,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 123,
+          "window_seconds": 3,
+          "rms": 0.230649,
+          "strong_local_peaks_seconds": [
+            81,
+            87,
+            123
+          ]
+        },
+        "status": "verified",
+        "bytes": 26712755,
+        "sha256": "9603822180459078ff7ba243c53861a118570d5f16301527e045794f0eec53cd"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=Z4C82eyhwgU",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 123,
+          "window_seconds": 3,
+          "rms": 0.230649,
+          "strong_local_peaks_seconds": [
+            81,
+            87,
+            123
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 123
+        }
+      }
+    },
+    {
+      "id": "wfW3bDTkUhQKRnEfT9Wpeq",
+      "kind": "video",
+      "title": "Cosmos Laundromat",
+      "publisher_control": {
+        "id": "wfW3bDTkUhQKRnEfT9Wpeq",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 730.617007,
+        "audio_streams": 1,
+        "width": 1718,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 486,
+          "window_seconds": 3,
+          "rms": 0.237142,
+          "strong_local_peaks_seconds": [
+            486,
+            492,
+            498,
+            504
+          ]
+        },
+        "status": "verified",
+        "bytes": 201297066,
+        "sha256": "f14815c5965f310c546d1f08c1c82c6da2165afbbfd22406186a1914b354f96e"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=Y-rmzh0PI3c",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 486,
+          "window_seconds": 3,
+          "rms": 0.237142,
+          "strong_local_peaks_seconds": [
+            486,
+            492,
+            498,
+            504
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 486
+        }
+      }
+    },
+    {
+      "id": "dnayqfMS4PAE9pSZ3kyVUb",
+      "kind": "video",
+      "title": "Glass Half",
+      "publisher_control": {
+        "id": "dnayqfMS4PAE9pSZ3kyVUb",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 193.26,
+        "audio_streams": 1,
+        "width": 1280,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 138,
+          "window_seconds": 3,
+          "rms": 0.131405,
+          "strong_local_peaks_seconds": [
+            138
+          ]
+        },
+        "status": "verified",
+        "bytes": 26959910,
+        "sha256": "e434fcacbb2876245d6ce2bf398c1090932aa550043ffead8cddca2cf3033c86"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=trRTiB6WTu4",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "no_heatmap_in_html"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 138,
+          "window_seconds": 3,
+          "rms": 0.131405,
+          "strong_local_peaks_seconds": [
+            138
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 138
+        }
+      }
+    },
+    {
+      "id": "5ruRYckTcQMTMQvyqMnVsr",
+      "kind": "video",
+      "title": "Caminandes: Llamigos",
+      "publisher_control": {
+        "id": "5ruRYckTcQMTMQvyqMnVsr",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "status": "local_or_transport_error",
+        "error_type": "TimeoutError"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=SkVqJ1SGeL0",
+          "method": "watch_html",
+          "status": "http_error",
+          "http_status": 302
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "5JoZUZzbUdpNqGXpd5QJ5T",
+      "kind": "video",
+      "title": "Agent 327",
+      "publisher_control": {
+        "id": "5JoZUZzbUdpNqGXpd5QJ5T",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "status": "local_or_transport_error",
+        "error_type": "TimeoutError"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=XWBfEvrkXvk",
+          "method": "watch_html",
+          "status": "http_error",
+          "http_status": 302
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "8B5QmoLSS3mWJ4fmZZu3Ye",
+      "kind": "video",
+      "title": "Spring",
+      "publisher_control": {
+        "id": "8B5QmoLSS3mWJ4fmZZu3Ye",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "status": "local_or_transport_error",
+        "error_type": "TimeoutError"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=WhWc3b3KhnY",
+          "method": "watch_html",
+          "status": "http_error",
+          "http_status": 302
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "rhMeBiBURa2KgsAfkC6kda",
+      "kind": "video",
+      "title": "Elephants Dream",
+      "publisher_control": {
+        "id": "rhMeBiBURa2KgsAfkC6kda",
+        "kind": "video",
+        "method": "http",
+        "http_status": 200,
+        "content_type": "video/mp4",
+        "duration_seconds": 654.361995,
+        "audio_streams": 1,
+        "width": 1280,
+        "height": 720,
+        "meets_720p": true,
+        "energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 510,
+          "window_seconds": 3,
+          "rms": 0.224669,
+          "strong_local_peaks_seconds": [
+            147,
+            486,
+            504,
+            510
+          ]
+        },
+        "status": "verified",
+        "bytes": 117134159,
+        "sha256": "4ca95823389a25740ae1f96c8af366a091db12a52da0940be0a17028d0734d80"
+      },
+      "converters": {
+        "mp7": {
+          "status": "skipped_browser_unavailable"
+        },
+        "notube": {
+          "status": "skipped_provider_block"
+        },
+        "directyt": {
+          "status": "skipped_provider_block"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=eFQxRd0isAQ",
+          "method": "watch_html",
+          "status": "http_error",
+          "http_status": 302
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_browser_unavailable"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "audio_energy": {
+          "status": "energy_peak",
+          "scan_limit_seconds": 900,
+          "start_seconds": 510,
+          "window_seconds": 3,
+          "rms": 0.224669,
+          "strong_local_peaks_seconds": [
+            147,
+            486,
+            504,
+            510
+          ]
+        },
+        "selected": {
+          "method": "audio_energy",
+          "start_seconds": 510
+        }
+      }
+    }
+  ]
+}

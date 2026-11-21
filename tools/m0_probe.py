@@ -333,7 +333,12 @@ def convert(browser, provider, item, watch, folder):
             selector = "#download-link"
         elif provider == "notube":
             page.locator("#keyword").fill(watch)
-            page.locator("#myDropdown").select_option("mp3" if item["kind"] == "audio" else "mp4hd")
+            audio = item["kind"] == "audio"
+            if page.locator("#myDropdown").is_visible():
+                page.locator("#myDropdown").select_option("mp3" if audio else "mp4hd")
+            else:
+                page.locator("#fmtBtn").click()
+                page.locator("#fmtPanel").get_by_text("MP3" if audio else "MP4 HD", exact=True).click()
             page.locator("#submit-button").click()
             selector = "a[download], a[href*='/download/']:text-is('Download'), a:text-is('Download')"
         else:
@@ -351,7 +356,8 @@ def convert(browser, provider, item, watch, folder):
             return {"status": status}
         if not provider_url(url, provider):
             return {"status": "unsupported_download_origin"}
-        return run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"))
+        result = run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"))
+        return {**result, "method": "headless_then_http"}
     finally:
         context.close()
 
@@ -549,6 +555,30 @@ def provider_summary(providers, rows):
     return summaries
 
 
+def timestamp_reference(control, attempts):
+    if control.get("status") == "verified":
+        return "publisher", control
+    for name, attempt in attempts.items():
+        if attempt["status"] == "verified":
+            return name, attempt
+    return None, {}
+
+
+def outcome_summary(rows):
+    from collections import Counter
+
+    summary = {}
+    for kind in ("audio", "video"):
+        subset = [row for row in rows if row["kind"] == kind]
+        summary[kind] = {
+            "publisher_verified": sum(row["publisher_control"]["status"] == "verified" for row in subset),
+            "timestamp_methods_selected": dict(Counter(
+                (row["timestamps"]["selected"] or {}).get("method", "unavailable") for row in subset
+            )),
+        }
+    return summary
+
+
 def run_matrix(args):
     from contextlib import ExitStack
 
@@ -583,8 +613,6 @@ def run_matrix(args):
             control = direct_control(item, folder)
             replay = probe_replay(watch)
             headless_replay = browser_replay(browser, watch, replay)
-            social = social_timestamp(browser, item, control)
-            gemini = gemini_timestamp(key, grounding["status"] == "grounded", item, watch, control)
             attempts = {}
             target = {**item}
             if item["kind"] == "video":
@@ -603,6 +631,9 @@ def run_matrix(args):
                     if (attempts[name]["status"] == "challenge_detected" or
                             attempts[name].get("http_status") in {401, 403, 429}):
                         blocked.add(name)
+            audio_source, reference_media = timestamp_reference(control, attempts)
+            social = social_timestamp(browser, item, reference_media)
+            gemini = gemini_timestamp(key, grounding["status"] == "grounded", item, watch, reference_media)
             rows.append({
                 "id": item["id"], "kind": item["kind"], "title": item["title"],
                 "publisher_control": control, "converters": attempts,
@@ -611,8 +642,9 @@ def run_matrix(args):
                     "youtube_replay_headless": headless_replay,
                     "social": social,
                     "gemini": gemini,
-                    "audio_energy": control.get("energy", {"status": "no_reference_audio"}),
-                    "selected": chosen_timestamp(replay, headless_replay, social, gemini, control),
+                    "validation_audio_source": audio_source,
+                    "audio_energy": reference_media.get("energy", {"status": "no_reference_audio"}),
+                    "selected": chosen_timestamp(replay, headless_replay, social, gemini, reference_media),
                 },
             })
             write_report(args.output, matrix_report(args, rows, landings, browser_status, grounding, False, versions))
@@ -647,6 +679,7 @@ def matrix_report(args, rows, landings, browser_status, grounding, complete, ver
         "browser_status": browser_status,
         "http_landing_checks": landings,
         "provider_summary": provider_summary(landings, rows),
+        "outcome_summary": outcome_summary(rows),
         "gemini_grounding": grounding,
         "results": rows,
     }
@@ -667,7 +700,7 @@ def write_report(destination, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "research/m0_server_results.json")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--limit", type=int, choices=range(1, 11), help="diagnostic rows per media kind")
     parser.add_argument("--chromium", help="path to installed Chrome or Chromium")
@@ -675,6 +708,13 @@ def main():
     parser.add_argument("--gemini-free-project", action="store_true",
                         help="use exported GEMINI_API_KEY only if its project has billing disabled")
     args = parser.parse_args()
+    if args.output is None:
+        filename = "m0_server_results.json"
+        if args.smoke:
+            filename = "m0_smoke_results.json"
+        elif args.limit or args.no_browser:
+            filename = "m0_diagnostic_results.json"
+        args.output = ROOT / "research" / filename
     if args.smoke:
         with tempfile.TemporaryDirectory(prefix="resolve-m0-") as temporary:
             results = [run_sample(*sample, Path(temporary)) for sample in SAMPLES]

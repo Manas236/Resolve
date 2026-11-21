@@ -90,3 +90,12 @@ class ProbeValidationTests(unittest.TestCase):
         self.assertFalse(provider_url("https://s42.notube.net.invalid/download", "notube"))
         self.assertFalse(provider_url("https://mp7.dev@169.254.169.254/file", "mp7"))
         self.assertFalse(provider_url("file:///tmp/file", "mp7"))
+
+    def test_timestamp_reference_can_use_verified_provider(self):
+        from tools.m0_probe import timestamp_reference
+
+        failed = {"status": "rejected"}
+        media = {"status": "verified", "duration_seconds": 40}
+        self.assertEqual(timestamp_reference(failed, {"provider": media}), ("provider", media))
+        self.assertEqual(timestamp_reference(media, {"provider": media}), ("publisher", media))
+        self.assertEqual(timestamp_reference(failed, {"provider": failed}), (None, {}))
