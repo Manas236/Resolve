@@ -72,8 +72,19 @@ def handler_for(pipeline, report, auth=None):
                         + form("start", "", "Start runner") + form("stop", "", "Stop runner"))
             if auth is not None:
                 controls += form("logout", "", "Log out")
+            controls += form("make-url", '<label>Media URL <input name="url" type="url" required></label>', "Make reel from URL")
+            order = ",".join(map(str, pipeline.posting_queue()))
+            controls += form("reorder", f'<label>Posting order <input name="order" value="{order}"></label>',
+                             "Save posting order")
+            editorial = pipeline.editorial()
             for reel_id, state, error in pipeline.list_reels():
                 controls += f"<p>Reel {reel_id} · {state} {escape(error or '')}</p>"
+                if reel_id in editorial:
+                    caption, hashtags = editorial[reel_id]
+                    controls += form("edit", f'<input type="hidden" name="id" value="{reel_id}">'
+                                     f'<label>Caption <textarea name="caption">{escape(caption)}</textarea></label>'
+                                     f'<label>Hashtags <input name="hashtags" value="{escape(hashtags)}"></label>',
+                                     "Save caption and hashtags")
                 if state in ("review", "rejected", "failed", "queued"):
                     field = f'<input type="hidden" name="id" value="{reel_id}">'
                     controls += form("delete", field, "Delete")
@@ -96,9 +107,9 @@ def handler_for(pipeline, report, auth=None):
         def do_POST(self):
             try:
                 size = int(self.headers.get("Content-Length", "0"))
-                if not 0 < size <= 2048:
+                if not 0 < size <= 16384:
                     raise ValueError("Invalid request length")
-                fields = parse_qs(self.rfile.read(size).decode(), strict_parsing=True)
+                fields = parse_qs(self.rfile.read(size).decode(), strict_parsing=True, keep_blank_values=True)
                 if not compare_digest(fields.get("token", [""])[0].encode(), token.encode()):
                     self.send_error(403)
                     return
@@ -121,6 +132,13 @@ def handler_for(pipeline, report, auth=None):
                     pipeline.make_now(int(fields["count"][0]))
                 elif self.path in ("/approve", "/reject"):
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
+                elif self.path == "/make-url":
+                    pipeline.make_from_url(fields["url"][0])
+                elif self.path == "/reorder":
+                    order = fields["order"][0].strip()
+                    pipeline.reorder([int(value) for value in order.split(",")] if order else [])
+                elif self.path == "/edit":
+                    pipeline.edit_reel(int(fields["id"][0]), fields["caption"][0], fields["hashtags"][0])
                 elif self.path == "/regenerate":
                     pipeline.regenerate(int(fields["id"][0]))
                 elif self.path == "/delete":

@@ -3,20 +3,25 @@
 from contextlib import closing
 from pathlib import Path
 import sqlite3
+import time
 import subprocess
 from threading import Event, Lock, Thread
 
+from urllib.parse import urlsplit
+
+from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .framing import render_vertical
 from .segments import clip_window
 
 
 class Pipeline:
-    def __init__(self, directory, sources):
+    def __init__(self, directory, sources, downloader=None):
         self.sources = tuple(Path(source).resolve() for source in sources)
         if not self.sources:
             raise ValueError("At least one local source is required")
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
+        self.downloader = downloader if downloader is not None else Downloader(Registry(()), {}, self.directory / "downloads")
         self.database = self.directory / "reels.sqlite3"
         self.render_lock = Lock()
         self.lifecycle = Lock()
@@ -25,6 +30,60 @@ class Pipeline:
         with closing(sqlite3.connect(self.database)) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS reels (id INTEGER PRIMARY KEY, "
                        "source TEXT NOT NULL, status TEXT NOT NULL, error TEXT)")
+
+            existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
+            for name, definition in (
+                ("caption", "TEXT NOT NULL DEFAULT ''"),
+                ("hashtags", "TEXT NOT NULL DEFAULT ''"),
+                ("posting_order", "INTEGER"),
+            ):
+                if name not in existing:
+                    db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
+
+    def make_from_url(self, url):
+        parsed = urlsplit(url)
+        if (parsed.scheme not in ("http", "https") or not parsed.hostname
+                or parsed.username or parsed.password or any(c.isspace() for c in url)):
+            raise ValueError("Enter a public HTTP or HTTPS media URL")
+        try:
+            download = self.downloader.download(DownloadRequest(url, "video"))
+        except DownloadExhausted as error:
+            raise ValueError("No configured provider could verify video for this URL") from error
+        with self.render_lock, closing(sqlite3.connect(self.database)) as db:
+            with db:
+                reel_id = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
+                                     (str(download.path),)).lastrowid
+            self._render(reel_id)
+        return reel_id
+
+    def edit_reel(self, reel_id, caption, hashtags):
+        if len(caption) > 2200 or len(hashtags) > 500:
+            raise ValueError("Caption or hashtags exceed the editing limit")
+        with closing(sqlite3.connect(self.database)) as db, db:
+            changed = db.execute("UPDATE reels SET caption=?, hashtags=? WHERE id=? "
+                                 "AND status IN ('review','approved')",
+                                 (caption, hashtags, reel_id)).rowcount
+        if not changed:
+            raise ValueError("Reel cannot be edited")
+
+    def editorial(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return {row[0]: row[1:] for row in db.execute(
+                "SELECT id,caption,hashtags FROM reels WHERE status IN ('review','approved')")}
+
+    def posting_queue(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return [row[0] for row in db.execute(
+                "SELECT id FROM reels WHERE status='approved' ORDER BY COALESCE(posting_order,id),id")]
+
+    def reorder(self, ids):
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            current = {row[0] for row in db.execute("SELECT id FROM reels WHERE status='approved'")}
+            if len(ids) != len(current) or set(ids) != current:
+                raise ValueError("Include each currently approved reel ID exactly once")
+            db.executemany("UPDATE reels SET posting_order=? WHERE id=?",
+                           enumerate(ids, start=1))
 
     @property
     def running(self):
@@ -74,8 +133,8 @@ class Pipeline:
         if status not in ("approved", "rejected"):
             raise ValueError("Invalid review decision")
         with closing(sqlite3.connect(self.database)) as db, db:
-            changed = db.execute("UPDATE reels SET status=? WHERE id=? AND status='review'",
-                                 (status, reel_id)).rowcount
+            changed = db.execute("UPDATE reels SET status=?, posting_order=? WHERE id=? AND status='review'",
+                                 (status, time.time_ns() if status == 'approved' else None, reel_id)).rowcount
         if not changed:
             raise ValueError("Reel is no longer awaiting review")
 

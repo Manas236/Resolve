@@ -44,6 +44,10 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertFalse(pipeline.running)
                     for reel in (1, 2):
                         self.assertGreater((pipeline.directory / f"{reel}.mp4").stat().st_size, 0)
+                    self.assertEqual(post("make-url", url="https://example.com/a.mp4"), 400)
+                    self.assertEqual(post("make-url", url="file:///tmp/video.mp4"), 400)
+                    self.assertEqual(post("edit", id=1, caption="Train today", hashtags="#resolve"), 303)
+                    self.assertEqual(pipeline.editorial()[1], ("Train today", "#resolve"))
                     self.assertEqual(post("approve", id=1), 303)
                     self.assertEqual(post("reject", id=2), 303)
                     self.assertEqual(post("approve", id=2), 400)
@@ -55,6 +59,10 @@ class DashboardControlsTest(unittest.TestCase):
                     while pipeline.list_reels()[0][1] == "queued" and time.monotonic() < deadline:
                         time.sleep(0.05)
                     self.assertEqual(pipeline.list_reels()[0], (3, "review", None))
+                    self.assertEqual(post("approve", id=3), 303)
+                    self.assertEqual(post("reorder", order="3,3"), 400)
+                    self.assertEqual(post("reorder", order="3,1"), 303)
+                    self.assertEqual(pipeline.posting_queue(), [3, 1])
                     self.assertEqual(post("stop"), 303)
                     pipeline.worker.join(5)
                     self.assertFalse(pipeline.worker.is_alive())

@@ -104,3 +104,5 @@ Queued `m0-browser-diagnostic-02` with browser enabled and two targets per media
 ## B. Dashboard authentication and review actions
 
 The loopback CLI now requires a salted scrypt password hash, issues an expiring HttpOnly and SameSite session cookie, supports logout, and locks login for 60 seconds after five failures. The review queue supports regeneration as a separate candidate and soft deletion. Tests exercise lockout, expiry, logout, real regenerated output state and invalid review transitions. The remaining dashboard controls and complete milestone test are open.
+
+Dashboard URL submission now calls the downloader interface and returns an explicit error with the default empty provider registry. Caption and hashtag edits persist in SQLite. The posting queue accepts an exact permutation of approved reel IDs. The HTTP test covers these controls with the worker stopped and running, including invalid URLs and duplicate order IDs. Library, registry, settings, logs, performance and no-reload updates remain open.
