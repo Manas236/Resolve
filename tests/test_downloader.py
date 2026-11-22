@@ -27,6 +27,18 @@ class MemoryAdapter:
 
 
 class DownloaderTests(unittest.TestCase):
+    def test_invalid_registry_rows_report_the_entry_number(self):
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / "registry.json"
+            for row in ('null', '{}', '{"name": 42}', '{"name": "site", "adapter": "http", '
+                        '"kinds": {"audio": false}}',
+                        '{"name": "site", "adapter": "http", "kinds": [null]}'):
+                with self.subTest(row=row):
+                    path.write_text('[{"name":"valid","adapter":"http","kinds":["video"]},'
+                                    + row + ']')
+                    with self.assertRaisesRegex(ValueError, "registry entry 2"):
+                        Registry.from_json(path)
+
     def test_registry_and_rotation_by_validated_outcome(self):
         with TemporaryDirectory() as folder:
             root = Path(folder)

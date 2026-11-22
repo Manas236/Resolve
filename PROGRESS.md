@@ -204,3 +204,7 @@ New full-format outputs use 30 fps H.264 and 48 kHz AAC. The real FFmpeg test ve
 ## Server probe revision guard
 
 Diagnostic 03 now waits for the reviewed checkout to contain the current replay parser before spending a Lightsail run. The runner also rejects local changes to the probe and its corpus so the reported Git revision is meaningful. The server report is still pending.
+
+## M2 registry validation audit
+
+Invalid registry rows now report their entry number. The test covers missing fields, non-object rows, and invalid kinds including objects whose keys previously passed as a list of media kinds. The full suite passed 65 tests with one browser acceptance skip. Live provider verification still depends on the Lightsail report.

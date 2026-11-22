@@ -66,13 +66,19 @@ class Registry:
         entries = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(entries, list):
             raise ValueError("The provider registry must be a JSON array")
-        return cls(tuple(
-            Provider(
+        providers = []
+        for index, entry in enumerate(entries, start=1):
+            if (not isinstance(entry, dict)
+                    or not isinstance(entry.get("name"), str)
+                    or not isinstance(entry.get("adapter"), str)
+                    or not isinstance(entry.get("kinds"), list)
+                    or not all(isinstance(kind, str) for kind in entry["kinds"])):
+                raise ValueError(f"Invalid provider registry entry {index}")
+            providers.append(Provider(
                 name=entry["name"], adapter=entry["adapter"], kinds=frozenset(entry["kinds"]),
                 enabled=entry.get("enabled", True), priority=entry.get("priority", 0),
-            )
-            for entry in entries
-        ))
+            ))
+        return cls(tuple(providers))
 
 
 class AdapterUnavailable(Exception):
