@@ -60,9 +60,9 @@ def render_reel(
     if destination in inputs:
         raise ValueError("Output must differ from the inputs")
     speech = {"F1": "0:a:0", "F3": "2:a:0"}.get(format_id)
-    filters = [f"[0:v:0]{VERTICAL_FRAME},ass=captions.ass[outv]"]
+    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30,ass=captions.ass[outv]"]
     if speech is None:
-        filters.append("[1:a:0]volume=0.75[outa]")
+        filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
     else:
         filters.extend([
             f"[{speech}]aresample=48000,apad,asplit=2[dialogue][sidechain]",
@@ -85,7 +85,7 @@ def render_reel(
             "-filter_complex_threads", "1", "-filter_complex", ";".join(filters),
             "-map", "[outv]", "-map", "[outa]", "-t", str(duration),
             "-c:v", "libx264", "-preset", "veryfast", "-threads", "2", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-movflags", "+faststart", staged.name,
+            "-maxrate", "20M", "-bufsize", "20M", "-c:a", "aac", "-ar", "48000", "-b:a", "128k", "-movflags", "+faststart", staged.name,
         ])
         subprocess.run(command, cwd=staging, check=True, timeout=180)
         probe = json.loads(subprocess.check_output(

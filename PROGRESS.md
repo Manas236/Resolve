@@ -1,6 +1,10 @@
 # Resolve progress
 
-Session 5 checkpoint. Stage B evidence is on main and the M0 gate failed. See RESEARCH.md for measured results. Continue site-independent groundwork pending a successful re-probe and competitor evidence.
+## Resume checkpoint
+
+Pull main and check `research/server_jobs/m0-browser-diagnostic-03.json`. If it is present, verify its tool revision and corpus, compare the three-provider outcomes and replay results with the first AnalyticsDashboard run, and log the Stage B analysis in RESEARCH.md before any milestone decision. The four-target diagnostic can guide the next full run, but M0 requires ten targets per kind on the server. No follow-up server report was present at this checkpoint.
+
+The current local parser found replay markers on 17 of 20 targets. The fixed MP7 adapter reached polling on all four local diagnostic targets and the provider rejected all four. CnvMP3 and YTHD still need sandboxed browser evidence. Production media acquisition and dependent integration work remain behind that gate. Live Telegram/Meta credentials, actual browser acceptance, and editorial checks are listed in NEEDS_MANAS.md. A–K local groundwork and tests are recorded below.
 
 ## Milestones
 
@@ -192,3 +196,7 @@ The initial focused local run completed with no watch HTML replay markers on all
 ## M0 live local replay parser verification
 
 Fixed the current watch-data shape. Replay points are now read from the macro markers for the requested video, with the previous renderer parser retained for older HTML. A fixture proves that chapters and another upload's peaks cannot take precedence. Real plain HTTP extracted replay peaks from 10 of 10 target songs and seven of 10 target videos. The per-target evidence is in research/m0_replay_local.json. The next AnalyticsDashboard checkout must include this revision. Server replay and download gates remain open.
+
+## M7 encoded output audit
+
+New full-format outputs use 30 fps H.264 and 48 kHz AAC. The real FFmpeg test verifies the output profile, checks the highlight pixels at an active word event and their absence after it, and measures attenuation of the song tone during speech. The archived publisher proof retains the earlier encoding profile and its original hashes. Actual target media and editorial sign-off remain open.
