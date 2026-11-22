@@ -2,9 +2,9 @@
 
 ## Resume checkpoint
 
-Pull main and check `research/server_jobs/m0-route-diagnostic-04.json`. If it is present, verify its tool revision and corpus, compare the route outcomes and replay results with the first AnalyticsDashboard run, and log the Stage B analysis in RESEARCH.md before any milestone decision. The four-target diagnostic can guide the next full run, but M0 requires ten targets per kind on the server. No follow-up server report was present at this checkpoint.
+The combined Lightsail diagnostic is complete at `research/server_jobs/m0-route-diagnostic-04.json`. Stage B remains open. The diagnostic confirmed zero verified downloads and zero usable timestamps on two songs and two videos. See RESEARCH.md for the per-route analysis.
 
-The current local parser found replay markers on 17 of 20 targets. The fixed MP7 adapter reached polling on all four local diagnostic targets and the provider rejected all four. CnvMP3 and YTHD still need sandboxed browser evidence. Production media acquisition and dependent integration work remain behind that gate. Live Telegram/Meta credentials, actual browser acceptance, and editorial checks are listed in NEEDS_MANAS.md. A–K local groundwork and tests are recorded below.
+The next input is an official SoundCloud OAuth token, an approved cobalt origin, or a decision to try an alternative source library. Use the two-song/two-video check for any changed route before running the full server corpus. Keep the local validation gates in place. Live platform credentials, browser acceptance and editorial reviews are listed in NEEDS_MANAS.md.
 
 ## Milestones
 

@@ -124,3 +124,7 @@ The sample links are in PROGRESS.md. Listen to the three identical-script WAVs a
 ## Optional credentials for alternative routes
 
 Set `RESOLVE_SOUNDCLOUD_TOKEN` in the AnalyticsDashboard runner's environment only if you have an official SoundCloud OAuth token. Set `RESOLVE_COBALT_ORIGIN` only for an HTTPS instance whose owner permits API access without a challenge. Job 04 reports explicit skips if either is absent and still tests the other routes. The runner and the reviewed probe checkout both need the updated code.
+
+## Decision after diagnostic 04
+
+Lightsail produced zero verified downloads. The checked-in report confirms SoundCloud and cobalt skipped for missing configuration. A permitted token or instance would enable a fresh targeted probe. Direct-download or creator-supplied media remains an alternative if you prefer to change sourcing. The current automated acquisition gates still require verified media.

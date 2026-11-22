@@ -201,3 +201,21 @@ No full media downloads passed on the new routes in this run. The two YouTube pr
 | TAKA LA DENTRO | 7.2 | Yes | No | Unknown |
 
 [Piped API](https://docs.piped.video/docs/api-documentation/) · [Invidious API and public instances](https://docs.invidious.io/instances/) · [cobalt API](https://github.com/imputnet/cobalt/blob/main/docs/api.md) · [SoundCloud API](https://developers.soundcloud.com/docs/api/) · [Apple preview terms](https://performance-partners.apple.com/search-api)
+
+## Stage B follow-up, November 22
+
+AnalyticsDashboard completed diagnostic 04 at 16:22 IST. The report used revision `31204f9`, with the two expected songs (LOS VOLTAJE and NUNCA MUDA?) and the two expected videos (Rocky Balboa and The Pursuit of Happyness). Sandboxed Chromium started successfully. The initial full Lightsail run also had working Chromium and zero verified target downloads or selected timestamps over 20 targets. Diagnostic 04 reproduced the zero-download result on its four-target subset. [Diagnostic report](research/server_jobs/m0-route-diagnostic-04.json) · [Initial server report](research/m0_server_results.json)
+
+| Route | Lightsail result |
+|---|---|
+| MP7 | Provider rejected all four attempts |
+| CnvMP3 | No download link on all four attempts |
+| YTHD | No result frame on one target and no download link on the other three |
+| Piped | Kavin returned 403 on first contact and was skipped afterward. Adminforge returned 301 on all four targets. |
+| Invidious | NerdVPN and ChocolateMoo both returned 403 on first contact and were skipped afterward |
+| SoundCloud | Both songs skipped because the OAuth token was absent |
+| cobalt | All four targets skipped because an approved instance was absent |
+| Deezer | Zero catalog results for both songs on Lightsail. Both had matched preview metadata locally. |
+| iTunes Search | Returned catalog rows for both songs with zero exact matches, consistent with the local check. |
+
+The YouTube HTTP parser extracted a 0-second peak for NUNCA MUDA?. It reported a challenge on the other three pages despite HTTP 200, so the browser skipped those pages. The single replay peak could not be validated against acquired audio. Social had no mapped source, Gemini grounding was unavailable, and the energy fallback had no playable media. No preview overlap was established. Keep M0 unchecked and retain the separate full-corpus requirement. A repeat with the same routes and credentials would leave the same missing evidence. Review the optional credentials and alternate sourcing options in NEEDS_MANAS.md before queuing another pass.
