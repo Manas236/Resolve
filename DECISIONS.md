@@ -37,3 +37,7 @@ For user-only work, document the exact machine and single-line non-interactive c
 ## Speech synthesis
 
 - Prefer Piper with the local Lessac model provisionally. In the three-engine comparison, Whisper recovered all scripted words from both Piper and Flite, but Piper preserved more sentence breaks. eSpeak NG changed one word in Whisper's output. This is a cadence and intelligibility proxy. The blind listening comparison and Lightsail runtime remain open.
+
+## Performance measurement
+
+- Compare 24-hour view snapshots. Infer a possible mute only below 20% of the same-format median with at least five other measured, unreported peers and a median of at least 100 views. Store Telegram mute reports as a distinct signal. Use the combined signal as a smoothed asset penalty and a loss for the format selector.

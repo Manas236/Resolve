@@ -81,8 +81,10 @@ class Scheduler:
                 db.executemany("INSERT INTO deliveries VALUES (?,?,'ready',NULL)",
                                ((slot, platform) for platform in self.publishers))
 
-    def select_format(self, observations, rng=None):
+    def select_format(self, observations=None, rng=None):
         weights = map(int, self.pipeline.settings()["format_weights"].split(","))
+        if observations is None:
+            observations = self.pipeline.performance.format_observations()
         return choose_format(weights, observations, rng)
 
     def run(self, stop, *, interval=30):

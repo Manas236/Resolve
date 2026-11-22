@@ -18,6 +18,7 @@ from tools.m0_probe import PROVIDERS, probe_energy
 from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .framing import render_vertical
+from .performance import Performance
 from .segments import clip_window
 
 
@@ -57,6 +58,8 @@ class Pipeline:
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
+
+        self.performance = Performance(self.database)
 
     def sites(self):
         configured = {provider.name: provider.enabled for provider in self.downloader.registry.providers}
@@ -203,8 +206,12 @@ class Pipeline:
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
         with closing(sqlite3.connect(self.database)) as db, db:
-            sources = [row[0] for row in db.execute(
-                "SELECT path FROM library WHERE kind='clip' AND retired=0 ORDER BY pinned DESC,id")]
+            assets = db.execute(
+                "SELECT id,path,pinned FROM library WHERE kind='clip' AND retired=0 ORDER BY id",
+            ).fetchall()
+            feedback = self.performance.asset_multipliers("clip")
+            assets.sort(key=lambda row: (-row[2], -feedback.get(row[0], 1)))
+            sources = [row[1] for row in assets]
             if not sources:
                 raise ValueError("No active clips available")
             first = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",

@@ -142,3 +142,7 @@ Implemented Instagram reel container creation, bounded status polling and public
 ## G. Approval-aware posting scheduler
 
 The SQLite posting ledger reserves daily slots and each platform delivery independently. The scheduler reads the dashboard settings, enforces Telegram approval in week one and whenever approval mode is selected, and isolates dry-run reservations. The restart test interrupts the outbound dispatch after claiming it and verifies that reopening the database does not send it again. Uncertain attempts stay held for reconciliation. Tests also cover two slots, the explicit auto switch after week one, and the format selector's exploration and performance weighting. The scheduler can run an interruptible loop. Wiring that loop to production media generation and live posting is still open.
+
+## H. Performance tracking and feedback
+
+Added immutable reel/song/clip/format attribution, ingestion of comparable 24-hour view snapshots, peer baselines, and distinct reported versus inferred mute flags. Exposed fixture and measured dashboard rollups, plus song and clip ranking multipliers and format observations. The existing batch clip selection now uses measured feedback after operator pinning. The format selector reads performance when supplied through the pipeline. Fixture tests check low-view and reported mutes, aggregation and feedback, early snapshots and attempts to change source attribution. Live insights ingestion and integration with live song selection remain open.

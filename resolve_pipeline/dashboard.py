@@ -32,7 +32,7 @@ def report_html(report):
     )
 
 
-def performance_html(data):
+def performance_html(data, *, fixture=True):
     rows = []
     for dimension in ("reel", "song", "clip", "format"):
         entries = data.get(dimension, {})
@@ -40,8 +40,13 @@ def performance_html(data):
         if not entries:
             rows.append("<p>No metrics available</p>")
         for key, views in entries.items():
-            rows.append(f"<p>{escape(str(key))} · {escape(str(views))} views</p>")
-    return "<h2>Performance (fixture)</h2>" + "".join(rows)
+            if not fixture:
+                views = f'{views["views"]} views · {views["observed"]} snapshots · {views["muted"]} mute signals'
+            else:
+                views = f"{views} views"
+            rows.append(f"<p>{escape(str(key))} · {escape(views)}</p>")
+    heading = "Performance (fixture)" if fixture else "Performance (24-hour snapshots)"
+    return f"<h2>{heading}</h2>" + "".join(rows)
 
 
 def handler_for(pipeline, report, auth=None, job_file=None, performance=None):
@@ -193,7 +198,11 @@ document.addEventListener("submit", async (event) => {
                                 for when, action, outcome in pipeline.recent_actions())
             controls += "".join(f"<p>Reel {reel_id} · {escape(error or 'Render failed')}</p>"
                                 for reel_id, state, error in pipeline.list_reels() if state == "failed")
-            controls += performance_html(performance or {})
+            measured = (None if performance is not None else
+                        {dimension: pipeline.performance.grouped(dimension)
+                         for dimension in ("reel", "song", "clip", "format")})
+            controls += performance_html(performance if measured is None else measured,
+                                         fixture=measured is None)
             payload = report_html(data).replace("</html>", ' <p id="feedback" role="status"></p><section id="pipeline">' + controls + "</section>" + script + "</html>").encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
