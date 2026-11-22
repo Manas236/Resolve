@@ -142,3 +142,63 @@ class NestedReplayMarkerTests(unittest.TestCase):
         self.assertEqual(result["status"], "peak")
         self.assertEqual(result["start_seconds"], 5)
         self.assertEqual(result["marker_count"], 2)
+
+
+class ServerJobSelectionTests(unittest.TestCase):
+    def test_runner_validates_provider_subset_and_rejects_unknown_options(self):
+        import json
+        from pathlib import Path
+        import subprocess
+        import sys
+        from tempfile import TemporaryDirectory
+
+        root = Path(__file__).resolve().parents[1]
+        runner = (root / "tools/server_runner.sh").read_text()
+        checker = runner.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+        job = {"id": "fixture", "limit": 2, "no_browser": False,
+               "providers": ["mp7", "cnvmp3", "ythd"]}
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "job.json"
+            for providers in (["mp7", "cnvmp3", "ythd"], ["--output"], ["mp7", "mp7"], [None]):
+                with self.subTest(providers=providers):
+                    path.write_text(json.dumps(job | {"providers": providers}))
+                    checked = subprocess.run([sys.executable, "-", str(path)], input=checker,
+                                             capture_output=True, text=True, check=False)
+                    self.assertEqual(checked.returncode == 0, providers == job["providers"])
+                    if not checked.returncode:
+                        self.assertEqual(checked.stdout.split()[1:], ["2", "0", *providers])
+
+    def test_preflight_failures_keep_specific_report_reasons(self):
+        from tools.m0_probe import browser_failure_reason
+
+        self.assertEqual(browser_failure_reason(RuntimeError("socket() failed")), "browser_socket_denied")
+        self.assertEqual(browser_failure_reason(RuntimeError("No usable sandbox")), "sandbox_unavailable")
+        self.assertEqual(browser_failure_reason(RuntimeError("Executable doesn't exist")), "browser_missing")
+
+
+class ProviderJobTests(unittest.TestCase):
+    def test_mp7_accepts_integer_job_id_and_recovers_from_transient_poll(self):
+        from pathlib import Path
+        from urllib.error import HTTPError
+        from unittest.mock import patch
+
+        from tools.m0_probe import mp7_convert
+
+        job = {"success": True, "status": "queued", "job_id": 42}
+        complete = {"success": True, "status": "complete", "download_url": "/download/42.mp3"}
+        transient = HTTPError("https://mp7.dev/status/42", 503, "Temporary", {}, None)
+        with patch("tools.m0_probe.read_json", side_effect=[job, transient, complete]) as read, \
+             patch("tools.m0_probe.time.sleep"), \
+             patch("tools.m0_probe.run_sample", return_value={"status": "verified"}):
+            result = mp7_convert({"id": "example", "kind": "audio", "reference_seconds": 9},
+                                 "https://www.youtube.com/watch?v=gCESZzZ4Z38", Path("."))
+        self.assertEqual(result["status"], "verified")
+        self.assertEqual([call.args[0] for call in read.call_args_list[1:]],
+                         ["https://mp7.dev/status/42", "https://mp7.dev/status/42"])
+
+    def test_ythd_allows_the_public_widget_but_not_impostors(self):
+        from tools.m0_probe import provider_url
+
+        self.assertTrue(provider_url("https://clickapi.net/api/widgetplus?url=example", "ythd"))
+        self.assertFalse(provider_url("https://clickapi.net.example.com/api/widgetplus", "ythd"))
+        self.assertFalse(provider_url("https://challenges.cloudflare.com/widget", "ythd"))

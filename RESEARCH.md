@@ -138,3 +138,28 @@ HTTP checks from the development environment on 21 November 2026 used GET and fo
 ### Converter source follow-up
 
 The fetched MP7 JavaScript uses a form-encoded submission and polls a returned job ID until completion. The probe now follows that flow with a bounded wait and the existing origin, challenge and media checks. CnvMP3 sets the selected format before delegating to its download handler. YTHD exposes a Convert button followed by a media choice. Both now use targeted public form interactions. Loader currently references a proof-of-work token script, so the probe records a challenge skip. Live transfers remain unverified.
+
+### Follow-up route reachability and media checks
+
+Local GET checks on 22 November 2026 produced the following results. Together with the prior discovery table, at least 15 distinct video routes have returned HTTP 200 to an intake page. They remain candidates until an individual asset passes media verification and the Lightsail version and target checks.
+
+| Media | Route | Local result |
+| --- | --- | --- |
+| Audio | <https://ncs.io/free-music> | 200. The published Royalty and Mortals Funk download links transferred full MP3 files. ffprobe confirmed audio and durations of 223.556s and 146.416s. Mortals Funk also carries attached cover art. These are off-corpus controls. |
+| Audio | <https://www.newgrounds.com/audio/search/title/phonk> | 403. Stopped. |
+| Audio | <https://www.looperman.com/loops/tags/free-phonk-loops-samples-sounds-wavs-download> | 200. Loop catalog. No full-track version proof. |
+| Audio | <https://musopen.org/music/> | 200. Classical recordings and alternate background music. |
+| Audio | <https://openmusicarchive.org/> | 200. Archival audio catalog. |
+| Audio | <https://www.audiolibrary.com.co/> | 200. Music catalog. |
+| Video | <https://ymove.app/free-exercise-videos> | 200. The publisher's two tested gym preview MP4s transferred and decoded. Both were 480×854 and six seconds, below Resolve's production resolution threshold. |
+| Video | <https://footagecrate.com/> | 200. Listing only. |
+| Video | <https://vimeo.com/groups/royaltyfree/videos> | 200. Viewer downloads depend on the uploader enabling them. |
+| Video | <https://www.vecteezy.com/free-videos/gym> | 200. Gym listing only. |
+| Video | <https://www.dvidshub.net/video> | 200. Publisher video catalog. |
+| Video | <https://motionarray.com/stock-video/free/> | 200. Free catalog page. |
+| Video | <https://www.loc.gov/collections/national-screening-room/> | 403. Stopped. |
+| Video | <https://www.nps.gov/grca/learn/photosmultimedia/b-roll-video.htm> | 404. |
+| Video | <https://pikwizard.com/search/gym-video/> | 404. |
+| Video | <https://www.stockfootageforfree.com/> | 503. |
+
+The existing SoundCloud lead remains the creator-enabled download flow. Its help page was reachable, and the account-only route was 401. There was no verified matching download from SoundCloud.

@@ -1,5 +1,6 @@
 {
-  "id": "m0-browser-diagnostic-02",
+  "id": "m0-browser-diagnostic-03",
   "limit": 2,
-  "no_browser": false
+  "no_browser": false,
+  "providers": ["mp7", "cnvmp3", "ythd"]
 }

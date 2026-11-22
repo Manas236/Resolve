@@ -180,3 +180,11 @@ Added an opt-in Playwright test that signs in, drives controls in both initial w
 ## Operator service assembly
 
 Added a runner entry point that opens the dashboard's state, schedules both Meta destinations, and optionally sends and polls Telegram review previews. A locally approved reel can still be previewed and confirmed in Telegram without changing its queue position. SQLite claims prevent duplicate preview sends. Failed or interrupted sends remain visible for reconciliation. The CLI ran a credential-free local tick, and the tests confirm it stays dry-run even when the environment says false unless the live flag is explicit. Real platform availability, live fetchable video URLs and provider-backed automatic generation remain open.
+
+## M0 focused server re-probe and adapter corrections
+
+The pending job is now m0-browser-diagnostic-03. It selects MP7, CnvMP3 and YTHD on two audio and two video targets and retains replay checks. It supersedes the earlier full-provider diagnostic. The runner accepts only those three optional provider names, rejects arbitrary flags, and keeps the existing limit and hard timeout. If Chromium cannot start, the matrix records the failure class and finishes plain HTTP checks. The separate --check-browser command still fails on a Chromium startup problem.
+
+Observed MP7's live submission returns a numeric job ID. The original HTTP adapter expected a string, so it dropped valid queued jobs before polling. It now recognizes positive numeric IDs and tolerates bounded transient poll failures. CnvMP3's published script creates a same-origin iframe for its results. YTHD renders a public ClickAPI iframe. The browser adapters now look inside those bounded result frames and stop if a challenge is detected. Source inspection confirms the frame routes. Lightsail verification is pending.
+
+The initial focused local run completed with no watch HTML replay markers on all four items. Chromium could not start because the workspace denied its singleton socket. Separate discoveries and verified publisher control downloads are listed in RESEARCH.md. Neither the control downloads nor the four-target diagnostic can satisfy the server gate.

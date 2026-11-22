@@ -292,6 +292,8 @@ def provider_url(url, provider):
         return False
     if provider == "notube" and (host == "cdn.notube.net" or re.fullmatch(r"s[0-9]{2}\.notube\.net", host)):
         return public_url(url, host)
+    if provider == "ythd" and host == "clickapi.net":
+        return public_url(url, "clickapi.net")
     return public_url(url, urlsplit(PROVIDERS[provider]).netloc)
 
 
@@ -307,24 +309,38 @@ def browser_blocked(page):
             page.locator("iframe[src*='captcha'], iframe[src*='challenges.cloudflare.com']").count() > 0)
 
 
-def wait_for_link(page, selector, provider):
+def wait_for_link(page, selector, provider, kind, *, result_frame=False):
     deadline = time.monotonic() + 90
+    selected_format = False
+    seen_frame = False
     while time.monotonic() < deadline:
         if browser_blocked(page):
             return None, "challenge_detected"
-        if provider == "mp7" and page.locator("#status-text").text_content(timeout=3000) == "failed":
-            return None, "provider_rejected"
         if provider == "directyt" and page.locator("#dl-error").is_visible():
             return None, "provider_rejected"
-        links = page.locator(selector).all()
-        for link in links:
-            if link.is_visible():
-                href = link.get_attribute("href", timeout=3000)
-                if href and not href.startswith("#"):
-                    return urljoin(page.url, href), "link_found"
+        frames = [page]
+        if result_frame:
+            frames = [frame for frame in page.frames if frame.parent_frame
+                      and provider_url(frame.url, provider)]
+            seen_frame |= bool(frames)
+        for frame in frames:
+            if frame is not page and browser_blocked(frame):
+                return None, "challenge_detected"
+            for link in frame.locator(selector).all():
+                if link.is_visible():
+                    href = link.get_attribute("href", timeout=3000)
+                    if href and not href.startswith("#"):
+                        return urljoin(frame.url, href), "link_found"
+            if result_frame and not selected_format:
+                label = re.compile(r"^(?:convert to |download )?(?:"
+                                   + ("MP3" if kind == "audio" else "MP4|720p") + r")$", re.I)
+                for choice in frame.get_by_role("button", name=label).all():
+                    if choice.is_visible():
+                        choice.click()
+                        selected_format = True
+                        break
         page.wait_for_timeout(1000)
-    return None, "no_download_link"
-
+    return None, "no_result_frame" if result_frame and not seen_frame else "no_download_link"
 
 def submit_public_form(page, watch, kind):
     """Use labelled controls on the public page, without submitting an ambiguous form."""
@@ -378,6 +394,7 @@ def mp7_convert(item, watch, folder):
         headers={"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"},
     )
     stage = "submit"
+    poll_failures = 0
     try:
         result = read_json(request)
         deadline = time.monotonic() + 120
@@ -395,12 +412,23 @@ def mp7_convert(item, watch, folder):
                 return {**media, "method": "http_json", "stage": "media_transfer"}
             if time.monotonic() >= deadline:
                 return {"status": "provider_job_timeout", "stage": stage}
-            job_id = result.get("job_id") if stage == "submit" else job_id
-            if not isinstance(job_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", job_id):
-                break
+            if stage == "submit":
+                job_id = result.get("job_id")
+                if type(job_id) is int and job_id > 0:
+                    job_id = str(job_id)
+                if not isinstance(job_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", job_id):
+                    break
             stage = "poll"
             time.sleep(2)
-            result = read_json(urljoin(base, "/status/" + job_id))
+            try:
+                result = read_json(urljoin(base, "/status/" + job_id))
+            except HTTPError as error:
+                poll_failures += 1
+                if error.code not in {500, 502, 503, 504} or poll_failures >= 3:
+                    raise
+                error.close()
+            else:
+                poll_failures = 0
     except HTTPError as error:
         error.close()
         return {"status": "http_error", "http_status": error.code, "stage": stage}
@@ -418,6 +446,7 @@ def convert(browser, provider, item, watch, folder):
         route.continue_() if provider_url(route.request.url, provider) else route.abort()
     ))
     stage = "landing"
+    result_frame = False
     response_codes = set()
     try:
         page = context.new_page()
@@ -461,15 +490,18 @@ def convert(browser, provider, item, watch, folder):
             page.locator("#format-select-display").click()
             option = 1 if item["kind"] == "audio" else 0
             page.locator(f".format-select-options[data-format='{option}']").click()
+            if item["kind"] == "video":
+                quality = page.locator("#quality-video-select-display")
+                if quality.is_visible():
+                    quality.click()
+                    page.locator("#quality-video-select-list-720").click()
             page.locator("#convert-button-1").first.click()
-            selector = "a#download-button[href], " + generic_download_selector(item["kind"])
+            result_frame = True
+            selector = generic_download_selector(item["kind"]) + ", a:text-is('Download')"
         elif provider == "ythd":
             page.locator(".convert-form input[name=url]").fill(watch)
             page.locator(".convert-form button[type=submit]").click()
-            label = "MP3" if item["kind"] == "audio" else "MP4"
-            choice = page.get_by_role("button", name=label, exact=True)
-            if choice.count():
-                choice.first.click()
+            result_frame = True
             selector = generic_download_selector(item["kind"])
         elif provider in DIRECT_MP3:
             selector = generic_download_selector("audio")
@@ -478,7 +510,7 @@ def convert(browser, provider, item, watch, folder):
                 return {"status": "challenge_detected" if browser_blocked(page) else "public_form_unavailable"}
             selector = generic_download_selector(item["kind"])
         stage = "result_link"
-        url, status = wait_for_link(page, selector, provider)
+        url, status = wait_for_link(page, selector, provider, item["kind"], result_frame=result_frame)
         if url is None:
             return {"status": status, "stage": stage, "request_statuses": sorted(response_codes)}
         if not provider_url(url, provider):
@@ -744,6 +776,21 @@ def start_browser(executable):
             browser.close()
 
 
+def browser_failure_reason(error):
+    detail = str(error).casefold()
+    for fragment, reason in (
+        ("no usable sandbox", "sandbox_unavailable"),
+        ("socket() failed", "browser_socket_denied"),
+        ("executable doesn’t exist", "browser_missing"),
+        ("executable doesn't exist", "browser_missing"),
+        ("dependencies", "browser_start_failed"),
+        ("playwright is missing", "playwright_missing"),
+    ):
+        if fragment in detail:
+            return reason
+    return "browser_start_failed"
+
+
 def run_matrix(args):
     corpus = [(False, item) for item in read_corpus()]
     if args.limit:
@@ -761,10 +808,19 @@ def run_matrix(args):
         folder = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="resolve-m0-")))
         browser = None
         browser_status = "disabled"
+        browser_failure = None
         if not args.no_browser:
-            browser = stack.enter_context(start_browser(args.chromium))
-            browser_status = "ready"
-        landings = {name: landing_http(url) for name, url in PROVIDERS.items()}
+            try:
+                browser = stack.enter_context(start_browser(args.chromium))
+            except RuntimeError as error:
+                browser_status = "unavailable"
+                browser_failure = browser_failure_reason(error)
+                print(f"Chromium unavailable ({browser_failure}); continuing plain HTTP checks.", flush=True)
+            else:
+                browser_status = "ready"
+        requested = getattr(args, "providers", None)
+        landings = {name: landing_http(url) for name, url in PROVIDERS.items()
+                    if requested is None or name in requested}
         grounding = gemini_grounding(key)
         for baseline, item in corpus:
             watch = f"https://www.youtube.com/watch?v={item['youtube_id']}"
@@ -815,8 +871,8 @@ def run_matrix(args):
                     "selected": chosen_timestamp(replay, headless_replay, social, gemini, reference_media),
                 },
             })
-            write_report(args.output, matrix_report(args, rows, landings, browser_status, grounding, False, versions))
-    return matrix_report(args, rows, landings, browser_status, grounding, True, versions)
+            write_report(args.output, matrix_report(args, rows, landings, browser_status, grounding, False, versions, browser_failure))
+    return matrix_report(args, rows, landings, browser_status, grounding, True, versions, browser_failure)
 
 
 def tool_version(command):
@@ -837,16 +893,17 @@ def tool_versions():
     }
 
 
-def matrix_report(args, rows, landings, browser_status, grounding, complete, versions):
+def matrix_report(args, rows, landings, browser_status, grounding, complete, versions, browser_failure=None):
     target = [row for row in rows if row["corpus"] == "target"]
     baseline = [row for row in rows if row["corpus"] == "baseline"]
     return {
         "schema_version": 3,
-        "scope": "m0_diagnostic" if args.limit or args.no_browser else "m0_matrix",
+        "scope": "m0_diagnostic" if args.limit or args.no_browser or getattr(args, "providers", None) else "m0_matrix",
         "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
         "complete": complete,
         "tools": versions,
         "browser_status": browser_status,
+        "browser_failure": browser_failure,
         "http_landing_checks": landings,
         "provider_summary": provider_summary(landings, target),
         "outcome_summary": outcome_summary(target),
@@ -875,6 +932,8 @@ def main():
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--check-browser", action="store_true", help="launch Chromium without probing any site")
     parser.add_argument("--limit", type=int, choices=range(1, 11), help="diagnostic rows per media kind")
+    parser.add_argument("--providers", nargs="+", choices=sorted(PROVIDERS),
+                        help="restrict provider checks to the specified registry names")
     parser.add_argument("--chromium", help="path to installed Chrome or Chromium")
     parser.add_argument("--no-browser", action="store_true", help="run HTTP diagnostics only")
     parser.add_argument("--gemini-free-project", action="store_true",
@@ -891,7 +950,7 @@ def main():
         filename = "m0_server_results.json"
         if args.smoke:
             filename = "m0_smoke_results.json"
-        elif args.limit or args.no_browser:
+        elif args.limit or args.no_browser or args.providers:
             filename = "m0_diagnostic_results.json"
         args.output = ROOT / "research" / filename
     if args.smoke:
