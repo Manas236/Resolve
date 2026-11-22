@@ -138,3 +138,7 @@ The Bot API client sends a video preview with Approve, Reject, Regenerate and Mu
 ## F. Meta Graph posting adapter
 
 Implemented Instagram reel container creation, bounded status polling and publication, plus Facebook Page upload-session creation, hosted file upload, status checking and finish. The dry-run path returns receipts without network traffic. The Publisher protocol leaves the YouTube slot open. Local fake Graph responses exercise successful sequences, both forms of rate-limit response, a processing error and timeout, and rejection of a foreign Facebook upload origin. Live publication additionally requires a pipeline authorization and an HTTPS media URL. Actual Meta integration remains open.
+
+## G. Approval-aware posting scheduler
+
+The SQLite posting ledger reserves daily slots and each platform delivery independently. The scheduler reads the dashboard settings, enforces Telegram approval in week one and whenever approval mode is selected, and isolates dry-run reservations. The restart test interrupts the outbound dispatch after claiming it and verifies that reopening the database does not send it again. Uncertain attempts stay held for reconciliation. Tests also cover two slots, the explicit auto switch after week one, and the format selector's exploration and performance weighting. The scheduler can run an interruptible loop. Wiring that loop to production media generation and live posting is still open.
