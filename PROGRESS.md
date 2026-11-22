@@ -172,3 +172,7 @@ The public HTML parsers read Spotify's embedded playlist metadata without its AP
 The segment cutter validates the full source version before it writes output, then verifies the cut's streams and duration. Local proof: Strength of the Titans produced a 22.047s MP3 at a planned 22s window. The SampleLib control produced a 4.004s, 1920×1080 MP4 at a planned 4s window. The Blender film's source was 1280×534 and was rejected by the production download/cut validation, while remaining usable as a local renderer control. This is publisher evidence. Production source retrieval, viral timestamp coverage and 30 verified segments per library are still open.
 
 Baseline archives retained outside Git for editorial review. [Three TTS samples](https://chatgpt.com/library?file_id=libfile_001ff68cd7608191a733f972d8eb102d&account_id=personal) and [nine publisher reels](https://chatgpt.com/library?file_id=libfile_3a64c33c517c8191b34476163738d6a3&account_id=personal).
+
+## M12 browser acceptance harness
+
+Added an opt-in Playwright test that signs in, drives controls in both initial worker states and checks an in-page marker survives the routine updates. The sandboxed system Chromium run in this workspace exited before navigation because its singleton socket was denied. The standard suite exercises the dashboard over loopback HTTP and skips the opt-in browser test. NEEDS_MANAS.md has the exact command for the host with working sandboxed Chromium.

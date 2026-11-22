@@ -106,3 +106,13 @@ bash tools/deploy_analyticsdashboard.sh verify
 ```
 
 Verify reports the loaded AppArmor profile, sandboxed Chromium launch and verified provider counts independently. A registry failure is expected while the committed server report still shows zero verified target providers.
+
+## M12 interactive dashboard acceptance
+
+On **AnalyticsDashboard Lightsail**, from the reviewed Resolve checkout after the Chromium preflight passes, run the browser acceptance test in its own screen session. It uses disposable local fixtures and sends no live Telegram or Meta requests.
+
+```sh
+screen -L -Logfile resolve-dashboard-acceptance.log -dmS resolve-dashboard-acceptance env RESOLVE_BROWSER_E2E=1 .venv/bin/python -m unittest discover -s tests -p test_dashboard_browser.py -v
+```
+
+Retain the log and share the final unittest summary or the error. The browser remains sandboxed.
