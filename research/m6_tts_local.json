@@ -1,0 +1,698 @@
+{
+  "script": "Show up. Start with one rep. Finish what you started. When you feel like quitting, slow down and take a breath. Then do the next thing you can do. You do not need a perfect day. You need one decision you can repeat tomorrow.",
+  "results": [
+    {
+      "engine": "flite",
+      "path": "flite.wav",
+      "elapsed_seconds": 0.3687878979999937,
+      "audio_seconds": 13.335,
+      "sample_rate": 16000,
+      "channels": 1,
+      "sha256": "a5af0fc6e584293620d37fe3b8b298a1f49df5117fc901774a743bcae4660bf4",
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 500,
+          "text": "Show"
+        },
+        {
+          "start_ms": 500,
+          "end_ms": 840,
+          "text": "up,"
+        },
+        {
+          "start_ms": 860,
+          "end_ms": 1060,
+          "text": "start"
+        },
+        {
+          "start_ms": 1060,
+          "end_ms": 1300,
+          "text": "with"
+        },
+        {
+          "start_ms": 1300,
+          "end_ms": 1580,
+          "text": "one"
+        },
+        {
+          "start_ms": 1580,
+          "end_ms": 1920,
+          "text": "rep,"
+        },
+        {
+          "start_ms": 2260,
+          "end_ms": 2320,
+          "text": "finish"
+        },
+        {
+          "start_ms": 2320,
+          "end_ms": 2560,
+          "text": "what"
+        },
+        {
+          "start_ms": 2560,
+          "end_ms": 2820,
+          "text": "you"
+        },
+        {
+          "start_ms": 2820,
+          "end_ms": 3080,
+          "text": "started,"
+        },
+        {
+          "start_ms": 3440,
+          "end_ms": 3460,
+          "text": "when"
+        },
+        {
+          "start_ms": 3460,
+          "end_ms": 3680,
+          "text": "you"
+        },
+        {
+          "start_ms": 3680,
+          "end_ms": 3900,
+          "text": "feel"
+        },
+        {
+          "start_ms": 3900,
+          "end_ms": 4220,
+          "text": "like"
+        },
+        {
+          "start_ms": 4220,
+          "end_ms": 4700,
+          "text": "quitting,"
+        },
+        {
+          "start_ms": 4940,
+          "end_ms": 5060,
+          "text": "slow"
+        },
+        {
+          "start_ms": 5060,
+          "end_ms": 5540,
+          "text": "down"
+        },
+        {
+          "start_ms": 5540,
+          "end_ms": 5860,
+          "text": "and"
+        },
+        {
+          "start_ms": 5860,
+          "end_ms": 5940,
+          "text": "take"
+        },
+        {
+          "start_ms": 5940,
+          "end_ms": 6120,
+          "text": "a"
+        },
+        {
+          "start_ms": 6120,
+          "end_ms": 6460,
+          "text": "breath,"
+        },
+        {
+          "start_ms": 6660,
+          "end_ms": 6740,
+          "text": "then"
+        },
+        {
+          "start_ms": 6740,
+          "end_ms": 6920,
+          "text": "do"
+        },
+        {
+          "start_ms": 6920,
+          "end_ms": 7100,
+          "text": "the"
+        },
+        {
+          "start_ms": 7100,
+          "end_ms": 7420,
+          "text": "next"
+        },
+        {
+          "start_ms": 7420,
+          "end_ms": 7740,
+          "text": "thing"
+        },
+        {
+          "start_ms": 7740,
+          "end_ms": 7920,
+          "text": "you"
+        },
+        {
+          "start_ms": 7920,
+          "end_ms": 8100,
+          "text": "can"
+        },
+        {
+          "start_ms": 8100,
+          "end_ms": 8460,
+          "text": "do,"
+        },
+        {
+          "start_ms": 8480,
+          "end_ms": 8700,
+          "text": "you"
+        },
+        {
+          "start_ms": 8700,
+          "end_ms": 8900,
+          "text": "do"
+        },
+        {
+          "start_ms": 8900,
+          "end_ms": 9100,
+          "text": "not"
+        },
+        {
+          "start_ms": 9100,
+          "end_ms": 9360,
+          "text": "need"
+        },
+        {
+          "start_ms": 9360,
+          "end_ms": 9440,
+          "text": "a"
+        },
+        {
+          "start_ms": 9440,
+          "end_ms": 9840,
+          "text": "perfect"
+        },
+        {
+          "start_ms": 9840,
+          "end_ms": 10220,
+          "text": "day,"
+        },
+        {
+          "start_ms": 10520,
+          "end_ms": 10640,
+          "text": "you"
+        },
+        {
+          "start_ms": 10640,
+          "end_ms": 10920,
+          "text": "need"
+        },
+        {
+          "start_ms": 10920,
+          "end_ms": 11220,
+          "text": "one"
+        },
+        {
+          "start_ms": 11220,
+          "end_ms": 11560,
+          "text": "decision"
+        },
+        {
+          "start_ms": 11560,
+          "end_ms": 11900,
+          "text": "you"
+        },
+        {
+          "start_ms": 11900,
+          "end_ms": 12140,
+          "text": "can"
+        },
+        {
+          "start_ms": 12140,
+          "end_ms": 12500,
+          "text": "repeat"
+        },
+        {
+          "start_ms": 12500,
+          "end_ms": 12960,
+          "text": "tomorrow."
+        }
+      ]
+    },
+    {
+      "engine": "espeak-ng",
+      "path": "espeak-ng.wav",
+      "elapsed_seconds": 0.03338931899997988,
+      "audio_seconds": 13.709795918367346,
+      "sample_rate": 22050,
+      "channels": 1,
+      "sha256": "16c237f7d55a4c55694fe1c32bcad72e51fc79faa8714f9ebed4ddfc876f39b8",
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 360,
+          "text": "Show"
+        },
+        {
+          "start_ms": 360,
+          "end_ms": 900,
+          "text": "up."
+        },
+        {
+          "start_ms": 920,
+          "end_ms": 1220,
+          "text": "Start"
+        },
+        {
+          "start_ms": 1220,
+          "end_ms": 1480,
+          "text": "with"
+        },
+        {
+          "start_ms": 1480,
+          "end_ms": 1720,
+          "text": "one"
+        },
+        {
+          "start_ms": 1720,
+          "end_ms": 2140,
+          "text": "rep."
+        },
+        {
+          "start_ms": 2460,
+          "end_ms": 2620,
+          "text": "Finish"
+        },
+        {
+          "start_ms": 2620,
+          "end_ms": 2860,
+          "text": "what"
+        },
+        {
+          "start_ms": 2860,
+          "end_ms": 3100,
+          "text": "you"
+        },
+        {
+          "start_ms": 3100,
+          "end_ms": 3400,
+          "text": "started."
+        },
+        {
+          "start_ms": 3820,
+          "end_ms": 4040,
+          "text": "When"
+        },
+        {
+          "start_ms": 4040,
+          "end_ms": 4240,
+          "text": "you"
+        },
+        {
+          "start_ms": 4240,
+          "end_ms": 4480,
+          "text": "feel"
+        },
+        {
+          "start_ms": 4480,
+          "end_ms": 4820,
+          "text": "like"
+        },
+        {
+          "start_ms": 4820,
+          "end_ms": 5200,
+          "text": "quitting,"
+        },
+        {
+          "start_ms": 5500,
+          "end_ms": 5700,
+          "text": "slow"
+        },
+        {
+          "start_ms": 5700,
+          "end_ms": 6000,
+          "text": "down"
+        },
+        {
+          "start_ms": 6000,
+          "end_ms": 6300,
+          "text": "and"
+        },
+        {
+          "start_ms": 6300,
+          "end_ms": 6520,
+          "text": "take"
+        },
+        {
+          "start_ms": 6520,
+          "end_ms": 6700,
+          "text": "a"
+        },
+        {
+          "start_ms": 6700,
+          "end_ms": 7060,
+          "text": "breath."
+        },
+        {
+          "start_ms": 7260,
+          "end_ms": 7540,
+          "text": "And"
+        },
+        {
+          "start_ms": 7540,
+          "end_ms": 7720,
+          "text": "do"
+        },
+        {
+          "start_ms": 7720,
+          "end_ms": 7900,
+          "text": "the"
+        },
+        {
+          "start_ms": 7900,
+          "end_ms": 8200,
+          "text": "next"
+        },
+        {
+          "start_ms": 8200,
+          "end_ms": 8480,
+          "text": "thing"
+        },
+        {
+          "start_ms": 8480,
+          "end_ms": 8640,
+          "text": "you"
+        },
+        {
+          "start_ms": 8640,
+          "end_ms": 8880,
+          "text": "can"
+        },
+        {
+          "start_ms": 8880,
+          "end_ms": 9340,
+          "text": "do."
+        },
+        {
+          "start_ms": 9640,
+          "end_ms": 9640,
+          "text": "You"
+        },
+        {
+          "start_ms": 9640,
+          "end_ms": 9720,
+          "text": "do"
+        },
+        {
+          "start_ms": 9720,
+          "end_ms": 9920,
+          "text": "not"
+        },
+        {
+          "start_ms": 9920,
+          "end_ms": 10100,
+          "text": "need"
+        },
+        {
+          "start_ms": 10100,
+          "end_ms": 10200,
+          "text": "a"
+        },
+        {
+          "start_ms": 10200,
+          "end_ms": 10560,
+          "text": "perfect"
+        },
+        {
+          "start_ms": 10560,
+          "end_ms": 11040,
+          "text": "day."
+        },
+        {
+          "start_ms": 11260,
+          "end_ms": 11380,
+          "text": "You"
+        },
+        {
+          "start_ms": 11380,
+          "end_ms": 11640,
+          "text": "need"
+        },
+        {
+          "start_ms": 11640,
+          "end_ms": 11940,
+          "text": "one"
+        },
+        {
+          "start_ms": 11940,
+          "end_ms": 12220,
+          "text": "decision"
+        },
+        {
+          "start_ms": 12220,
+          "end_ms": 12480,
+          "text": "you"
+        },
+        {
+          "start_ms": 12480,
+          "end_ms": 12700,
+          "text": "can"
+        },
+        {
+          "start_ms": 12700,
+          "end_ms": 13000,
+          "text": "repeat"
+        },
+        {
+          "start_ms": 13000,
+          "end_ms": 13360,
+          "text": "tomorrow."
+        }
+      ]
+    },
+    {
+      "engine": "piper",
+      "path": "piper.wav",
+      "elapsed_seconds": 1.8857494009999982,
+      "audio_seconds": 12.496,
+      "sample_rate": 16000,
+      "channels": 1,
+      "sha256": "7a818b4c1cea1b0f40eb6be945aa8788b67ec65ea7441782354cbb8d04c3d1a5",
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 320,
+          "text": "Show"
+        },
+        {
+          "start_ms": 320,
+          "end_ms": 580,
+          "text": "up,"
+        },
+        {
+          "start_ms": 840,
+          "end_ms": 840,
+          "text": "start"
+        },
+        {
+          "start_ms": 840,
+          "end_ms": 1060,
+          "text": "with"
+        },
+        {
+          "start_ms": 1060,
+          "end_ms": 1320,
+          "text": "one"
+        },
+        {
+          "start_ms": 1320,
+          "end_ms": 1660,
+          "text": "rep,"
+        },
+        {
+          "start_ms": 1980,
+          "end_ms": 2040,
+          "text": "finish"
+        },
+        {
+          "start_ms": 2040,
+          "end_ms": 2300,
+          "text": "what"
+        },
+        {
+          "start_ms": 2300,
+          "end_ms": 2540,
+          "text": "you"
+        },
+        {
+          "start_ms": 2540,
+          "end_ms": 2840,
+          "text": "started."
+        },
+        {
+          "start_ms": 3180,
+          "end_ms": 3200,
+          "text": "When"
+        },
+        {
+          "start_ms": 3200,
+          "end_ms": 3420,
+          "text": "you"
+        },
+        {
+          "start_ms": 3420,
+          "end_ms": 3640,
+          "text": "feel"
+        },
+        {
+          "start_ms": 3640,
+          "end_ms": 3880,
+          "text": "like"
+        },
+        {
+          "start_ms": 3880,
+          "end_ms": 4240,
+          "text": "quitting,"
+        },
+        {
+          "start_ms": 4540,
+          "end_ms": 4720,
+          "text": "slow"
+        },
+        {
+          "start_ms": 4720,
+          "end_ms": 5080,
+          "text": "down"
+        },
+        {
+          "start_ms": 5080,
+          "end_ms": 5300,
+          "text": "and"
+        },
+        {
+          "start_ms": 5300,
+          "end_ms": 5380,
+          "text": "take"
+        },
+        {
+          "start_ms": 5380,
+          "end_ms": 5580,
+          "text": "a"
+        },
+        {
+          "start_ms": 5580,
+          "end_ms": 5840,
+          "text": "breath."
+        },
+        {
+          "start_ms": 6180,
+          "end_ms": 6240,
+          "text": "Then"
+        },
+        {
+          "start_ms": 6240,
+          "end_ms": 6400,
+          "text": "do"
+        },
+        {
+          "start_ms": 6400,
+          "end_ms": 6600,
+          "text": "the"
+        },
+        {
+          "start_ms": 6600,
+          "end_ms": 6880,
+          "text": "next"
+        },
+        {
+          "start_ms": 6880,
+          "end_ms": 7140,
+          "text": "thing"
+        },
+        {
+          "start_ms": 7140,
+          "end_ms": 7300,
+          "text": "you"
+        },
+        {
+          "start_ms": 7300,
+          "end_ms": 7500,
+          "text": "can"
+        },
+        {
+          "start_ms": 7500,
+          "end_ms": 7880,
+          "text": "do."
+        },
+        {
+          "start_ms": 8140,
+          "end_ms": 8220,
+          "text": "You"
+        },
+        {
+          "start_ms": 8220,
+          "end_ms": 8340,
+          "text": "do"
+        },
+        {
+          "start_ms": 8340,
+          "end_ms": 8560,
+          "text": "not"
+        },
+        {
+          "start_ms": 8560,
+          "end_ms": 8800,
+          "text": "need"
+        },
+        {
+          "start_ms": 8800,
+          "end_ms": 8940,
+          "text": "a"
+        },
+        {
+          "start_ms": 8940,
+          "end_ms": 9260,
+          "text": "perfect"
+        },
+        {
+          "start_ms": 9260,
+          "end_ms": 9720,
+          "text": "day."
+        },
+        {
+          "start_ms": 9980,
+          "end_ms": 10060,
+          "text": "You"
+        },
+        {
+          "start_ms": 10060,
+          "end_ms": 10360,
+          "text": "need"
+        },
+        {
+          "start_ms": 10360,
+          "end_ms": 10660,
+          "text": "one"
+        },
+        {
+          "start_ms": 10660,
+          "end_ms": 11060,
+          "text": "decision"
+        },
+        {
+          "start_ms": 11060,
+          "end_ms": 11380,
+          "text": "you"
+        },
+        {
+          "start_ms": 11380,
+          "end_ms": 11600,
+          "text": "can"
+        },
+        {
+          "start_ms": 11600,
+          "end_ms": 11900,
+          "text": "repeat"
+        },
+        {
+          "start_ms": 11900,
+          "end_ms": 12260,
+          "text": "tomorrow."
+        }
+      ]
+    }
+  ]
+}

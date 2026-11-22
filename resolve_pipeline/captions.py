@@ -86,3 +86,32 @@ def transcribe_words(clean_speech, model):
         Cue(round(word["start"] * 1000), round(word["end"] * 1000), word["word"].strip())
         for segment in result["segments"] for word in segment["words"]
     ]
+
+
+def transcribe_local_words(clean_speech, model_directory):
+    """Transcribe with a preinstalled local Whisper model on CPU."""
+    from pathlib import Path
+    import subprocess
+
+    if not Path(clean_speech).is_file():
+        raise ValueError("Clean speech file is missing")
+    if not Path(model_directory).is_dir():
+        raise ValueError("Provide a local faster-whisper model directory")
+
+    from faster_whisper import WhisperModel
+    import numpy as np
+
+    model = WhisperModel(str(model_directory), device="cpu", compute_type="int8",
+                         local_files_only=True)
+    pcm = subprocess.check_output(
+        ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
+         "-i", str(Path(clean_speech).resolve()), "-map", "0:a:0",
+         "-ac", "1", "-ar", "16000", "-f", "f32le", "pipe:1"],
+        timeout=120,
+    )
+    segments, _ = model.transcribe(np.frombuffer(pcm, dtype="<f4"),
+                                    language="en", word_timestamps=True)
+    return [
+        Cue(round(word.start * 1000), round(word.end * 1000), word.word.strip())
+        for segment in segments for word in segment.words
+    ]

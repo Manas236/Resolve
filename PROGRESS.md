@@ -120,3 +120,7 @@ The dashboard integration suite now runs over loopback HTTP with actual password
 ## C. Measured word caption groundwork
 
 Added a Whisper adapter that requests word timestamps from clean speech, and clip-relative ASS output with bold hook text and per-word highlight events. Tests verify adapter arguments and exact timing on known cues, including clipping and escaping literal ASS control characters. Real Whisper inference and the three-engine TTS comparison remain open. The browser acceptance check still fails before navigation because the local Chromium process cannot create its singleton socket under the executor restrictions.
+
+Three distinct local engines generated WAVs from the exact same script. Flite SLT produced 13.335s, eSpeak NG en-us 13.710s, and Piper Lessac Low 12.496s. CPU faster-whisper tiny.en produced 44 measured word cues per engine from the clean PCM before mixing. See research/m6_tts_local.json for timings and sample hashes. WAVs are archived outside Git as Resolve-M6-TTS-Samples.zip. Piper is provisionally integrated as the synthesis default. Human listening and server evidence remain open.
+
+Audit: 36 tests passed. Literal punctuation and filenames with commas synthesize successfully. Empty text, embedded NUL and unsupported engine names fail without replacing an existing sample. Real inference found that the installed PyAV no longer accepted a decoder option used by faster-whisper. The local adapter now explicitly decodes mono 16 kHz PCM with FFmpeg and all three transcriptions succeeded.

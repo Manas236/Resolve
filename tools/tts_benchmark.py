@@ -1,36 +1,43 @@
-"""Benchmark three local Flite voices on the same script."""
+"""Generate comparable local speech samples with Flite, eSpeak NG and Piper."""
 
 import argparse
 import json
 from pathlib import Path
 import subprocess
 from time import perf_counter
-import wave
 
-SCRIPT = "Show up. Start with one rep. Finish what you started."
-VOICES = ("slt", "kal", "rms")
+from resolve_pipeline.tts import ENGINES, synthesize
+
+SCRIPT = (
+    "Show up. Start with one rep. Finish what you started. "
+    "When you feel like quitting, slow down and take a breath. "
+    "Then do the next thing you can do. You do not need a perfect day. "
+    "You need one decision you can repeat tomorrow."
+)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--piper-model", type=Path)
+    parser.add_argument("--engine", action="append", choices=ENGINES,
+                        help="Select engines individually. The default runs all three.")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     results = []
-    for voice in VOICES:
-        output = args.output / f"{voice}.wav"
+    for engine in dict.fromkeys(args.engine or ENGINES):
+        output = args.output / f"{engine}.wav"
         started = perf_counter()
-        subprocess.run(
-            ["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi",
-             "-i", f"flite=voice={voice}:text='{SCRIPT}'", str(output)],
-            check=True, timeout=30,
-        )
-        elapsed = perf_counter() - started
-        with wave.open(str(output), "rb") as audio:
-            results.append({"engine": "flite", "voice": voice, "seconds": elapsed,
-                            "audio_seconds": audio.getnframes() / audio.getframerate()})
-    print(json.dumps(results, indent=2))
+        try:
+            properties = synthesize(SCRIPT, output, engine=engine, piper_model=args.piper_model)
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
+            results.append({"engine": engine, "error": str(exc)})
+        else:
+            results.append({"engine": engine, "path": str(output.resolve()),
+                            "elapsed_seconds": perf_counter() - started, **properties})
+    print(json.dumps({"script": SCRIPT, "results": results}, indent=2))
+    return int(any("error" in result for result in results))
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

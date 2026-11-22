@@ -33,3 +33,7 @@ For user-only work, document the exact machine and single-line non-interactive c
 - Manas confirmed Chromium preflight passed on Ubuntu 24 after an AppArmor fix for `No usable sandbox`. Unprivileged user namespace restrictions caused the failure. The host uses `/etc/apparmor.d/playwright-chromium` with ABI 4.0, attachment `/home/ubuntu/.cache/ms-playwright/chromium*/**/chrome*`, `flags=(unconfined)`, and a `userns,` rule, loaded with `apparmor_parser -r`.
 - M13 deployment must install or verify that narrowly scoped profile and reload it when changed. The health check must verify the profile is loaded and perform a Chromium launch as the runtime user with sandboxing enabled. Never fall back to `--no-sandbox`.
 - While the server probe runs, site-independent M2 and M3–M7 groundwork is authorized. Continue to require the applicable live evidence for milestone completion.
+
+## Speech synthesis
+
+- Prefer Piper with the local Lessac model provisionally. In the three-engine comparison, Whisper recovered all scripted words from both Piper and Flite, but Piper preserved more sentence breaks. eSpeak NG changed one word in Whisper's output. This is a cadence and intelligibility proxy. The blind listening comparison and Lightsail runtime remain open.
