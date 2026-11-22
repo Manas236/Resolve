@@ -17,6 +17,8 @@ from tools.m0_probe import PROVIDERS, probe_energy
 
 from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
+from .bundles import schema
+from .reels import NoSpeech
 from .framing import render_vertical
 from .performance import Performance
 from .scheduler import FORMATS, choose_format
@@ -26,8 +28,6 @@ from .segments import clip_window
 class Pipeline:
     def __init__(self, directory, sources, downloader=None, *, reel_builder=None):
         self.sources = tuple(Path(source).resolve() for source in sources)
-        if not self.sources:
-            raise ValueError("At least one local source is required")
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.downloader = downloader if downloader is not None else Downloader(Registry(()), {}, self.directory / "downloads")
@@ -55,6 +55,7 @@ class Pipeline:
                        "reel_id INTEGER NOT NULL, action TEXT NOT NULL, UNIQUE(reel_id,action))")
             db.execute("CREATE TABLE IF NOT EXISTS telegram_previews ("
                        "reel_id INTEGER PRIMARY KEY, status TEXT NOT NULL)")
+            schema(db)
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -62,6 +63,8 @@ class Pipeline:
                 ("posting_order", "INTEGER"),
                 ("format_id", "TEXT"),
                 ("song_id", "INTEGER"),
+                ("production", "INTEGER NOT NULL DEFAULT 0"),
+                ("render_claim", "INTEGER"),
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
@@ -195,12 +198,12 @@ class Pipeline:
     def posting_queue(self):
         with closing(sqlite3.connect(self.database)) as db:
             return [row[0] for row in db.execute(
-                "SELECT id FROM reels WHERE status='approved' ORDER BY COALESCE(posting_order,id),id")]
+                "SELECT id FROM reels WHERE status='approved' AND production=1 ORDER BY COALESCE(posting_order,id),id")]
 
     def reorder(self, ids):
         with closing(sqlite3.connect(self.database)) as db, db:
             db.execute("BEGIN IMMEDIATE")
-            current = {row[0] for row in db.execute("SELECT id FROM reels WHERE status='approved'")}
+            current = {row[0] for row in db.execute("SELECT id FROM reels WHERE status='approved' AND production=1")}
             if len(ids) != len(current) or set(ids) != current:
                 raise ValueError("Include each currently approved reel ID exactly once")
             db.executemany("UPDATE reels SET posting_order=? WHERE id=?",
@@ -210,7 +213,12 @@ class Pipeline:
     def running(self):
         return self.worker is not None and self.worker.is_alive() and not self.stop_signal.is_set()
 
-    def enqueue(self, count, format_id="auto"):
+    def format_requirements(self):
+        if hasattr(self.reel_builder, "format_requirements"):
+            return self.reel_builder.format_requirements()
+        return {item: None if self.reel_builder else "Configure the format renderer." for item in FORMATS}
+
+    def enqueue(self, count, format_id="auto", *, production_only=False, production_day=None):
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
         if format_id not in ("auto", *FORMATS):
@@ -218,6 +226,12 @@ class Pipeline:
         if format_id != "auto" and self.reel_builder is None:
             raise ValueError("Configure the format renderer before selecting F1, F2 or F3")
         weights = tuple(map(int, self.settings()["format_weights"].split(",")))
+        requirements = self.format_requirements()
+        if format_id != "auto" and requirements[format_id]:
+            raise ValueError(requirements[format_id])
+        weights = tuple(weight if not requirements[item] else 0 for item, weight in zip(FORMATS, weights))
+        if self.reel_builder and format_id == "auto" and not any(weights):
+            raise ValueError("No enabled format has its dependencies configured.")
         observations = self.performance.format_observations()
         with closing(sqlite3.connect(self.database)) as db, db:
             db.execute("BEGIN IMMEDIATE")
@@ -225,18 +239,38 @@ class Pipeline:
                 "SELECT id,path,pinned FROM library WHERE kind='clip' AND retired=0 ORDER BY id",
             ).fetchall()
             feedback = self.performance.asset_multipliers("clip")
-            assets.sort(key=lambda row: (-row[2], -feedback.get(row[0], 1)))
+            trusted = {row[0] for row in db.execute("SELECT path FROM imported_media WHERE kind='clip'")}
+            assets.sort(key=lambda row: (row[1] not in trusted, -row[2], -feedback.get(row[0], 1)))
+            if production_only:
+                assets = [row for row in assets if row[1] in trusted]
             if not assets:
                 raise ValueError("No active clips available")
             songs = []
             if self.reel_builder is not None:
                 songs = db.execute(
-                    "SELECT id,pinned FROM library WHERE kind='song' AND retired=0 ORDER BY id",
+                    "SELECT id,pinned,path FROM library WHERE kind='song' AND retired=0 ORDER BY id",
                 ).fetchall()
                 feedback = self.performance.asset_multipliers("song")
-                songs.sort(key=lambda row: (-row[1], -feedback.get(row[0], 1)))
+                music = {path: json.loads(meta) for path, meta in db.execute(
+                    "SELECT path,metadata FROM imported_media WHERE kind='song'")}
+                songs.sort(key=lambda row: (row[2] not in music,
+                    music.get(row[2], {}).get("genre") not in {"phonk", "gym_edit"},
+                    -row[1], -feedback.get(row[0], 1)))
+                if production_only:
+                    songs = [row for row in songs if row[2] in music]
                 if not songs:
                     raise ValueError("Add an active song before rendering")
+            if production_only and not db.execute(
+                    "SELECT 1 FROM library JOIN imported_media USING(path) WHERE library.kind='speech' "
+                    "AND imported_media.kind='speech' AND retired=0 LIMIT 1").fetchone():
+                weights = (0, *weights[1:])
+                if not any(weights):
+                    raise ValueError("Import a speech source or enable another available production format.")
+            if production_day:
+                db.execute("CREATE TABLE IF NOT EXISTS daily_render(day TEXT PRIMARY KEY)")
+                if not db.execute("INSERT OR IGNORE INTO daily_render VALUES(?)",
+                                  (production_day,)).rowcount:
+                    return []
             ids = []
             for offset in range(count):
                 selected = format_id
@@ -259,12 +293,18 @@ class Pipeline:
 
     def _render(self, reel_id):
         with closing(sqlite3.connect(self.database)) as db:
-            row = db.execute("SELECT source,format_id,song_id FROM reels WHERE id=? AND status='queued'",
-                             (reel_id,)).fetchone()
+            with db:
+                row = db.execute(
+                    """UPDATE reels SET status='rendering',render_claim=unixepoch()
+                       WHERE id=? AND (status='queued' OR
+                                       (status='rendering' AND render_claim < unixepoch()-3600))
+                       RETURNING source,format_id,song_id""", (reel_id,)).fetchone()
             if row is None:
                 return
             source, format_id, song_id = row
             error = None
+            skipped = False
+            production = False
             self.rendering_id = reel_id
             try:
                 if format_id:
@@ -274,17 +314,36 @@ class Pipeline:
                     clip = db.execute("SELECT id FROM library WHERE path=?", (source,)).fetchone()
                     if song is None or clip is None:
                         raise ValueError("A reel media source is no longer available")
-                    self.reel_builder(Path(source), Path(song[0]), self.directory / f"{reel_id}.mp4", format_id)
+                    args = (Path(source), Path(song[0]), self.directory / f"{reel_id}.mp4", format_id)
+                    imported = {path: json.loads(metadata) for path, metadata in db.execute(
+                        "SELECT path,metadata FROM imported_media WHERE (path=? AND kind='clip') OR (path=? AND kind='song')",
+                        (source, song[0]))}
+                    production = len(imported) == 2
+                    if production and format_id == "F1":
+                        voice = db.execute("""SELECT library.path,metadata FROM library JOIN imported_media
+                            ON library.path=imported_media.path WHERE library.kind='speech' AND retired=0
+                            AND imported_media.kind='speech'
+                            ORDER BY pinned DESC,id LIMIT 1""").fetchone()
+                        if not voice:
+                            raise NoSpeech("F1 skipped: import a verified speech source first.")
+                        segments = [imported[source], imported[song[0]], json.loads(voice[1])]
+                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=segment_starts(segments))
+                    elif production:
+                        self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]))
+                    else:
+                        self.reel_builder(*args)
                     self.performance.register(reel_id, song_id, clip[0], format_id)
                 else:
                     self._render_preview(reel_id, source)
+            except NoSpeech as exc:
+                skipped, error = True, str(exc)
             except (OSError, ValueError, RuntimeError, ImportError, subprocess.SubprocessError) as exc:
                 error = str(exc) if isinstance(exc, (ValueError, RuntimeError)) else type(exc).__name__
             finally:
                 self.rendering_id = None
             with db:
-                db.execute("UPDATE reels SET status=?, error=? WHERE id=?",
-                           ("failed" if error else "review", error, reel_id))
+                db.execute("UPDATE reels SET status=?, error=?, production=? WHERE id=?",
+                           ("skipped" if skipped else "failed" if error else "review", error, int(production and not error), reel_id))
 
     def _render_preview(self, reel_id, source):
         duration = float(subprocess.check_output(
@@ -376,14 +435,14 @@ class Pipeline:
     def delete(self, reel_id):
         with self.render_lock, closing(sqlite3.connect(self.database)) as db, db:
             changed = db.execute("UPDATE reels SET status='deleted' WHERE id=? AND "
-                                 "status IN ('review','rejected','failed','queued')", (reel_id,)).rowcount
+                                 "status IN ('review','rejected','failed','queued','skipped')", (reel_id,)).rowcount
             if not changed:
                 raise ValueError("Reel cannot be deleted")
 
     def reel_details(self):
         with closing(sqlite3.connect(self.database)) as db:
             return db.execute("""
-                SELECT reels.id, status, error, source, format_id, library.path
+                SELECT reels.id, status, error, source, format_id, library.path, production
                 FROM reels LEFT JOIN library ON library.id = reels.song_id
                 WHERE status != 'deleted' ORDER BY reels.id DESC
             """).fetchall()
@@ -396,7 +455,7 @@ class Pipeline:
         while not self.stop_signal.is_set():
             with self.render_lock:
                 with closing(sqlite3.connect(self.database)) as db:
-                    row = db.execute("SELECT id FROM reels WHERE status='queued' ORDER BY id LIMIT 1").fetchone()
+                    row = db.execute("SELECT id FROM reels WHERE status='queued' OR (status='rendering' AND render_claim < unixepoch()-3600) ORDER BY id LIMIT 1").fetchone()
                 if row and not self.stop_signal.is_set():
                     self._render(row[0])
             if not row:
@@ -420,3 +479,8 @@ class Pipeline:
     def stop(self):
         with self.lifecycle:
             self.stop_signal.set()
+
+
+def segment_starts(segments):
+    starts = tuple(max(0, min(row["timestamp"], row["duration"] - 25)) for row in segments)
+    return starts + (0,) * (3 - len(starts))

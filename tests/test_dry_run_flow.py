@@ -5,6 +5,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 
+from resolve_pipeline.bundles import import_bundle, write_bundle
 from resolve_pipeline.control import Pipeline
 from resolve_pipeline.posting import MetaPublisher
 from resolve_pipeline.reels import LocalReelBuilder
@@ -20,16 +21,23 @@ class DryRunFlowTest(unittest.TestCase):
             source, song = root / "clip.mp4", root / "song.wav"
             subprocess.run(
                 ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
-                 "color=gray:s=240x180:r=2:d=22", "-c:v", "libx264", str(source)], check=True,
+                 "color=gray:s=1280x720:r=2:d=22", "-c:v", "libx264", str(source)], check=True,
             )
             subprocess.run(
                 ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
                  "sine=frequency=350:duration=22", str(song)], check=True,
             )
             builder = LocalReelBuilder(hook="Start now", quote="Start with one rep.")
-            pipeline = Pipeline(root / "state", [source], reel_builder=builder)
+            pipeline = Pipeline(root / "state", [], reel_builder=builder)
+            bundle = root / "sample.zip"
+            write_bundle(bundle, [
+                (source, {"kind": "clip", "content": "physical_training", "source": "fixture:clip",
+                          "timestamp": 0, "duration": 22}),
+                (song, {"kind": "song", "genre": "phonk", "source": "fixture:song",
+                        "timestamp": 0, "duration": 22}),
+            ])
             refresh = RefreshJobs(
-                pipeline.database, songs=lambda: pipeline.add_song(song), clips=lambda: pipeline.library(),
+                pipeline.database, songs=lambda: import_bundle(pipeline, bundle), clips=lambda: pipeline.library(),
                 site_health=lambda: pipeline.request_site_retest(root / "jobs/next_job.json"),
             )
             runner = Scheduler(pipeline, {
@@ -40,8 +48,11 @@ class DryRunFlowTest(unittest.TestCase):
             self.assertEqual(runner.tick(now), [])
             self.assertTrue((root / "jobs/next_job.json").is_file())
             by_kind = {row[2]: Path(row[1]) for row in pipeline.library()}
-            self.assertEqual(by_kind, {"song": song, "clip": source})
-            reel_id, = pipeline.make_now(1, "F2")
+            self.assertEqual(set(by_kind), {"song", "clip"})
+            self.assertFalse(import_bundle(pipeline, bundle))
+            reel_id, = pipeline.enqueue(1, production_only=True, production_day="2026-11-22")
+            self.assertEqual(pipeline.enqueue(1, production_only=True, production_day="2026-11-22"), [])
+            pipeline._render(reel_id)
             path = pipeline.directory / f"{reel_id}.mp4"
             self.assertGreater(path.stat().st_size, 0)
             self.assertEqual(pipeline.list_reels(), [(reel_id, "review", None)])

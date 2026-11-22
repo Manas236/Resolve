@@ -126,7 +126,7 @@ def probe_energy(path):
     return {"status": "energy_peak", "scan_limit_seconds": 900, **peak}
 
 
-def run_sample(identifier, kind, url, folder, reference_seconds=None):
+def run_sample(identifier, kind, url, folder, reference_seconds=None, *, keep=False):
     result = {"id": identifier, "kind": kind, "method": "http"}
     path = folder / "asset"
     try:
@@ -189,7 +189,8 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
     except (KeyError, TypeError, ValueError) as error:
         result.update(status="rejected", reason="invalid_media_metadata", error_type=type(error).__name__)
     finally:
-        path.unlink(missing_ok=True)
+        if not keep or result.get("status") != "verified":
+            path.unlink(missing_ok=True)
     return result
 
 
@@ -591,7 +592,7 @@ def generic_download_selector(kind):
             "a:has-text('Download 720p'), a:has-text('Download 1080p'), a[href$='.mp4' i]")
 
 
-def mp7_convert(item, watch, folder):
+def mp7_convert(item, watch, folder, *, keep=False):
     base = PROVIDERS["mp7"]
     media_format = "mp3" if item["kind"] == "audio" else "mp4"
     request = Request(
@@ -614,7 +615,7 @@ def mp7_convert(item, watch, folder):
                 if not isinstance(link, str) or not provider_url(urljoin(base, link), "mp7"):
                     return {"status": "unsupported_download_origin", "stage": stage}
                 media = run_sample(item["id"], item["kind"], urljoin(base, link), folder,
-                                   item.get("reference_seconds"))
+                                   item.get("reference_seconds"), keep=keep)
                 return {**media, "method": "http_json", "stage": "media_transfer"}
             if time.monotonic() >= deadline:
                 return {"status": "provider_job_timeout", "stage": stage}
@@ -643,7 +644,7 @@ def mp7_convert(item, watch, folder):
     return {"status": "unexpected_provider_response", "stage": stage}
 
 
-def convert(browser, provider, item, watch, folder):
+def convert(browser, provider, item, watch, folder, *, keep=False):
     landing = item.get("provider_pages", {}).get(provider, PROVIDERS[provider])
     if not provider_url(landing, provider):
         return {"status": "unsupported_page_origin"}
@@ -722,7 +723,7 @@ def convert(browser, provider, item, watch, folder):
         if not provider_url(url, provider):
             return {"status": "unsupported_download_origin", "stage": stage}
         stage = "media_transfer"
-        result = run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"))
+        result = run_sample(item["id"], item["kind"], url, folder, item.get("reference_seconds"), keep=keep)
         return {**result, "method": "headless_then_http", "stage": stage}
     except Exception as error:
         return {"status": "browser_error", "stage": stage,

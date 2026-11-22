@@ -16,7 +16,7 @@ class OperatorTests(unittest.TestCase):
             root = Path(directory)
             pipeline = Pipeline(root, [root / "source.mp4"])
             with closing(sqlite3.connect(pipeline.database)) as db, db:
-                db.execute("INSERT INTO reels(source,status) VALUES ('source', 'review')")
+                db.execute("INSERT INTO reels(source,status,production) VALUES ('source', 'review', 1)")
             pipeline.telegram_review("approved", 1, "approve")
             scheduler, bot = build_services(pipeline, {"META_DRY_RUN": "false"})
             self.assertIsNone(bot)

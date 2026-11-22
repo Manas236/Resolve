@@ -219,3 +219,12 @@ AnalyticsDashboard completed diagnostic 04 at 16:22 IST. The report used revisio
 | iTunes Search | Returned catalog rows for both songs with zero exact matches, consistent with the local check. |
 
 The YouTube HTTP parser extracted a 0-second peak for NUNCA MUDA?. It reported a challenge on the other three pages despite HTTP 200, so the browser skipped those pages. The single replay peak could not be validated against acquired audio. Social had no mapped source, Gemini grounding was unavailable, and the energy fallback had no playable media. No preview overlap was established. Keep M0 unchecked and retain the separate full-corpus requirement. A repeat with the same routes and credentials would leave the same missing evidence. Review the optional credentials and alternate sourcing options in NEEDS_MANAS.md before queuing another pass.
+
+## Windows ground truth
+
+Diagnostic 04 remains historical evidence about the Lightsail datacenter address. All nine routes produced zero verified files there. M0 now uses the Windows residential PC report. The new probe checks the 20 existing watch URLs, labels the successful route, logs replay markers and audio energy fallback, and reports exact catalog preview metadata where available. A preview's offset and overlap remain unknown until verified against the full audio. The video portion of that technical corpus includes speech and film watch URLs, which do not qualify as production visuals. Production training footage is reviewed separately.
+
+## Natural voice audition
+
+Generated six PCM WAVs from a single script. Kokoro-82M v1.0 voices are `af_heart`, `am_adam` and `am_michael` at 24 kHz. Piper medium voices are `amy`, `lessac` and `ryan` at 22.05 kHz. The samples are audition material. Kokoro's upstream weights are Apache-2.0. Piper's model cards point to separate training dataset terms, so only deploy a voice after reviewing its specific terms. Manas makes the naturalness choice from the audio.
+[Upstream Kokoro card](https://huggingface.co/hexgrad/Kokoro-82M) · [Amy](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/amy/medium/MODEL_CARD) · [Lessac](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/lessac/medium/MODEL_CARD) · [Ryan](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ryan/medium/MODEL_CARD)

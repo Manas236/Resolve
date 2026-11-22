@@ -41,3 +41,10 @@ For user-only work, document the exact machine and single-line non-interactive c
 ## Performance measurement
 
 - Compare 24-hour view snapshots. Infer a possible mute only below 20% of the same-format median with at least five other measured, unreported peers and a median of at least 100 views. Store Telegram mute reports as a distinct signal. Use the combined signal as a smoothed asset penalty and a loss for the format selector.
+
+## 22 November 2026 architecture change
+
+- Manas moved all media acquisition to a designated Windows PC on a residential connection after diagnostic 04 verified zero on all nine Lightsail routes. The updated M0 gate uses the residential PC report. Windows runs yt-dlp as primary and converters on ordinary failure. Challenges halt probing that source. AnalyticsDashboard only imports media from the PC and runs render, review, posting and measurement.
+- Weekly Windows Task Scheduler and a manual CLI share the refresh command. Uploads use the existing Lightsail key and require a verified SSH host key. A unique ready filename, a SHA-256 manifest and server-side ffprobe validation protect import. Send a Telegram alert after nine days without a new verified bundle and retain the existing library.
+- Training footage is required for production video. F1 uses separately acquired speech audio from speeches, film or podcasts. Gym phonk and gym edits lead song selection. The dashboard marks placeholder/test reels and publishing requires verified production provenance.
+- Kokoro-82M and Piper medium form the new audition set. Manas chooses the production voice. Engine, local model paths and the voice identifier are deployment configuration.

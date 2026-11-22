@@ -30,7 +30,7 @@ class SchedulerTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             pipeline = Pipeline(Path(directory), [Path(directory) / "source.mp4"])
             with closing(sqlite3.connect(pipeline.database)) as db, db:
-                db.executemany("INSERT INTO reels(source,status) VALUES (?, 'review')", [("source",)] * 5)
+                db.executemany("INSERT INTO reels(source,status,production) VALUES (?, 'review', 1)", [("source",)] * 5)
             pipeline.review(1, "approved")
             pipeline.telegram_review("b", 2, "approve")
             pipeline.telegram_review("c", 3, "approve")
@@ -60,7 +60,7 @@ class SchedulerTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             pipeline = Pipeline(Path(directory), [Path(directory) / "source.mp4"])
             with closing(sqlite3.connect(pipeline.database)) as db, db:
-                db.execute("INSERT INTO reels(source,status) VALUES ('source', 'review')")
+                db.execute("INSERT INTO reels(source,status,production) VALUES ('source', 'review', 1)")
             pipeline.telegram_review("approve", 1, "approve")
             now = datetime(2026, 11, 22, 9, tzinfo=timezone.utc)
             dry = MetaPublisher("instagram", version="v24.0")

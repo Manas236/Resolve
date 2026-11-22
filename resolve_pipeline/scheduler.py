@@ -70,7 +70,7 @@ class Scheduler:
                     continue
                 row = db.execute("""
                     SELECT id FROM reels
-                    WHERE ((? AND status='approved' AND EXISTS (
+                    WHERE production=1 AND ((? AND status='approved' AND EXISTS (
                                SELECT 1 FROM telegram_reviews WHERE reel_id=reels.id AND action='approve'))
                            OR (NOT ? AND status IN ('review','approved')))
                       AND id NOT IN (SELECT reel_id FROM posting_slots WHERE mode=?)
@@ -139,7 +139,7 @@ class Scheduler:
                                      or instant < datetime.fromisoformat(started) + timedelta(days=7))
                 current = db.execute(
                     "SELECT status, EXISTS (SELECT 1 FROM telegram_reviews "
-                    "WHERE reel_id=? AND action='approve') FROM reels WHERE id=?", (reel_id, reel_id),
+                    "WHERE reel_id=? AND action='approve') FROM reels WHERE id=? AND production=1", (reel_id, reel_id),
                 ).fetchone()
                 if current is None or current[0] not in {"review", "approved"}:
                     continue

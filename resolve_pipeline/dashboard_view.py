@@ -49,7 +49,7 @@ def asset_field(asset_id):
 def review(pipeline, form):
     editorial = pipeline.editorial()
     cards = []
-    for reel_id, state, error, source, format_id, song in pipeline.reel_details():
+    for reel_id, state, error, source, format_id, song, production in pipeline.reel_details():
         field = asset_field(reel_id)
         caption, tags = editorial.get(reel_id, ("", ""))
         media = (f'<video controls playsinline preload="none" src="/reel/{reel_id}"></video>'
@@ -58,7 +58,7 @@ def review(pipeline, form):
         actions = ""
         if state == "review":
             actions += form("approve", field, "Approve") + form("reject", field, "Reject")
-        if state in ("review", "rejected", "failed", "queued"):
+        if state in ("review", "rejected", "failed", "queued", "skipped"):
             if state != "queued":
                 actions += form("regenerate", field, "Regenerate")
             actions += form("delete", field, "Delete")
@@ -71,13 +71,16 @@ def review(pipeline, form):
         cards.append(
             f'<article class="card reel-card" tabindex="0" data-reel="{reel_id}" data-state="{state}">'
             f'{media}<div><span class="badge">{escape(format_id or "Local preview")}</span> '
-            f'<span class="badge">{escape(state)}</span><h2>Reel {reel_id}</h2>'
+            f'<span class="badge">{escape(state)}</span>'
+            + ('' if production else '<span class="badge bad">Placeholder / test</span>')
+            + f'<h2>Reel {reel_id}</h2>'
             f'<dl><dt>Clip</dt><dd>{escape(Path(source).name)}</dd>'
             f'<dt>Song</dt><dd>{escape(Path(song).name) if song else "—"}</dd></dl>'
             f'<p>{escape(caption or "No caption yet.")}</p><p>{escape(tags)}</p>'
             f'<p class="error">{escape(error or "")}</p>{edit}<div class="actions">{actions}</div></div></article>'
         )
-    return ('<p class="muted">J / K Navigate · A Approve · R Reject · G Regenerate</p>'
+    notice = '<p class="badge">Placeholder / test media never enters the posting queue.</p>'
+    return (notice + '<p class="muted">J / K Navigate · A Approve · R Reject · G Regenerate</p>'
             '<div class="review-grid">' + ("".join(cards) or empty("Make a reel to start reviewing.")) + '</div>')
 
 
@@ -100,11 +103,11 @@ def queue(pipeline, form, zone):
 
 
 def libraries(pipeline, form):
-    by_kind = {"song": [], "clip": []}
+    by_kind = {"song": [], "clip": [], "speech": []}
     for asset_id, path, kind, pinned, retired, peak in pipeline.library():
         media = (f'<video controls preload="metadata" playsinline src="/preview/{asset_id}#t=0.1"></video>'
                  if kind == "clip" else
-                 f'<canvas class="wave" data-src="/waveform/{asset_id}" aria-label="Song waveform"></canvas>'
+                 (f'<canvas class="wave" data-src="/waveform/{asset_id}" aria-label="Song waveform"></canvas>' if kind == "song" else "") +
                  f'<audio controls preload="none" src="/preview/{asset_id}"></audio>')
         actions = ""
         if not retired:

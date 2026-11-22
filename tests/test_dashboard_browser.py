@@ -113,6 +113,11 @@ class BrowserControlsTests(unittest.TestCase):
         edit.locator('textarea[name="caption"]').fill("Caption")
         edit.locator('input[name="hashtags"]').fill("#reel")
         submit("edit", field="id", value=1)
+        # Test the ordering UI with posting-eligible fixtures.
+        from contextlib import closing
+        import sqlite3
+        with closing(sqlite3.connect(pipeline.database)) as db, db:
+            db.execute("UPDATE reels SET production=1 WHERE id IN (1,2)")
         for identifier in (1, 2):
             submit("approve", field="id", value=identifier)
         submit("reject", field="id", value=3)

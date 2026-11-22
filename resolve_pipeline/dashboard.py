@@ -16,7 +16,7 @@ from urllib.parse import parse_qs
 
 from .control import Pipeline
 from . import dashboard_view as view
-from .reels import LocalReelBuilder
+from .reels import configured_builder
 from .dashboard_auth import DashboardAuth
 from .config import read_env_file
 from pathlib import Path
@@ -202,7 +202,10 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
             if page == "Review":
                 content = view.review(pipeline, form)
             elif page == "Make":
+                availability = "".join(f"<li>{key} · {escape(reason or 'Available')}</li>"
+                                       for key, reason in pipeline.format_requirements().items())
                 content = (
+                    f"<ul>{availability}</ul>" +
                     '<div class="grid"><section class="card"><h2>Render a batch</h2>'
                     + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>'
                            '<label>Format <select name="format"><option value="auto">Auto</option>'
@@ -306,7 +309,7 @@ def main():
     parser.add_argument("--zone", default="UTC", help="Posting slot timezone, matching the operator")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
-    parser.add_argument("--source", type=Path, action="append", required=True)
+    parser.add_argument("--source", type=Path, action="append", default=[])
     parser.add_argument("--song", type=Path, action="append", default=[])
     parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
     parser.add_argument("--performance-fixture", type=Path)
@@ -320,10 +323,10 @@ def main():
     try:
         ZoneInfo(args.zone)
         auth = DashboardAuth(settings.get("RESOLVE_DASHBOARD_PASSWORD_HASH", ""))
-        builder = (None if args.hook is None else LocalReelBuilder(
-            hook=args.hook, quote=args.quote, voice_script=args.voice_script,
+        builder = configured_builder(
+            settings, hook=args.hook, quote=args.quote, voice_script=args.voice_script,
             whisper_model=args.whisper_model, piper_model=args.piper_model,
-        ))
+        )
     except (ValueError, ZoneInfoNotFoundError) as error:
         parser.error(str(error))
     pipeline = Pipeline(args.state, args.source, reel_builder=builder)

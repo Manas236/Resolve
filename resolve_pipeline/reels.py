@@ -55,11 +55,11 @@ def render_reel(
         _validate_speech(words, end_ms)
     destination = Path(destination).resolve()
     inputs = [Path(video).resolve(), Path(song).resolve()]
-    if format_id == "F3":
+    if voiceover is not None:
         inputs.append(Path(voiceover).resolve())
     if destination in inputs:
         raise ValueError("Output must differ from the inputs")
-    speech = {"F1": "0:a:0", "F3": "2:a:0"}.get(format_id)
+    speech = {"F1": "2:a:0" if voiceover is not None else "0:a:0", "F3": "2:a:0"}.get(format_id)
     filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30,ass=captions.ass[outv]"]
     if speech is None:
         filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
@@ -110,16 +110,49 @@ def speech_duration(words: Sequence[Cue]) -> float:
     raise ValueError("No complete sentence ends in the standard reel window")
 
 
+class NoSpeech(ValueError):
+    """The selected source cannot provide a speech segment."""
+
+
 class LocalReelBuilder:
     """Prepare clean speech and render a local editorial preset."""
 
-    def __init__(self, *, hook, quote="", voice_script="", whisper_model=None, piper_model=None):
+    def __init__(self, *, hook, quote="", voice_script="", whisper_model=None, piper_model=None, voice="piper",
+                 kokoro_model=None, kokoro_voices=None, voice_id="af_heart"):
         if not hook.strip():
             raise ValueError("Set a hook for the local format renderer")
         self.hook, self.quote, self.voice_script = hook, quote, voice_script
         self.whisper_model, self.piper_model = whisper_model, piper_model
+        self.voice = voice
+        self.kokoro_model, self.kokoro_voices, self.voice_id = kokoro_model, kokoro_voices, voice_id
 
-    def __call__(self, video, song, destination, format_id):
+    def format_requirements(self):
+        from importlib.util import find_spec
+        from shutil import which
+
+        whisper = (self.whisper_model is not None
+                   and (Path(self.whisper_model) / "model.bin").is_file()
+                   and find_spec("faster_whisper") is not None)
+
+        if self.voice == "kokoro":
+            voice_ready = (find_spec("kokoro_onnx") is not None and bool(self.voice_id)
+                           and all(path and Path(path).is_file()
+                                   for path in (self.kokoro_model, self.kokoro_voices)))
+        else:
+            voice_ready = (self.voice == "piper" and which("piper") is not None and self.piper_model
+                           and Path(self.piper_model).is_file()
+                           and Path(str(self.piper_model) + ".json").is_file())
+        return {
+            "F1": None if whisper else "Configure a local Whisper model.",
+            "F2": None if self.quote.strip() else "Configure quote text.",
+            "F3": next((reason for ready, reason in (
+                (whisper, "Configure a local Whisper model."),
+                (bool(self.voice_script.strip()), "Configure a voice script."),
+                (voice_ready, "Configure a local Kokoro or Piper engine and voice."),
+            ) if not ready), None),
+        }
+
+    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0)):
         from .captions import transcribe_local_words
         from .tts import synthesize
 
@@ -129,16 +162,47 @@ class LocalReelBuilder:
             speech = Path(directory) / "speech.wav"
             words, voiceover, duration = (), None, 22
             if format_id == "F1":
+                streams = subprocess.check_output(
+                    ["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-select_streams", "a",
+                     "-show_entries", "stream=index", "-of", "csv=p=0", str(speech_source or video)], timeout=20)
+                if not streams.strip():
+                    raise NoSpeech("F1 skipped: the selected source has no audio track.")
                 subprocess.run(
                     ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
-                     "-i", str(video), "-t", "25", "-map", "0:a:0",
+                     "-ss", str(starts[2]), "-i", str(speech_source or video), "-t", "25", "-map", "0:a:0",
                      "-ac", "1", "-ar", "16000", str(speech)], check=True, timeout=45,
                 )
                 words = transcribe_local_words(speech, self.whisper_model)
+                if not words:
+                    raise NoSpeech("F1 skipped: Whisper detected no speech in the selected source.")
                 duration = speech_duration(words)
+                voiceover = speech
             if format_id == "F3":
-                synthesize(self.voice_script, speech, piper_model=self.piper_model)
+                synthesize(self.voice_script, speech, engine=self.voice, piper_model=self.piper_model,
+                           kokoro_model=self.kokoro_model, kokoro_voices=self.kokoro_voices,
+                           voice=self.voice_id)
                 voiceover = speech
                 words = transcribe_local_words(speech, self.whisper_model)
             render_reel(video, song, destination, format_id=format_id, hook=self.hook,
-                        quote=self.quote, words=words, voiceover=voiceover, duration=duration)
+                        quote=self.quote, words=words, voiceover=voiceover, duration=duration,
+                        video_start=starts[0], song_start=starts[1])
+
+
+def configured_builder(settings, *, hook=None, quote="", voice_script="", whisper_model=None, piper_model=None):
+    def model_path(argument, name):
+        value = argument or settings.get(name)
+        return Path(value).expanduser() if value else None
+
+    hook = hook or settings.get("RESOLVE_REEL_HOOK")
+    if not hook:
+        return None
+    return LocalReelBuilder(
+        hook=hook, quote=quote or settings.get("RESOLVE_REEL_QUOTE", ""),
+        voice_script=voice_script or settings.get("RESOLVE_VOICE_SCRIPT", ""),
+        whisper_model=model_path(whisper_model, "RESOLVE_WHISPER_MODEL"),
+        piper_model=model_path(piper_model, "RESOLVE_PIPER_MODEL"),
+        voice=settings.get("RESOLVE_TTS_ENGINE", "piper"),
+        kokoro_model=model_path(None, "RESOLVE_KOKORO_MODEL"),
+        kokoro_voices=model_path(None, "RESOLVE_KOKORO_VOICES"),
+        voice_id=settings.get("RESOLVE_TTS_VOICE", "af_heart"),
+    )

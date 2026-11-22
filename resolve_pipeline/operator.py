@@ -8,9 +8,11 @@ from pathlib import Path
 from time import sleep
 from urllib.parse import urlsplit
 
+from .bundles import receive_bundles
 from .config import read_env_file
 from .control import Pipeline
 from .posting import MetaPublisher
+from .reels import configured_builder
 from .scheduler import Scheduler
 from .telegram import ReviewBot, TelegramAPI
 
@@ -73,7 +75,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
-    parser.add_argument("--source", type=Path, action="append", required=True)
+    parser.add_argument("--source", type=Path, action="append", default=[])
     parser.add_argument("--zone", default="UTC")
     parser.add_argument("--media-base", default="")
     parser.add_argument("--telegram", action="store_true")
@@ -82,7 +84,7 @@ def main():
     args = parser.parse_args()
     settings = read_env_file(args.env_file) | dict(os.environ)
     try:
-        pipeline = Pipeline(args.state, args.source)
+        pipeline = Pipeline(args.state, args.source, reel_builder=configured_builder(settings))
         scheduler, bot = build_services(pipeline, settings, telegram=args.telegram,
                                         live=args.live, media_base=args.media_base, zone=args.zone)
     except (ValueError, KeyError, OSError) as error:
@@ -90,8 +92,22 @@ def main():
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("resolve.operator")
     offset = 0
+    inbox = settings.get("RESOLVE_BUNDLE_INBOX")
+    if inbox:
+        Path(inbox).mkdir(parents=True, exist_ok=True)
+    if pipeline.reel_builder and inbox:
+        pipeline.start()
     try:
         while True:
+            if inbox:
+                try:
+                    now = datetime.now(timezone.utc)
+                    receive_bundles(pipeline, Path(inbox), now, scheduler.alert)
+                    if pipeline.reel_builder and pipeline.running:
+                        pipeline.enqueue(int(pipeline.settings()["volume"]), production_only=True,
+                                         production_day=now.astimezone(scheduler.zone).date().isoformat())
+                except (OSError, RuntimeError, ValueError) as error:
+                    logger.warning("Bundle monitoring: %s", type(error).__name__)
             offset = run_iteration(scheduler, bot, offset=offset,
                                    now=datetime.now(timezone.utc), logger=logger)
             if args.once:
@@ -99,6 +115,9 @@ def main():
             sleep(5 if bot else 30)
     except KeyboardInterrupt:
         return 0
+    finally:
+        if pipeline.reel_builder and inbox:
+            pipeline.stop()
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     results = []
-    for engine in dict.fromkeys(args.engine or ENGINES):
+    for engine in dict.fromkeys(args.engine or ("flite", "espeak-ng", "piper")):
         output = args.output / f"{engine}.wav"
         started = perf_counter()
         try:

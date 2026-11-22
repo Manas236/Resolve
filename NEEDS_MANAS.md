@@ -1,68 +1,42 @@
 # Needs Manas
 
-## M0 server probe
+## M0 one-pass audio and video probe
 
-Use the **AnalyticsDashboard Lightsail** machine and run commands from its Resolve clone on main. Use a regular user with Python 3.11+, Python venv support, screen and FFmpeg (including ffprobe). The probe uses a temporary directory and caps each media transfer at 256 MiB. It may take a while and writes a checkpoint after each item. Run one probe session at a time.
+On the **Windows acquisition PC**, run from the Resolve clone in PowerShell on the residential connection. Use Python 3.11+, FFmpeg and ffprobe, Git, and Windows OpenSSH Client. Install these with your existing local tooling and make them available on PATH.
 
-On **AnalyticsDashboard Lightsail**, update the clone with existing Git credentials:
-
-```sh
-GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main
+```powershell
+$env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main
+py -3.11 -m venv .venv
+.venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements.txt yt-dlp
+Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition probe --output research/m0_pc_results.json' -RedirectStandardError resolve-pc-probe.log -Wait
 ```
 
-On **AnalyticsDashboard Lightsail**, launch setup of the isolated probe environment and headless Chromium. Check the setup log before starting the probe.
+For optional browser fallbacks on the **Windows acquisition PC**, install Playwright with `.venv\Scripts\python.exe -m pip --no-input install playwright`, install Chromium with `.venv\Scripts\python.exe -m playwright install chromium`, and set `RESOLVE_PC_BROWSER_FALLBACK=1` in .env.
 
-```sh
-screen -L -Logfile resolve-m0-setup.log -dmS resolve-m0-setup sh -c 'python3 tools/m0_probe.py --help >/dev/null && python3 -m venv .venv && .venv/bin/python -m pip --disable-pip-version-check --no-input install playwright==1.62.0 && .venv/bin/python -m playwright install chromium'
+The Windows probe is a local process. The Linux `screen` wrapper applies to long-running Lightsail commands. Verify the JSON says `"complete": true`, then commit and push only the JSON from the **Windows acquisition PC**.
+
+```powershell
+$env:GIT_TERMINAL_PROMPT='0'; git add -- research/m0_pc_results.json; if ($LASTEXITCODE -eq 0) { git commit -m 'Record Windows residential acquisition probe' }; if ($LASTEXITCODE -eq 0) { git push origin main }
 ```
 
-On **AnalyticsDashboard Lightsail**, install Playwright's Chromium system dependencies. This uses your existing non-interactive sudo access. Check the dependency log for package errors.
+## M5 Windows weekly refresh and SSH enrollment
+
+On **AnalyticsDashboard Lightsail**, run as the existing deployment user. In the server .env set `RESOLVE_BUNDLE_INBOX` to the absolute path printed by this command.
 
 ```sh
-screen -L -Logfile resolve-m0-deps.log -dmS resolve-m0-deps sudo -n "$PWD/.venv/bin/python" -m playwright install-deps chromium
+install -d -m 700 "$PWD/state/incoming" && realpath "$PWD/state/incoming"
 ```
 
-On **AnalyticsDashboard Lightsail**, run the Chromium preflight after both setup sessions finish:
+On the **Windows acquisition PC**, set local .env `RESOLVE_SSH_HOST` to the existing SSH login and hostname, `RESOLVE_SSH_KEY` to the existing Lightsail key path, and `RESOLVE_SSH_INBOX` to the same absolute path. Use the existing verified host key entry in the Windows OpenSSH known-hosts file. Keep the key and .env out of git.
 
-```sh
-.venv/bin/python tools/m0_probe.py --check-browser
+Create `state/acquisition_catalog.json` on the **Windows acquisition PC** using the catalog structure in README. For clips, review that the upload actually shows physical training. Then run a manual refresh and register the Sunday task. The task runs under your signed-in Windows account, and starts when available after a missed trigger.
+
+```powershell
+Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition refresh --catalog state/acquisition_catalog.json --output state/pc_bundle.zip --send' -RedirectStandardError resolve-pc-refresh.log -Wait
+powershell.exe -NoProfile -NonInteractive -File tools\register_pc_refresh.ps1 -Catalog state\acquisition_catalog.json
 ```
 
-On **AnalyticsDashboard Lightsail**, start the probe for 20 motivation targets and 20 separate publisher baseline items:
-
-```sh
-screen -L -Logfile resolve-m0-server.log -dmS resolve-m0-server .venv/bin/python tools/m0_probe.py --output research/m0_server_results.json
-```
-
-To test Gemini, use a key from a **billing-disabled** project. On **AnalyticsDashboard Lightsail**, with `GEMINI_API_KEY` already exported in your current shell, start this command **in place of** the previous probe command. Keep the key out of Git and command text.
-
-```sh
-screen -L -Logfile resolve-m0-server.log -dmS resolve-m0-server .venv/bin/python tools/m0_probe.py --gemini-free-project --output research/m0_server_results.json
-```
-
-Once the report has `"complete": true`, copy only `research/m0_server_results.json` from **AnalyticsDashboard Lightsail** to the same path in the Resolve clone on your **Git-enabled PC**. On that PC, from the clone root, use the line below with `RESOLVE_LIGHTSAIL_SSH` set to your Lightsail SSH alias or user@host and `RESOLVE_LIGHTSAIL_REPO` set to the absolute directory of its Resolve clone. It uses your existing SSH key.
-
-```sh
-scp -o BatchMode=yes "${RESOLVE_LIGHTSAIL_SSH:?set Lightsail SSH target}:${RESOLVE_LIGHTSAIL_REPO:?set server clone directory}/research/m0_server_results.json" research/m0_server_results.json
-```
-
-On the same **Git-enabled PC**, commit the report from the clone root on main:
-
-```sh
-GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && git add research/m0_server_results.json && GIT_TERMINAL_PROMPT=0 git commit -m "Record Resolve M0 AnalyticsDashboard results" && GIT_TERMINAL_PROMPT=0 git push origin main
-```
-
-A complete report means the matrix finished collecting results. It may contain failures, including a Chromium startup error. If it does, retain the report and send the relevant lines from the setup or probe log. The report must come from AnalyticsDashboard to count for Stage B.
-
-## M0 follow-up diagnostic
-
-On **AnalyticsDashboard Lightsail**, pull main and use the existing probe environment to run two audio and two video targets against the updated adapters. Preserve the first full report.
-
-```sh
-GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && screen -L -Logfile resolve-m0-diagnostic.log -dmS resolve-m0-diagnostic .venv/bin/python tools/m0_probe.py --limit 2 --providers mp7 cnvmp3 ythd piped invidious cobalt soundcloud deezer itunes --output research/m0_server_diagnostic.json
-```
-
-Commit the separate diagnostic JSON to main after it reports completion. Keep the full probe report for comparison.
+On **AnalyticsDashboard Lightsail**, point the dashboard and operator at the same state directory. Set `RESOLVE_REEL_HOOK`, `RESOLVE_REEL_QUOTE`, and the speech model and script settings in .env as needed. Use the existing Telegram credentials when enabling alerts and approvals.
 
 ## M0 competitor evidence
 
@@ -75,19 +49,13 @@ The available public search and profile snapshots leave the leading faceless pag
 - **Channel name:** Confirm the public name before go-live. Resolve is the repository name.
 - **Deployment:** Choose packaging and resource limits before M13. Keep both options open until then.
 
-## Server job runner and offline alternatives
+## Retire the old server probe runner
 
-Use a dedicated non-root queue clone on main and a separate, locally reviewed probe checkout with a working .venv and sandboxed Chromium. The queue can select probe options only. Updating executable probe code requires updating that separate checkout. Store a fine-grained GitHub token scoped to Resolve with Contents read/write in a file outside both checkouts, mode 600. Configure the queue clone Git identity before starting.
-
-On **AnalyticsDashboard Lightsail**, from the queue clone, set RESOLVE_PROBE_CHECKOUT and RESOLVE_TOKEN_FILE to the absolute paths, then start:
+If the old diagnostic loop is still active on **AnalyticsDashboard Lightsail**, stop it from the deployment account. The completed report remains in `research/server_jobs/`. Remove the runner-only fine-grained token from GitHub if it has no other use.
 
 ```sh
-screen -L -Logfile resolve-runner.log -dmS resolve-runner bash tools/server_runner.sh "$PWD" "${RESOLVE_PROBE_CHECKOUT:?}" "${RESOLVE_TOKEN_FILE:?}"
+screen -S resolve-runner -X quit
 ```
-
-A job at jobs/next_job.json takes id (unique), limit (1–10 targets per kind), no_browser (boolean), and an optional subset of mp7, cnvmp3, ythd, piped, invidious, cobalt, soundcloud, deezer and itunes in providers. The queued job is m0-route-diagnostic-04. Reports appear under research/server_jobs. Review a new probe revision locally before updating the separate checkout.
-
-If providers still fail, a weekly refresh on an existing home or office machine avoids paid services but depends on its uptime and requires syncing media. An existing permitted residential connection could relay traffic, but it adds operational work and any provider blocks still apply. A direct-download library or manual creator supply is free where offered and simpler to validate, but changes the available track and clip catalog. A paid residential proxy falls outside the current no-paid-services rule. No option is selected.
 
 ## M9 live posting setup
 
@@ -121,10 +89,6 @@ The test writes all eight pages in both themes to `research/ui_screenshots/` on 
 
 The sample links are in PROGRESS.md. Listen to the three identical-script WAVs and confirm or change the provisional Piper choice. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.
 
-## Optional credentials for alternative routes
+## M6 voice selection
 
-Set `RESOLVE_SOUNDCLOUD_TOKEN` in the AnalyticsDashboard runner's environment only if you have an official SoundCloud OAuth token. Set `RESOLVE_COBALT_ORIGIN` only for an HTTPS instance whose owner permits API access without a challenge. Job 04 reports explicit skips if either is absent and still tests the other routes. The runner and the reviewed probe checkout both need the updated code.
-
-## Decision after diagnostic 04
-
-Lightsail produced zero verified downloads. The checked-in report confirms SoundCloud and cobalt skipped for missing configuration. A permitted token or instance would enable a fresh targeted probe. Direct-download or creator-supplied media remains an alternative if you prefer to change sourcing. The current automated acquisition gates still require verified media.
+Listen to [Resolve-Natural-TTS.zip](https://chatgpt.com/library?file_id=libfile_97e33c5bf8008191b1c9cd24f58aa625&account_id=personal) and reply with one filename. Kokoro uses `RESOLVE_TTS_ENGINE=kokoro`, a local ONNX model, a voice pack and `RESOLVE_TTS_VOICE`. Piper uses `RESOLVE_TTS_ENGINE=piper` and the selected ONNX model path, with its matching JSON alongside it. Verify the selected voice's license before deployment.

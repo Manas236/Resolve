@@ -113,7 +113,7 @@ def transcribe_local_words(clean_speech, model_directory):
         timeout=120,
     )
     segments, _ = model.transcribe(np.frombuffer(pcm, dtype="<f4"),
-                                    language="en", word_timestamps=True)
+                                    language="en", word_timestamps=True, vad_filter=True)
     return [
         Cue(round(word.start * 1000), round(word.end * 1000), word.word.strip())
         for segment in segments for word in segment.words

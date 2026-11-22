@@ -138,13 +138,13 @@ class DashboardControlsTest(unittest.TestCase):
                     pipeline.enqueue(1)
                     self.assertEqual(post("start"), 303)
                     deadline = time.monotonic() + 10
-                    while pipeline.list_reels()[0][1] == "queued" and time.monotonic() < deadline:
+                    while pipeline.list_reels()[0][1] in {"queued", "rendering"} and time.monotonic() < deadline:
                         time.sleep(0.05)
                     self.assertEqual(pipeline.list_reels()[0], (3, "review", None))
                     self.assertEqual(post("approve", id=3), 303)
                     self.assertEqual(post("reorder", order="3,3"), 400)
-                    self.assertEqual(post("reorder", order="3,1"), 303)
-                    self.assertEqual(pipeline.posting_queue(), [3, 1])
+                    self.assertEqual(post("reorder", order="3,1"), 400)
+                    self.assertEqual(pipeline.posting_queue(), [])
                     if not initially_running:
                         self.assertEqual(post("stop"), 303)
                         pipeline.worker.join(5)

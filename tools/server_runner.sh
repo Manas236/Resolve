@@ -21,6 +21,7 @@ export RESOLVE_TOKEN_FILE="$token" GIT_TERMINAL_PROMPT=0
 run_job() (
     set -e
     git_remote -c core.hooksPath=/dev/null pull --rebase origin main
+    [[ ! -f jobs/pc-acquisition ]] || exit 0
     [[ -f jobs/next_job.json ]] || exit 0
     job=$("$probe/.venv/bin/python" - jobs/next_job.json <<'PY'
 import json
@@ -90,5 +91,6 @@ PY
 while true; do
     (run_job) &
     wait "$!" || printf '%s Resolve job failed; retrying after poll interval\n' "$(date -Is)" >&2
+    [[ ! -f jobs/pc-acquisition ]] || exit 0
     sleep 900
 done
