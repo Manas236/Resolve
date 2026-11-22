@@ -2,7 +2,7 @@
 
 ## Resume checkpoint
 
-Pull main and check `research/server_jobs/m0-browser-diagnostic-03.json`. If it is present, verify its tool revision and corpus, compare the three-provider outcomes and replay results with the first AnalyticsDashboard run, and log the Stage B analysis in RESEARCH.md before any milestone decision. The four-target diagnostic can guide the next full run, but M0 requires ten targets per kind on the server. No follow-up server report was present at this checkpoint.
+Pull main and check `research/server_jobs/m0-route-diagnostic-04.json`. If it is present, verify its tool revision and corpus, compare the route outcomes and replay results with the first AnalyticsDashboard run, and log the Stage B analysis in RESEARCH.md before any milestone decision. The four-target diagnostic can guide the next full run, but M0 requires ten targets per kind on the server. No follow-up server report was present at this checkpoint.
 
 The current local parser found replay markers on 17 of 20 targets. The fixed MP7 adapter reached polling on all four local diagnostic targets and the provider rejected all four. CnvMP3 and YTHD still need sandboxed browser evidence. Production media acquisition and dependent integration work remain behind that gate. Live Telegram/Meta credentials, actual browser acceptance, and editorial checks are listed in NEEDS_MANAS.md. A–K local groundwork and tests are recorded below.
 
@@ -208,3 +208,7 @@ Diagnostic 03 now waits for the reviewed checkout to contain the current replay 
 ## M2 registry validation audit
 
 Invalid registry rows now report their entry number. The test covers missing fields, non-object rows, and invalid kinds including objects whose keys previously passed as a list of media kinds. The full suite passed 65 tests with one browser acceptance skip. Live provider verification still depends on the Lightsail report.
+
+## Combined alternative-route diagnostic
+
+Job 04 supersedes job 03 and probes all nine route names on two songs and two videos, with replay checks. The local metadata sweep found ten Deezer matches and three iTunes matches. Track-relative preview offsets remain unknown. No new full-media route was verified locally. See RESEARCH.md for instance outcomes and the per-song comparison.

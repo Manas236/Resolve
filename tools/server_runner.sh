@@ -39,8 +39,9 @@ if type(job["limit"]) is not int or not 1 <= job["limit"] <= 10 or type(job["no_
     raise SystemExit("Invalid job options")
 providers = job.get("providers")
 if providers is not None and (
-    not isinstance(providers, list) or not 1 <= len(providers) <= 3
-    or any(name not in ("mp7", "cnvmp3", "ythd") for name in providers)
+    not isinstance(providers, list) or not 1 <= len(providers) <= 9
+    or any(name not in ("mp7", "cnvmp3", "ythd", "piped", "invidious", "cobalt",
+                        "soundcloud", "deezer", "itunes") for name in providers)
     or len(set(providers)) != len(providers)
 ):
     raise SystemExit("Invalid diagnostic providers")
@@ -54,13 +55,18 @@ PY
     if [[ -f "$state/$id.json" ]]; then
         echo "Resuming report publication for $id"
     else
-        if [[ "$id" == m0-browser-diagnostic-03 ]] &&
+        if [[ "$id" == m0-browser-diagnostic-03 || "$id" == m0-route-diagnostic-04 ]] &&
            ! git -C "$probe" merge-base --is-ancestor 4260e103cc07262d73d2ea640ee356ebf298404c HEAD 2>/dev/null; then
             echo "Diagnostic 03 needs the reviewed replay parser at 4260e10 or later. Update the probe checkout first." >&2
             exit 1
         fi
         if [[ -n "$(git -C "$probe" status --porcelain -- tools/m0_probe.py research/m0_corpus.json)" ]]; then
             echo "Commit or restore the locally modified probe or corpus before running a server job." >&2
+            exit 1
+        fi
+        if [[ "$id" == m0-route-diagnostic-04 ]] &&
+           ! git -C "$probe" grep -q '^def probe_api_route(' HEAD -- tools/m0_probe.py; then
+            echo "Update the reviewed probe checkout to include the alternative routes." >&2
             exit 1
         fi
         flags=()

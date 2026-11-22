@@ -169,3 +169,35 @@ The existing SoundCloud lead remains the creator-enabled download flow. Its help
 Public watch HTML now exposes normalized replay bins in ytInitialData framework updates. The probed path is frameworkUpdates.entityBatchUpdate.mutations → payload.macroMarkersListEntity → markersList. The parser accepts only MARKER_TYPE_HEATMAP for the requested externalVideoId, reads startMillis and intensityScoreNormalized, and retains the older renderer shape as a fallback. Two public implementations report the same current path. [Current heatmap structure](https://github.com/kernelheaders/yt-heatmap) · [Independent implementation](https://github.com/Benjamin-Loison/YouTube-operational-API/blob/main/videos.php)
 
 The November 22 local run parsed peaks on 10/10 song watch pages and 7/10 video watch pages with plain HTTP. All 20 pages returned HTTP 200. The three with no heatmap were the Rocky Balboa, Creed and Arnold Schwarzenegger uploads. LOS VOLTAJE peaked at 6.36s and the Pursuit of Happyness clip at 65.34s. See research/m0_replay_local.json for per-upload fields. This measures replay metadata availability. Exact song-version checks and server extraction remain required.
+
+## Alternative routes, November 22
+
+The local test used ordinary API requests, refused redirects to unapproved media origins, and stopped on access checks. Keep these results distinct from Lightsail evidence. The first combined job on main is `m0-route-diagnostic-04`.
+
+| Route | Local evidence | Datacenter reliability estimate |
+|---|---|---|
+| Deezer | All ten API searches returned a duration-matched preview entry | High for catalog lookup. Expected clip offset and authorization for reel reuse are unverified. |
+| iTunes Search | All ten API searches returned catalog results, three contained a duration-matched preview | High for catalog lookup. Apple restricts previews to stream-only promotion and excludes saving and synchronization with video. |
+| SoundCloud | Unauthenticated track search returned HTTP 401. The connector skipped with no OAuth token. | Best lead for authorized full audio. Separate upstream from YouTube, but creator-enabled downloads, OAuth and matching versions limit coverage. |
+| Piped | Kavin returned 403 and adminforge 301 on both tested targets. No media fetched. | Low. A working proxy could deliver media, but neither instance yielded a playable response here. |
+| Invidious | NerdVPN returned 503 and ChocolateMoo 403 on both tested targets. No media fetched. | Low. Requires a reachable instance and an allowed progressive proxy stream of at least 720p. |
+| cobalt | Official API GET returned 200 and is documented as protected. One community lead returned 503. The POST probe skipped without an approved public instance. | Low and unverified. A reachable endpoint alone establishes no access or media support. |
+| MP7 | Earlier HTTP diagnostics reached polling and all four targets were rejected. | Low. The local direct API path works up to polling. |
+| CnvMP3 / YTHD | Browser paths are implemented. Local sandboxed Chromium could not start. | Unverified. Both depend on browser and iframe behavior. |
+
+No full media downloads passed on the new routes in this run. The two YouTube proxy adapters accept only explicitly allowed proxy origins. The SoundCloud adapter tests creator-enabled original downloads with official OAuth and validates duration. Public player streams are excluded. Deezer and iTunes probes report preview metadata without downloading the previews or counting them toward the full-track gate. The catalog responses provide no start offset. The existing YouTube peak alone cannot establish overlap without an aligned reference recording and a permitted preview. No preview is promoted as a reel fallback.
+
+| Song | YouTube peak (s) | Deezer match | iTunes match | Measured overlap |
+|---|---:|---|---|---|
+| LOS VOLTAJE | 6.36 | Yes | No | Unknown |
+| NUNCA MUDA? | 0.0 | Yes | No | Unknown |
+| PASSO BEM SOLTO (Slowed) | 15.21 | Yes | Yes | Unknown |
+| MONTAGEM TOMADA (Slowed) | 0.0 | Yes | Yes | Unknown |
+| MONTAGEM CANTANDO | 10.44 | Yes | Yes | Unknown |
+| ESPAÇO LIMINAL | 6.45 | Yes | No | Unknown |
+| Murder In My Mind | 47.85 | Yes | No | Unknown |
+| MONTAGEM COMA | 8.88 | Yes | No | Unknown |
+| COMO TU | 10.5 | Yes | No | Unknown |
+| TAKA LA DENTRO | 7.2 | Yes | No | Unknown |
+
+[Piped API](https://docs.piped.video/docs/api-documentation/) · [Invidious API and public instances](https://docs.invidious.io/instances/) · [cobalt API](https://github.com/imputnet/cobalt/blob/main/docs/api.md) · [SoundCloud API](https://developers.soundcloud.com/docs/api/) · [Apple preview terms](https://performance-partners.apple.com/search-api)

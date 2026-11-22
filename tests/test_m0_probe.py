@@ -156,10 +156,11 @@ class ServerJobSelectionTests(unittest.TestCase):
         runner = (root / "tools/server_runner.sh").read_text()
         checker = runner.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
         job = {"id": "fixture", "limit": 2, "no_browser": False,
-               "providers": ["mp7", "cnvmp3", "ythd"]}
+               "providers": ["mp7", "cnvmp3", "ythd", "piped", "invidious", "cobalt",
+                             "soundcloud", "deezer", "itunes"]}
         with TemporaryDirectory() as directory:
             path = Path(directory) / "job.json"
-            for providers in (["mp7", "cnvmp3", "ythd"], ["--output"], ["mp7", "mp7"], [None]):
+            for providers in (job["providers"], ["--output"], ["mp7", "mp7"], [None]):
                 with self.subTest(providers=providers):
                     path.write_text(json.dumps(job | {"providers": providers}))
                     checked = subprocess.run([sys.executable, "-", str(path)], input=checker,
@@ -227,3 +228,39 @@ class CurrentReplayMarkerTests(unittest.TestCase):
                          (42, 1, "macro_markers"))
         self.assertEqual(replay_result(page, video_id="unknown")["status"], "no_heatmap_in_html")
         self.assertEqual(replay_result(page + " verify you are human")["status"], "challenge_detected")
+
+class AlternativeRouteTests(unittest.TestCase):
+    def test_preview_is_exact_metadata_without_invented_offset(self):
+        from unittest.mock import patch
+        from tools.m0_probe import preview_result
+
+        item = {"title": "Hit — Artist, Guest", "reference_seconds": 100}
+        base = {"title": "Hit", "artist": {"name": "Artist"}, "duration": 100, "preview": "url"}
+        with patch("tools.m0_probe.read_json", return_value={"data": [
+            base, {**base, "title": "Hit Slowed"}, {**base, "duration": 94},
+        ]}):
+            result = preview_result("deezer", "https://api.deezer.com", item)
+        self.assertEqual(result["exact_track_matches"], 1)
+        self.assertEqual(result["peak_overlap"], "unknown")
+        self.assertIsNone(result["preview_start_seconds"])
+
+    def test_proxy_streams_skip_external_and_untrusted_urls(self):
+        from tools.m0_probe import proxy_media
+
+        rows = [{"url": "https://video.googlevideo.com/file"}, {"url": "//localhost/file"},
+                {"url": "/media"}, {"url": "https://proxy.example@evil.example/media"}]
+        self.assertEqual(list(proxy_media("https://proxy.example", rows)),
+                         ["https://proxy.example/media"])
+
+    def test_api_challenge_is_skipped_on_later_targets(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        from tools.m0_probe import ProviderChallenge, probe_api_route
+
+        blocked = set()
+        with patch("tools.m0_probe.api_attempt", side_effect=ProviderChallenge) as attempt:
+            first = probe_api_route("itunes", {}, "", Path("."), blocked)
+            second = probe_api_route("itunes", {}, "", Path("."), blocked)
+        self.assertEqual(first["status"], "skipped_provider_challenge")
+        self.assertEqual(second["status"], "skipped_provider_block")
+        attempt.assert_called_once()

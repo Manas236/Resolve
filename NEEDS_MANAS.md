@@ -59,7 +59,7 @@ A complete report means the matrix finished collecting results. It may contain f
 On **AnalyticsDashboard Lightsail**, pull main and use the existing probe environment to run two audio and two video targets against the updated adapters. Preserve the first full report.
 
 ```sh
-GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && screen -L -Logfile resolve-m0-diagnostic.log -dmS resolve-m0-diagnostic .venv/bin/python tools/m0_probe.py --limit 2 --providers mp7 cnvmp3 ythd --output research/m0_server_diagnostic.json
+GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main && screen -L -Logfile resolve-m0-diagnostic.log -dmS resolve-m0-diagnostic .venv/bin/python tools/m0_probe.py --limit 2 --providers mp7 cnvmp3 ythd piped invidious cobalt soundcloud deezer itunes --output research/m0_server_diagnostic.json
 ```
 
 Commit the separate diagnostic JSON to main after it reports completion. Keep the full probe report for comparison.
@@ -85,7 +85,7 @@ On **AnalyticsDashboard Lightsail**, from the queue clone, set RESOLVE_PROBE_CHE
 screen -L -Logfile resolve-runner.log -dmS resolve-runner bash tools/server_runner.sh "$PWD" "${RESOLVE_PROBE_CHECKOUT:?}" "${RESOLVE_TOKEN_FILE:?}"
 ```
 
-A job at jobs/next_job.json takes id (unique), limit (1–10 targets per kind), no_browser (boolean), and an optional subset of mp7, cnvmp3 and ythd in providers. The queued job is m0-browser-diagnostic-03. Reports appear under research/server_jobs. Review a new probe revision locally before updating the separate checkout.
+A job at jobs/next_job.json takes id (unique), limit (1–10 targets per kind), no_browser (boolean), and an optional subset of mp7, cnvmp3, ythd, piped, invidious, cobalt, soundcloud, deezer and itunes in providers. The queued job is m0-route-diagnostic-04. Reports appear under research/server_jobs. Review a new probe revision locally before updating the separate checkout.
 
 If providers still fail, a weekly refresh on an existing home or office machine avoids paid services but depends on its uptime and requires syncing media. An existing permitted residential connection could relay traffic, but it adds operational work and any provider blocks still apply. A direct-download library or manual creator supply is free where offered and simpler to validate, but changes the available track and clip catalog. A paid residential proxy falls outside the current no-paid-services rule. No option is selected.
 
@@ -120,3 +120,7 @@ Retain the log and share the final unittest summary or the error. The browser re
 ## M6 and M7 editorial review
 
 The sample links are in PROGRESS.md. Listen to the three identical-script WAVs and confirm or change the provisional Piper choice. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.
+
+## Optional credentials for alternative routes
+
+Set `RESOLVE_SOUNDCLOUD_TOKEN` in the AnalyticsDashboard runner's environment only if you have an official SoundCloud OAuth token. Set `RESOLVE_COBALT_ORIGIN` only for an HTTPS instance whose owner permits API access without a challenge. Job 04 reports explicit skips if either is absent and still tests the other routes. The runner and the reviewed probe checkout both need the updated code.

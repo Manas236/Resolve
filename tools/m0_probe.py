@@ -262,11 +262,19 @@ def public_url(url, host):
             not parsed.username and not parsed.password)
 
 
+class ProviderChallenge(ValueError):
+    pass
+
+
 def read_json(request):
     with build_opener(NoRedirect()).open(request, timeout=15) as response:
+        if response.headers.get("cf-mitigated") == "challenge":
+            raise ProviderChallenge
         data = response.read(4 * 1024 * 1024 + 1)
     if len(data) > 4 * 1024 * 1024:
         raise ValueError("response_size_limit")
+    if data.lstrip().startswith(b"<") and blocked_text(data[:256000].decode(errors="replace")):
+        raise ProviderChallenge
     return json.loads(data)
 
 
@@ -309,6 +317,180 @@ PROVIDERS = {
 DIRECT_MP3 = {"audiocom", "soundworldz"}
 
 
+API_ROUTES = {
+    "piped": ("https://pipedapi.kavin.rocks", "https://pipedapi.adminforge.de"),
+    "invidious": ("https://invidious.nerdvpn.de", "https://yt.chocolatemoo53.com"),
+    "cobalt": (),
+    "soundcloud": ("https://api.soundcloud.com",),
+    "deezer": ("https://api.deezer.com",),
+    "itunes": ("https://itunes.apple.com",),
+}
+AUDIO_ONLY = DIRECT_MP3 | {"soundcloud", "deezer", "itunes"}
+
+
+def api_origins(name):
+    if name != "cobalt":
+        return API_ROUTES[name]
+    origin = os.getenv("RESOLVE_COBALT_ORIGIN", "").rstrip("/")
+    # An operator may supply an instance whose owner permits API use.
+    if re.fullmatch(r"https://[a-zA-Z0-9.-]+", origin) and origin != "https://api.cobalt.tools":
+        return (origin,)
+    return ()
+
+
+def exact_track(item, title, artist, duration):
+    def words(value):
+        return re.findall(r"\w+", str(value).casefold())
+
+    track, _, credits = item["title"].partition(" — ")
+    return (words(title) == words(track) and bool(words(artist))
+            and " ".join(words(artist)) in {" ".join(words(credit)) for credit in credits.split(",")}
+            and type(duration) in (int, float) and math.isfinite(duration)
+            and abs(duration - item["reference_seconds"]) <= 3)
+
+
+def preview_result(name, origin, item):
+    title, _, credits = item["title"].partition(" — ")
+    query = f'{title} {credits.split(",")[0]}'
+    if name == "itunes":
+        data = read_json(origin + "/search?" + urlencode(
+            {"entity": "song", "country": "US", "limit": 15, "term": query}))
+        rows = [(row.get("trackName"), row.get("artistName"),
+                 (row.get("trackTimeMillis") or 0) / 1000, row.get("previewUrl"))
+                for row in data.get("results", [])]
+    else:
+        data = read_json(origin + "/search?" + urlencode(
+            {"q": query, "limit": 15}))
+        if data.get("error"):
+            return {"status": "catalog_error", "catalog_code": data["error"].get("code")}
+        rows = [(row.get("title"), row.get("artist", {}).get("name"),
+                 row.get("duration"), row.get("preview")) for row in data.get("data", [])]
+    matched = [row for row in rows if exact_track(item, *row[:3])]
+    # Neither search result documents the clip's offset within the original.
+    return {"status": "preview_metadata" if any(row[3] for row in matched) else "no_matching_preview",
+            "catalog_results": len(rows), "exact_track_matches": len(matched),
+            "preview_start_seconds": None, "peak_overlap": "unknown"}
+
+
+def proxy_media(origin, streams):
+    for stream in streams:
+        for key in ("proxyUrl", "url"):
+            value = stream.get(key)
+            if isinstance(value, str):
+                url = urljoin(origin + "/", value)
+                host = urlsplit(origin).netloc
+                if public_url(url, host) or (
+                        host == "pipedapi.kavin.rocks" and public_url(url, "pipedproxy.kavin.rocks")):
+                    yield url
+
+
+def soundcloud_sample(origin, item, folder):
+    token = os.getenv("RESOLVE_SOUNDCLOUD_TOKEN")
+    if not token:
+        return {"status": "skipped_no_soundcloud_token"}
+    headers = {"Authorization": "OAuth " + token, "Accept": "application/json"}
+    rows = read_json(Request(origin + "/tracks?" + urlencode(
+        {"q": item["title"].replace(" — ", " "), "limit": 15}), headers=headers))
+    if isinstance(rows, dict):
+        rows = rows.get("collection", [])
+    for row in rows:
+        if not exact_track(item, row.get("title"), row.get("user", {}).get("username"),
+                           (row.get("duration") or 0) / 1000):
+            continue
+        url = row.get("download_url")
+        if row.get("downloadable") is not True or not isinstance(url, str):
+            continue
+        if not public_url(url, urlsplit(origin).netloc):
+            continue
+        # The original-download endpoint redirects to a signed storage URL.
+        # Never forward the OAuth header to that URL.
+        try:
+            with build_opener(NoRedirect()).open(Request(url, headers=headers), timeout=15):
+                return {"status": "unexpected_download_response"}
+        except HTTPError as error:
+            target = error.headers.get("Location", "")
+            code = error.code
+            error.close()
+            if code not in {302, 303, 307, 308}:
+                return {"status": "http_error", "http_status": code}
+            host = urlsplit(target).hostname or ""
+            if (host == "sndcdn.com" or host.endswith(".sndcdn.com")
+                    or host == "soundcloud.com.s3.amazonaws.com") and public_url(target, host):
+                return run_sample(item["id"], "audio", target, folder, item["reference_seconds"])
+            return {"status": "unapproved_media_host"}
+    return {"status": "no_creator_enabled_match"}
+
+
+def api_attempt(name, origin, item, watch, folder):
+    kind = item["kind"]
+    if name in {"deezer", "itunes"}:
+        return preview_result(name, origin, item)
+    if name == "soundcloud":
+        return soundcloud_sample(origin, item, folder)
+    if name == "cobalt":
+        payload = {"url": watch, "downloadMode": kind if kind == "audio" else "auto",
+                   "videoQuality": "720"}
+        data = read_json(Request(origin + "/", data=json.dumps(payload).encode(),
+                                 headers={"Accept": "application/json",
+                                          "Content-Type": "application/json"}))
+        status = data.get("status")
+        if status not in {"tunnel", "redirect"}:
+            code = str(data.get("error", {}).get("code", ""))
+            if blocked_text(code) or "auth" in code:
+                return {"status": "skipped_provider_challenge"}
+            return {"status": "provider_rejected"}
+        streams = [data]
+    else:
+        video = item["youtube_id"]
+        path = "/streams/" + video if name == "piped" else "/api/v1/videos/" + video + "?local=true"
+        data = read_json(origin + path)
+        if data.get("error"):
+            return {"status": "skipped_provider_challenge" if blocked_text(str(data["error"]))
+                    else "provider_rejected"}
+        if name == "piped":
+            streams = data.get("audioStreams" if kind == "audio" else "videoStreams", [])
+            if kind == "video":
+                streams = [row for row in streams if not row.get("videoOnly", True)]
+        else:
+            streams = data.get("adaptiveFormats" if kind == "audio" else "formatStreams", [])
+            if kind == "audio":
+                streams = [row for row in streams if str(row.get("type", "")).startswith("audio/")]
+        if kind == "video":
+            streams = [row for row in streams
+                       if int(row.get("height") or re.sub(r"\D.*", "", row.get("qualityLabel") or
+                                                              row.get("quality") or "0") or 0) >= 720]
+    for url in proxy_media(origin, streams):
+        return run_sample(item["id"], kind, url, folder, item.get("reference_seconds"))
+    return {"status": "no_approved_proxy_stream"}
+
+
+def probe_api_route(name, item, watch, folder, blocked=None):
+    if blocked is None:
+        blocked = set()
+    attempts = {}
+    for origin in api_origins(name):
+        if origin in blocked:
+            attempts[urlsplit(origin).netloc] = {"status": "skipped_provider_block"}
+            continue
+        try:
+            result = api_attempt(name, origin, item, watch, folder)
+        except HTTPError as error:
+            result = {"status": "http_error", "http_status": error.code}
+            error.close()
+        except ProviderChallenge:
+            result = {"status": "skipped_provider_challenge"}
+        except (OSError, HTTPException, ValueError, TypeError, AttributeError) as error:
+            result = {"status": "api_unavailable", "error_type": type(error).__name__}
+        if result["status"] == "skipped_provider_challenge" or result.get("http_status") in {401, 403, 429}:
+            blocked.add(origin)
+        attempts[urlsplit(origin).netloc] = result
+    if not attempts:
+        return {"status": "skipped_no_permitted_instance"}
+    best = next((row for row in attempts.values() if row["status"] in {"verified", "preview_metadata"}),
+                next(iter(attempts.values())))
+    return {**best, "instances": attempts}
+
+
 def provider_url(url, provider):
     try:
         host = urlsplit(url).netloc
@@ -324,7 +506,7 @@ def provider_url(url, provider):
 def blocked_text(value):
     value = value.casefold()
     return any(fragment in value for fragment in BLOCK_MESSAGES + (
-        "just a moment", "checking your browser", "captcha verification",
+        "just a moment", "checking your browser", "captcha verification", "turnstile", "proof-of-work", "proof of work",
     ))
 
 
@@ -739,7 +921,7 @@ def provider_summary(providers, rows):
     for provider in providers:
         summaries[provider] = {}
         for kind in ("audio", "video"):
-            if provider in DIRECT_MP3 and kind == "video":
+            if provider in AUDIO_ONLY and kind == "video":
                 continue
             attempts = [row["converters"][provider] for row in rows
                         if row["kind"] == kind and provider in row["converters"]]
@@ -846,6 +1028,9 @@ def run_matrix(args):
         requested = getattr(args, "providers", None)
         landings = {name: landing_http(url) for name, url in PROVIDERS.items()
                     if requested is None or name in requested}
+        for name in API_ROUTES:
+            if requested is None or name in requested:
+                landings[name] = {"status": "api_probe"}
         grounding = gemini_grounding(key)
         for baseline, item in corpus:
             watch = f"https://www.youtube.com/watch?v={item['youtube_id']}"
@@ -858,13 +1043,15 @@ def run_matrix(args):
             if item["kind"] == "video":
                 target["reference_seconds"] = control.get("duration_seconds")
             for name, landing in ({} if baseline else landings).items():
-                if name in DIRECT_MP3 and item["kind"] == "video":
+                if name in AUDIO_ONLY and item["kind"] == "video":
                     continue
                 if name in DIRECT_MP3 and name not in item.get("provider_pages", {}):
                     attempts[name] = {"status": "skipped_no_matched_direct_page"}
                 elif (name in blocked or landing["status"] == "challenge_detected" or
                         landing.get("http_status") in {401, 403, 429}):
                     attempts[name] = {"status": "skipped_provider_block"}
+                elif name in API_ROUTES:
+                    attempts[name] = probe_api_route(name, target, watch, folder, blocked)
                 elif name == "mp7":
                     attempts[name] = mp7_convert(target, watch, folder)
                 elif name == "loader":
@@ -957,7 +1144,7 @@ def main():
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--check-browser", action="store_true", help="launch Chromium without probing any site")
     parser.add_argument("--limit", type=int, choices=range(1, 11), help="diagnostic rows per media kind")
-    parser.add_argument("--providers", nargs="+", choices=sorted(PROVIDERS),
+    parser.add_argument("--providers", nargs="+", choices=sorted(PROVIDERS.keys() | API_ROUTES.keys()),
                         help="restrict provider checks to the specified registry names")
     parser.add_argument("--chromium", help="path to installed Chrome or Chromium")
     parser.add_argument("--no-browser", action="store_true", help="run HTTP diagnostics only")
