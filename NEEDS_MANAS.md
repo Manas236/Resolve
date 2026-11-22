@@ -70,7 +70,7 @@ The available public search and profile snapshots leave the leading faceless pag
 
 ## Later actions
 
-- **M8 Telegram:** Create a separate bot in BotFather and provide its token and approved chat ID through the server's ignored environment file. Never commit them.
+- **M8 Telegram:** Create a separate bot in BotFather and set TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID and TELEGRAM_REVIEWER_ID in the server's ignored environment file. Never commit them.
 - **M9 Meta:** Create a new Meta app for Resolve and connect the intended Instagram professional account and Facebook Page. Do this separately from the other projects. Exact permission and dry-run steps belong to M9.
 - **Channel name:** Confirm the public name before go-live. Resolve is the repository name.
 - **Deployment:** Choose packaging and resource limits before M13. Keep both options open until then.
@@ -116,3 +116,7 @@ screen -L -Logfile resolve-dashboard-acceptance.log -dmS resolve-dashboard-accep
 ```
 
 Retain the log and share the final unittest summary or the error. The browser remains sandboxed.
+
+## M6 and M7 editorial review
+
+The sample links are in PROGRESS.md. Listen to the three identical-script WAVs and confirm or change the provisional Piper choice. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.

@@ -75,12 +75,18 @@ Routine control submissions update the pipeline section in place. The HTTP integ
 | `META_PAGE_ID` | Connected Facebook Page ID. |
 | `META_DRY_RUN` | Keep `true` during setup. The Meta adapter defaults to dry-run and requires explicit live construction. |
 
-The dashboard CLI also accepts `--port` (8765), `--state` (`state/dashboard`), `--job-file` (`jobs/next_job.json`), and `--performance-fixture` (optional JSON). The required positional report is the probe JSON shown in the registry. Telegram and Meta environment values are integration placeholders until the live services are wired.
+The dashboard CLI also accepts `--port` (8765), `--state` (`state/dashboard`), `--job-file` (`jobs/next_job.json`), and `--performance-fixture` (optional JSON). The required positional report is the probe JSON shown in the registry. The operator runner reads Telegram and Meta settings from this same environment file.
 
 ## Operations and pending setup
 
 Run `python3 tools/healthcheck.py` from the checkout. It reports FFmpeg, ffprobe, sandboxed Chromium and the selected registry evidence. On AnalyticsDashboard follow the separate profile and health commands in [NEEDS_MANAS.md](NEEDS_MANAS.md).
 
-The dry-run schedule creates independent Instagram and Facebook receipts without network calls. An uncertain live attempt must be reconciled before any retry. The current scheduler is available as a library with a loop and a restart-safe SQLite ledger.
+The dry-run schedule creates independent Instagram and Facebook receipts without network calls. An uncertain live attempt must be reconciled before any retry. Use the same state and clip paths as the dashboard for a local dry-run tick:
+
+```sh
+python3 -m resolve_pipeline.operator --once --source media/clip.mp4
+```
+
+Omit `--once` to run the dispatcher continuously. `--zone` sets its posting timezone. The service is dry-run unless both `--live` and `META_DRY_RUN=false` are present. Live mode also requires an HTTPS `--media-base` and a configured Meta app. The separately enabled `--telegram` mode sends pending previews and handles callbacks. It uses the configured review chat and reviewer. Start only after the live integration steps in NEEDS_MANAS.md have been verified.
 
 The next Lightsail diagnostic is already queued in `jobs/next_job.json`. See [NEEDS_MANAS.md](NEEDS_MANAS.md) for the dedicated runner, report handoff, competitor evidence, Telegram and Meta setup, channel name and deployment decisions. The current server measurements and tested routes are in [RESEARCH.md](RESEARCH.md). Milestone evidence and exact resume steps are in [PROGRESS.md](PROGRESS.md) and [DECISIONS.md](DECISIONS.md). Keep downloaded media, generated media, secrets and state outside Git.

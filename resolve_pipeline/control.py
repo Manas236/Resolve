@@ -52,6 +52,8 @@ class Pipeline:
                        "time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, action TEXT NOT NULL, outcome TEXT NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS telegram_reviews (callback_id TEXT PRIMARY KEY, "
                        "reel_id INTEGER NOT NULL, action TEXT NOT NULL, UNIQUE(reel_id,action))")
+            db.execute("CREATE TABLE IF NOT EXISTS telegram_previews ("
+                       "reel_id INTEGER PRIMARY KEY, status TEXT NOT NULL)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -299,6 +301,23 @@ class Pipeline:
         if not changed:
             raise ValueError("Reel is no longer awaiting review")
 
+    def claim_review_preview(self):
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT id,caption FROM reels WHERE (status='review' OR (status='approved' "
+                "AND id NOT IN (SELECT reel_id FROM telegram_reviews WHERE action='approve'))) "
+                "AND id NOT IN (SELECT reel_id FROM telegram_previews) ORDER BY id LIMIT 1"
+            ).fetchone()
+            if row is not None:
+                db.execute("INSERT INTO telegram_previews VALUES (?, 'in_flight')", (row[0],))
+            return row
+
+    def finish_review_preview(self, reel_id, *, sent):
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("UPDATE telegram_previews SET status=? WHERE reel_id=? AND status='in_flight'",
+                       ("sent" if sent else "uncertain", reel_id))
+
     def telegram_review(self, callback_id, reel_id, action):
         """Apply one authorized callback once, even across bot restarts."""
         replacement = None
@@ -306,11 +325,15 @@ class Pipeline:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT source,status,format_id,song_id FROM reels WHERE id=?", (reel_id,)).fetchone()
             allowed = {
-                "approve": {"review"}, "reject": {"review"},
+                "approve": {"review", "approved"}, "reject": {"review", "approved"},
                 "regenerate": {"review", "rejected", "failed"},
                 "muted": {"review", "approved", "posted"},
             }
             if row is None or row[1] not in allowed.get(action, ()):
+                return False
+            if action == "reject" and db.execute(
+                "SELECT 1 FROM telegram_reviews WHERE reel_id=? AND action='approve'", (reel_id,),
+            ).fetchone():
                 return False
             changed = db.execute(
                 "INSERT OR IGNORE INTO telegram_reviews VALUES (?,?,?)", (callback_id, reel_id, action)
@@ -319,9 +342,10 @@ class Pipeline:
                 return False
             if action in ("approve", "reject"):
                 approved = action == "approve"
-                db.execute("UPDATE reels SET status=?,posting_order=? WHERE id=?",
-                           ("approved" if approved else "rejected",
-                            time.time_ns() if approved else None, reel_id))
+                if not approved or row[1] != "approved":
+                    db.execute("UPDATE reels SET status=?,posting_order=? WHERE id=?",
+                               ("approved" if approved else "rejected",
+                                time.time_ns() if approved else None, reel_id))
             if action == "regenerate":
                 replacement = db.execute(
                     "INSERT INTO reels(source,status,format_id,song_id) VALUES (?, 'queued', ?, ?)",

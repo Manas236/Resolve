@@ -121,6 +121,19 @@ class ReviewBot:
         return self.api.preview(self.chat_id, reel_id,
                                 self.pipeline.directory / f"{reel_id}.mp4", caption)
 
+    def send_next_preview(self):
+        row = self.pipeline.claim_review_preview()
+        if row is None:
+            return False
+        reel_id, caption = row
+        try:
+            self.send_preview(reel_id, caption)
+        except (OSError, ValueError, RuntimeError):
+            self.pipeline.finish_review_preview(reel_id, sent=False)
+            raise
+        self.pipeline.finish_review_preview(reel_id, sent=True)
+        return True
+
     def poll(self, offset=0):
         for update in self.api.updates(offset):
             callback = update.get("callback_query") or {}

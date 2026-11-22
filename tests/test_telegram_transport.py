@@ -48,16 +48,21 @@ class TelegramTransportTests(unittest.TestCase):
             pipeline = Pipeline(root, [root / "source.mp4"])
             with closing(sqlite3.connect(pipeline.database)) as db, db:
                 db.executemany("INSERT INTO reels(source,status) VALUES (?, 'review')", [("source",)] * 2)
+            pipeline.review(1, "approved")
             (root / "1.mp4").write_bytes(b"preview bytes")
+            (root / "2.mp4").write_bytes(b"preview two")
             thread = Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
                 api = TelegramAPI("123:fake", base_url=f"http://127.0.0.1:{server.server_port}")
                 bot = ReviewBot(api, pipeline, chat_id=17, reviewer_id=9)
-                self.assertTrue(bot.send_preview(1))
+                self.assertTrue(bot.send_next_preview())
                 self.assertTrue(api.failure_alert(17, "A job failed"))
                 self.assertEqual(requests[1][0], "sendMessage")
                 self.assertEqual(json.loads(requests[1][1]), {"chat_id": 17, "text": "A job failed"})
+                self.assertTrue(bot.send_next_preview())
+                self.assertFalse(bot.send_next_preview())
+                self.assertEqual([route for route, _ in requests].count("sendVideo"), 2)
                 body = requests[0][1]
                 self.assertIn(b"preview bytes", body)
                 for action in ("approve", "reject", "regenerate", "muted"):

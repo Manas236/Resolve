@@ -176,3 +176,7 @@ Baseline archives retained outside Git for editorial review. [Three TTS samples]
 ## M12 browser acceptance harness
 
 Added an opt-in Playwright test that signs in, drives controls in both initial worker states and checks an in-page marker survives the routine updates. The sandboxed system Chromium run in this workspace exited before navigation because its singleton socket was denied. The standard suite exercises the dashboard over loopback HTTP and skips the opt-in browser test. NEEDS_MANAS.md has the exact command for the host with working sandboxed Chromium.
+
+## Operator service assembly
+
+Added a runner entry point that opens the dashboard's state, schedules both Meta destinations, and optionally sends and polls Telegram review previews. A locally approved reel can still be previewed and confirmed in Telegram without changing its queue position. SQLite claims prevent duplicate preview sends. Failed or interrupted sends remain visible for reconciliation. The CLI ran a credential-free local tick, and the tests confirm it stays dry-run even when the environment says false unless the live flag is explicit. Real platform availability, live fetchable video URLs and provider-backed automatic generation remain open.
