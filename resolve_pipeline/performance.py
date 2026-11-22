@@ -22,6 +22,18 @@ class Performance:
                     format_id TEXT NOT NULL, views INTEGER CHECK(views>=0))
             """)
 
+            columns = {row[1] for row in db.execute("PRAGMA table_info(measured_reels)")}
+            if "observed_at" not in columns:
+                db.execute("ALTER TABLE measured_reels ADD COLUMN observed_at TEXT")
+
+    def daily_views(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return dict(db.execute("""
+                SELECT date(observed_at), SUM(views)
+                FROM measured_reels WHERE observed_at IS NOT NULL AND views IS NOT NULL
+                GROUP BY date(observed_at) ORDER BY date(observed_at) DESC LIMIT 30
+            """).fetchall()[::-1])
+
     def register(self, reel, song, clip, format_id):
         if format_id not in FORMATS or any(type(value) is not int or value < 1
                                            for value in (reel, song, clip)):
@@ -40,7 +52,7 @@ class Performance:
         if type(views) is not int or views < 0 or age_hours != WINDOW_HOURS:
             raise ValueError("Ingest a nonnegative 24-hour view count")
         with closing(sqlite3.connect(self.database)) as db, db:
-            changed = db.execute("UPDATE measured_reels SET views=? WHERE reel_id=?",
+            changed = db.execute("UPDATE measured_reels SET views=?, observed_at=CURRENT_TIMESTAMP WHERE reel_id=?",
                                  (views, reel)).rowcount
             if not changed:
                 raise ValueError("Register the reel before ingesting views")

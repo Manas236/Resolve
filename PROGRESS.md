@@ -212,3 +212,9 @@ Invalid registry rows now report their entry number. The test covers missing fie
 ## Combined alternative-route diagnostic
 
 Job 04 supersedes job 03 and probes all nine route names on two songs and two videos, with replay checks. The local metadata sweep found ten Deezer matches and three iTunes matches. Track-relative preview offsets remain unknown. No new full-media route was verified locally. See RESEARCH.md for instance outcomes and the per-song comparison.
+
+## M12 dashboard redesign
+
+Implemented eight offline dashboard pages with persistent browser theme, live render and runner status, inline review players and shortcuts, reorderable queue, library previews and waveforms, source health, settings, charts and filterable logs. Closed temporary output handles before cleanup and joined the render worker at shutdown. Added tzdata and Linux/Windows CI.
+
+Linux suite passed 68 tests with the opt-in browser test skipped. Forced the tzdata fallback and resolved UTC and Asia/Kolkata. Authenticated HTTP tests cover page routes, range requests, waveform and render status. A sandboxed browser attempt failed before navigation when this workspace denied its singleton socket. The AnalyticsDashboard acceptance test now saves 16 screenshots under research/ui_screenshots/ when it runs successfully. A real Windows run and AnalyticsDashboard browser acceptance remain open.

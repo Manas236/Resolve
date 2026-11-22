@@ -55,9 +55,7 @@ class BrowserControlsTests(unittest.TestCase):
                     self.drive(page, expect, pipeline, job, f"http://127.0.0.1:{server.server_port}", running)
                 finally:
                     page.close()
-                    pipeline.stop()
-                    if pipeline.worker is not None:
-                        pipeline.worker.join(5)
+                    pipeline.shutdown()
                     server.shutdown()
                     thread.join()
 
@@ -67,7 +65,12 @@ class BrowserControlsTests(unittest.TestCase):
         with page.expect_navigation():
             page.get_by_role("button", name="Log in").click()
         self.assertEqual(pipeline.running, initially_running)
+        def navigate(route):
+            page.get_by_role("navigation").get_by_role("link", name=route, exact=True).click()
+            page.evaluate("window.reviewPageMarker = 17")
+
         page.evaluate("window.reviewPageMarker = 17")
+        navigate("Libraries")
 
         def submit(route, *, field=None, value=None, success=True):
             form = page.locator(f'form[action="/{route}"]')
@@ -92,15 +95,20 @@ class BrowserControlsTests(unittest.TestCase):
             self.assertGreater(len(preview.body()), 100)
             submit("library-pin", field="id", value=identifier)
             submit("library-timestamp", field="id", value=identifier)
+        navigate("Make")
         page.locator('input[name="count"]').fill("3")
         submit("make")
         self.assertEqual(len(pipeline.list_reels()), 3)
         page.locator('input[name="url"]').fill("https://example.org/test.mp4")
         submit("make-url", success=False)
+        navigate("Logs")
         expect(page.locator("h2", has_text="Logs and failures")).to_be_visible()
+        navigate("Performance")
         expect(page.locator("h2", has_text="Performance (fixture)")).to_be_visible()
         for label in ("Reel", "Song", "Clip", "Format"):
             expect(page.get_by_role("heading", name=label, exact=True)).to_be_visible()
+        navigate("Review")
+        page.locator('[data-reel="1"] summary').click()
         edit = page.locator('form[action="/edit"]').filter(has=page.locator('input[name="id"][value="1"]'))
         edit.locator('textarea[name="caption"]').fill("Caption")
         edit.locator('input[name="hashtags"]').fill("#reel")
@@ -110,19 +118,39 @@ class BrowserControlsTests(unittest.TestCase):
         submit("reject", field="id", value=3)
         submit("regenerate", field="id", value=3)
         submit("delete", field="id", value=4)
-        page.locator('input[name="order"]').fill("2,1")
+        navigate("Queue")
+        if page.locator(".queue-row").first.get_attribute("data-id") != "2":
+            page.locator('[data-id="2"] [data-move="-1"]').click()
         submit("reorder")
         self.assertEqual(pipeline.posting_queue(), [2, 1])
-        page.locator('input[name="refresh_cadence"]').fill("monthly")
+        navigate("Settings")
+        page.locator('[name="refresh_cadence"]').select_option("monthly")
         submit("settings")
         self.assertEqual(pipeline.settings()["refresh_cadence"], "monthly")
+        navigate("Sources")
         submit("site-toggle", field="site", value="mp7")
         self.assertFalse(pipeline.sites()["mp7"])
         submit("site-retest")
         self.assertTrue(job.is_file())
+        if not initially_running:
+            from resolve_pipeline.dashboard_view import PAGES
+            output = Path(__file__).resolve().parents[1] / "research" / "ui_screenshots"
+            output.mkdir(parents=True, exist_ok=True)
+            for theme in ("dark", "light"):
+                for route in PAGES:
+                    navigate(route)
+                    if page.locator("html").get_attribute("data-theme") != theme:
+                        page.locator("#theme").click()
+                    expect(page.locator("html")).to_have_attribute("data-theme", theme)
+                    if route == "Libraries":
+                        expect(page.locator(".wave").first).to_have_attribute("data-loaded", "true")
+                    page.screenshot(path=output / f"{route.lower()}-{theme}.png", full_page=True)
+        navigate("Libraries")
         for identifier in (1, 2):
             submit("library-retire", field="id", value=identifier)
-        submit("start")
+        if not pipeline.running:
+            submit("start")
+            expect(page.locator("#status-bar")).to_contain_text("Runner running")
         submit("stop")
         with page.expect_navigation():
             page.get_by_role("button", name="Log out").click()

@@ -4,7 +4,10 @@ import argparse
 from html import escape
 from http.cookies import SimpleCookie, CookieError
 import os
-from shutil import copyfileobj
+import re
+import subprocess
+from array import array
+from sys import byteorder
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from hmac import compare_digest
@@ -12,81 +15,47 @@ from secrets import token_urlsafe
 from urllib.parse import parse_qs
 
 from .control import Pipeline
+from . import dashboard_view as view
 from .reels import LocalReelBuilder
 from .dashboard_auth import DashboardAuth
 from .config import read_env_file
 from pathlib import Path
-
-
-def report_html(report):
-    rows = []
-    for provider, kinds in report.get("provider_summary", {}).items():
-        for kind, stats in kinds.items():
-            cells = (provider, kind, stats.get("verified", 0), stats.get("target", 0),
-                     f'{stats["corpus_success_rate"]:.0%}' if "corpus_success_rate" in stats else "Unknown")
-            rows.append("<tr>" + "".join(f"<td>{escape(str(value))}</td>" for value in cells) + "</tr>")
-    return (
-        '<!doctype html><html lang="en"><meta charset="utf-8"><title>Resolve</title>'
-        '<h1>Resolve probe results</h1><table><thead><tr><th>Provider</th>'
-        '<th>Media</th><th>Verified</th><th>Targets</th><th>Health (probe success)</th></tr></thead><tbody>'
-        + "".join(rows) + "</tbody></table></html>"
-    )
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 def performance_html(data, *, fixture=True):
-    rows = []
-    for dimension in ("reel", "song", "clip", "format"):
+    cards = []
+    for dimension in ("daily", "reel", "song", "clip", "format"):
         entries = data.get(dimension, {})
-        rows.append(f"<h3>{dimension.title()}</h3>")
-        if not entries:
-            rows.append("<p>No metrics available</p>")
-        for key, views in entries.items():
-            if not fixture:
-                views = f'{views["views"]} views · {views["observed"]} snapshots · {views["muted"]} mute signals'
-            else:
-                views = f"{views} views"
-            rows.append(f"<p>{escape(str(key))} · {escape(views)}</p>")
+        label = "Views over time (UTC)" if dimension == "daily" else dimension.title()
+        scale = max((row.get("views", 0) if isinstance(row, dict) else row
+                     for row in entries.values() if isinstance(row, (int, float, dict))), default=0)
+        rows = []
+        for key, metrics in entries.items():
+            views = metrics.get("views", 0) if isinstance(metrics, dict) else metrics
+            width = 100 * views / max(scale, 1) if type(views) in (int, float) else 0
+            details = (f' · {metrics["observed"]} snapshots · {metrics["muted"]} mute signals'
+                       if isinstance(metrics, dict) else "")
+            rows.append(f'<div aria-label="{escape(str(key))} · {escape(str(views))} views{details}">'
+                        f'<div class="chart-row"><span>{escape(str(key))}</span>'
+                        f'<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">'
+                        f'<rect width="{width:.2f}" height="12" rx="3"/></svg>'
+                        f'<span>{escape(str(views))} views</span></div>'
+                        f'<small>{details}</small></div>')
+        message = "No dated snapshots yet." if dimension == "daily" else "No metrics available."
+        cards.append(f'<section class="card"><h3>{label}</h3>' + ("".join(rows) or view.empty(message))
+                     + '</section>')
     heading = "Performance (fixture)" if fixture else "Performance (24-hour snapshots)"
-    return f"<h2>{heading}</h2>" + "".join(rows)
+    return f"<h2>{heading}</h2><div class='grid'>" + "".join(cards) + "</div>"
 
 
-def handler_for(pipeline, report, auth=None, job_file=None, performance=None):
+def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zone="UTC"):
     token = token_urlsafe(32)
 
     def form(action, fields, label):
         return (f'<form method="post" action="/{action}">'
                 f'<input type="hidden" name="token" value="{token}">{fields}'
-                f'<button>{label}</button></form>')
-
-    script = """
-<script>
-document.addEventListener("submit", async (event) => {
-    const form = event.target;
-    if (!document.getElementById("pipeline") || !form.closest("#pipeline") ||
-        form.action.endsWith("/logout")) return;
-    event.preventDefault();
-    const button = form.querySelector("button");
-    const feedback = document.getElementById("feedback");
-    button.disabled = true;
-    try {
-        const response = await fetch(form.action, {
-            method: "POST",
-            body: new URLSearchParams(new FormData(form)),
-        });
-        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
-        if (!response.ok) throw new Error(doc.querySelector("p")?.textContent || response.statusText);
-        const updated = doc.getElementById("pipeline");
-        if (!updated) throw new Error("Session expired. Reload to log in.");
-        document.getElementById("pipeline").replaceWith(updated);
-        feedback.textContent = "Saved";
-    } catch (error) {
-        feedback.textContent = error.message;
-    } finally {
-        button.disabled = false;
-    }
-});
-</script>
-"""
+                f'<button class="{action}">{label}</button></form>')
 
     class Handler(BaseHTTPRequestHandler):
         def session(self):
@@ -103,117 +72,168 @@ document.addEventListener("submit", async (event) => {
                 self.send_header("Set-Cookie", cookie)
             self.end_headers()
 
+        def payload(self, data, mime="text/html; charset=utf-8"):
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def media(self, path, mime):
+            try:
+                stream = path.open("rb")
+            except OSError:
+                self.send_error(404)
+                return
+            with stream:
+                size = os.fstat(stream.fileno()).st_size
+                start, end = 0, size - 1
+                interval = self.headers.get("Range")
+                if interval:
+                    match = re.fullmatch(r"bytes=([0-9]{0,18})-([0-9]{0,18})", interval)
+                    if match and any(match.groups()):
+                        left, right = match.groups()
+                        if left:
+                            start = int(left)
+                            end = min(end, int(right)) if right else end
+                        else:
+                            start = max(0, size - int(right))
+                    if not match or not any(match.groups()) or start > end:
+                        self.send_response(416)
+                        self.send_header("Content-Range", f"bytes */{size}")
+                        self.send_header("Content-Length", "0")
+                        self.end_headers()
+                        return
+                self.send_response(206 if interval else 200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Accept-Ranges", "bytes")
+                if interval:
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                remaining = end - start + 1
+                self.send_header("Content-Length", str(remaining))
+                self.end_headers()
+                stream.seek(start)
+                try:
+                    while remaining and (chunk := stream.read(min(65536, remaining))):
+                        self.wfile.write(chunk)
+                        remaining -= len(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+
         def do_GET(self):
-            if self.path.startswith("/preview/"):
-                if auth is not None and not auth.valid(self.session()):
+            static = {"/static/dashboard.css": ("dashboard.css", "text/css"),
+                      "/static/dashboard.js": ("dashboard.js", "text/javascript")}
+            if self.path in static:
+                name, mime = static[self.path]
+                self.payload(Path(__file__).with_name(name).read_bytes(), mime)
+                return
+            pages = {"/" + name.lower(): name for name in view.PAGES}
+            pages["/"] = "Review"
+            authenticated = auth is None or auth.valid(self.session())
+            if not authenticated:
+                if self.path not in pages:
                     self.send_error(403)
                     return
-                entry = next((row for row in pipeline.library()
-                              if str(row[0]) == self.path.removeprefix("/preview/")), None)
-                if entry is None:
+                login = form("login", '<label>Password <input type="password" name="password" required autofocus></label>', "Log in")
+                self.payload(view.document(f'<main class="login card"><span class="brand"><span>R</span> Resolve</span>'
+                                           f'<h1>Sign in</h1>{login}</main>').encode())
+                return
+            if self.path == "/dashboard-status":
+                self.payload(view.status_bar(pipeline, form, zone).encode())
+                return
+            if self.path == "/render-status":
+                active = pipeline.rendering_id
+                rows = [{"id": key, "state": "rendering" if key == active and state == "queued" else state,
+                         "error": error} for key, state, error in pipeline.list_reels()]
+                self.payload(json.dumps(rows).encode(), "application/json")
+                return
+            match = re.fullmatch(r"/(reel|preview|waveform)/([0-9]{1,18})", self.path)
+            if match:
+                kind, asset = match[1], int(match[2])
+                if kind == "reel":
+                    if asset not in {row[0] for row in pipeline.list_reels()}:
+                        self.send_error(404)
+                        return
+                    self.media(pipeline.directory / f"{asset}.mp4", "video/mp4")
+                    return
+                entry = next((row for row in pipeline.library() if row[0] == asset), None)
+                if entry is None or (kind == "waveform" and entry[2] != "song"):
                     self.send_error(404)
                     return
                 path = Path(entry[1])
-                mime = {".mp4": "video/mp4", ".webm": "video/webm", ".mp3": "audio/mpeg",
-                        ".wav": "audio/wav", ".m4a": "audio/mp4", ".ogg": "audio/ogg"}.get(path.suffix.lower())
-                if mime is None or not path.is_file():
-                    self.send_error(404)
+                if kind == "waveform":
+                    try:
+                        duration = float(subprocess.check_output(
+                            ["ffprobe", "-v", "error", "-protocol_whitelist", "file",
+                             "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                            timeout=10))
+                        raw = subprocess.check_output(
+                            ["ffmpeg", "-v", "error", "-nostdin", "-protocol_whitelist", "file", "-i", str(path),
+                             "-t", "900", "-map", "0:a:0", "-ac", "1", "-ar", "2000", "-f", "s16le", "pipe:1"],
+                            timeout=15)
+                        samples = array("h", raw)
+                        if byteorder != "little":
+                            samples.byteswap()
+                        step = max(1, (len(samples) + 95) // 96)
+                        peaks = [max(map(abs, samples[i:i + step])) / 32768
+                                 for i in range(0, len(samples), step)]
+                    except (ValueError, OSError, subprocess.SubprocessError):
+                        self.send_error(404, "Waveform unavailable")
+                        return
+                    self.payload(json.dumps({"peaks": peaks, "duration": min(duration, 900),
+                                             "timestamp": entry[5]}).encode(), "application/json")
                     return
-                with path.open("rb") as stream:
-                    self.send_response(200)
-                    self.send_header("Content-Type", mime)
-                    self.send_header("X-Content-Type-Options", "nosniff")
-                    self.send_header("Cache-Control", "no-store")
-                    self.send_header("Content-Length", str(os.fstat(stream.fileno()).st_size))
-                    self.end_headers()
-                    copyfileobj(stream, self.wfile)
+                mime = {".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
+                        ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+                        ".ogg": "audio/ogg", ".flac": "audio/flac"}.get(path.suffix.lower())
+                if mime is None:
+                    self.send_error(404)
+                else:
+                    self.media(path, mime)
                 return
-            if self.path != "/":
+            page = pages.get(self.path)
+            if page is None:
                 self.send_error(404)
                 return
-            if auth is not None and not auth.valid(self.session()):
-                payload = form("login", '<label>Password <input type="password" name="password" required></label>', "Log in").encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(payload)))
-                self.end_headers()
-                self.wfile.write(payload)
-                return
-            status = "Running" if pipeline.running else "Stopped"
-            controls = (f"<h2>Pipeline</h2><p>{status}</p>"
-                        + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>'
-                               '<label>Format <select name="format"><option value="auto">Auto</option>'
-                               '<option>F1</option><option>F2</option><option>F3</option></select></label>',
-                               "Make N reels now")
-                        + form("start", "", "Start runner") + form("stop", "", "Stop runner"))
-            if auth is not None:
-                controls += form("logout", "", "Log out")
-            controls += form("make-url", '<label>Media URL <input name="url" type="url" required></label>', "Make reel from URL")
-            order = ",".join(map(str, pipeline.posting_queue()))
-            controls += form("reorder", f'<label>Posting order <input name="order" value="{order}"></label>',
-                             "Save posting order")
-            settings_fields = "".join(
-                f'<label>{label} <input name="{key}" value="{escape(value)}"></label>'
-                for (key, value), label in zip(pipeline.settings().items(),
-                    ("Posting slots", "Daily volume", "Approval mode", "Refresh cadence", "Format weights"))
-            )
-            controls += "<h2>Settings</h2>" + form("settings", settings_fields, "Save settings")
-            controls += "<h2>Media libraries</h2>"
-            for asset_id, path, kind, pinned, retired, peak in pipeline.library():
-                controls += (f"<p>{kind} · {escape(Path(path).name)} · "
-                             f"{'Retired' if retired else 'Pinned' if pinned else 'Active'}"
-                             f"{'' if peak is None else f' · {peak:g}s'} "
-                             f'<a href="/preview/{asset_id}" target="_blank" rel="noopener">Preview</a></p>')
-                if not retired:
-                    asset = f'<input type="hidden" name="id" value="{asset_id}">'
-                    for action, label in (("pin", "Unpin" if pinned else "Pin"),
-                                          ("retire", "Retire"), ("timestamp", "Detect timestamp")):
-                        controls += form("library-" + action, asset, label)
-            editorial = pipeline.editorial()
-            for reel_id, state, error in pipeline.list_reels():
-                controls += f"<p>Reel {reel_id} · {state} {escape(error or '')}</p>"
-                if reel_id in editorial:
-                    caption, hashtags = editorial[reel_id]
-                    controls += form("edit", f'<input type="hidden" name="id" value="{reel_id}">'
-                                     f'<label>Caption <textarea name="caption">{escape(caption)}</textarea></label>'
-                                     f'<label>Hashtags <input name="hashtags" value="{escape(hashtags)}"></label>',
-                                     "Save caption and hashtags")
-                if state in ("review", "rejected", "failed", "queued"):
-                    field = f'<input type="hidden" name="id" value="{reel_id}">'
-                    controls += form("delete", field, "Delete")
-                    if state != "queued":
-                        controls += form("regenerate", field, "Regenerate")
-                    if state == "review":
-                        controls += form("approve", field, "Approve") + form("reject", field, "Reject")
-            try:
-                data = json.loads(report.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                data = {}
-            controls += "<h2>Site registry</h2>"
-            for name, enabled in pipeline.sites().items():
-                controls += f"<p>{escape(name)} · {'Enabled' if enabled else 'Disabled'}</p>"
-                controls += form("site-toggle", f'<input type="hidden" name="site" value="{escape(name)}">',
-                                 "Disable" if enabled else "Enable")
-            if job_file is not None:
-                controls += form("site-retest", "", "Write retest job")
-            controls += "<h2>Logs and failures</h2>"
-            controls += "".join(f"<p>{escape(when)} · {escape(action)} · {escape(outcome)}</p>"
-                                for when, action, outcome in pipeline.recent_actions())
-            controls += "".join(f"<p>Reel {reel_id} · {escape(error or 'Render failed')}</p>"
-                                for reel_id, state, error in pipeline.list_reels() if state == "failed")
-            measured = (None if performance is not None else
-                        {dimension: pipeline.performance.grouped(dimension)
-                         for dimension in ("reel", "song", "clip", "format")})
-            controls += performance_html(performance if measured is None else measured,
-                                         fixture=measured is None)
-            payload = report_html(data).replace("</html>", ' <p id="feedback" role="status"></p><section id="pipeline">' + controls + "</section>" + script + "</html>").encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
+            if page == "Review":
+                content = view.review(pipeline, form)
+            elif page == "Make":
+                content = (
+                    '<div class="grid"><section class="card"><h2>Render a batch</h2>'
+                    + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>'
+                           '<label>Format <select name="format"><option value="auto">Auto</option>'
+                           '<option>F1</option><option>F2</option><option>F3</option></select></label>', "Make N reels now")
+                    + '</section><section class="card"><h2>Make from a URL</h2>'
+                    + form("make-url", '<label>Media URL <input name="url" type="url" required></label>', "Make reel from URL")
+                    + '</section></div><h2>Render progress</h2><div id="renders" role="status">No render in progress.</div>')
+            elif page == "Queue":
+                content = view.queue(pipeline, form, zone)
+            elif page == "Libraries":
+                content = view.libraries(pipeline, form)
+            elif page == "Sources":
+                try:
+                    data = json.loads(report.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    data = {}
+                content = view.sources(pipeline, data, form, job_file is not None)
+            elif page == "Settings":
+                content = view.settings(pipeline, form, zone)
+            elif page == "Performance":
+                data = performance if performance is not None else {
+                    dimension: pipeline.performance.grouped(dimension)
+                    for dimension in ("reel", "song", "clip", "format")
+                }
+                if performance is None:
+                    data["daily"] = pipeline.performance.daily_views()
+                content = performance_html(data, fixture=performance is not None)
+            else:
+                content = view.logs(pipeline)
+            logout = form("logout", "", "Log out") if auth is not None else ""
+            self.payload(view.layout(page, view.status_bar(pipeline, form, zone), content, token, logout).encode())
 
         def do_POST(self):
             try:
@@ -265,7 +285,7 @@ document.addEventListener("submit", async (event) => {
                 elif self.path == "/start":
                     pipeline.start()
                 elif self.path == "/stop":
-                    pipeline.stop()
+                    pipeline.shutdown()
                 else:
                     self.send_error(404)
                     return
@@ -283,6 +303,7 @@ document.addEventListener("submit", async (event) => {
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
+    parser.add_argument("--zone", default="UTC", help="Posting slot timezone, matching the operator")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
     parser.add_argument("--source", type=Path, action="append", required=True)
@@ -297,12 +318,13 @@ def main():
     args = parser.parse_args()
     settings = read_env_file(Path(".env")) | dict(os.environ)
     try:
+        ZoneInfo(args.zone)
         auth = DashboardAuth(settings.get("RESOLVE_DASHBOARD_PASSWORD_HASH", ""))
         builder = (None if args.hook is None else LocalReelBuilder(
             hook=args.hook, quote=args.quote, voice_script=args.voice_script,
             whisper_model=args.whisper_model, piper_model=args.piper_model,
         ))
-    except ValueError as error:
+    except (ValueError, ZoneInfoNotFoundError) as error:
         parser.error(str(error))
     pipeline = Pipeline(args.state, args.source, reel_builder=builder)
     for song in args.song:
@@ -316,11 +338,11 @@ def main():
                 raise ValueError("Expected a JSON object of performance dimensions")
         except (OSError, ValueError) as error:
             parser.error(str(error))
-    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth, args.job_file, performance)) as server:
+    with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(pipeline, args.report, auth, args.job_file, performance, args.zone)) as server:
         try:
             server.serve_forever()
         finally:
-            pipeline.stop()
+            pipeline.shutdown()
 
 
 if __name__ == "__main__":

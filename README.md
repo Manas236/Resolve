@@ -7,6 +7,7 @@ Resolve builds English-language faceless gym motivation reels. The default audie
 Use Python 3.11 or newer, FFmpeg and ffprobe. Check that FFmpeg has libx264, AAC and the ASS filter before rendering. Start from the repository root.
 
 ```sh
+python3 -m pip install -r requirements.txt
 python3 -m resolve_pipeline
 python3 -m unittest discover -s tests -v
 ```
@@ -35,7 +36,7 @@ For F1, provide `--whisper-model` pointing to a local faster-whisper model direc
 | Make reel from URL | Sends the URL to the configured downloader interface. The default installation reports that no adapter can download the source. |
 | Approve / Reject | Changes local review state. Live approval mode also requires the Telegram approval record. |
 | Regenerate / Delete | Creates a separate replacement with the original render inputs or removes an eligible reel from the review view. |
-| Save posting order | Enter each approved reel ID once, separated by commas, in the order you want. |
+| Save posting order | Drag cards or use their move buttons, then save the order. |
 | Save caption and hashtags | Persists edits to the individual reel. |
 | Preview, pin, retire | Previews a library file, prioritizes an asset, or removes it from future automatic selection. |
 | Detect timestamp | Runs local FFmpeg energy detection and records the resulting offset. This is a local fallback. |
@@ -74,6 +75,8 @@ Routine control submissions update the pipeline section in place. The HTTP integ
 | `META_IG_USER_ID` | Connected Instagram professional account ID. |
 | `META_PAGE_ID` | Connected Facebook Page ID. |
 | `META_DRY_RUN` | Keep `true` during setup. The Meta adapter defaults to dry-run and requires explicit live construction. |
+
+The dashboard uses local CSS and JavaScript. Browser theme preferences stay on the device. Run the dashboard with the same `--zone` as the operator to display posting slots in the correct timezone.
 
 The dashboard CLI also accepts `--port` (8765), `--state` (`state/dashboard`), `--job-file` (`jobs/next_job.json`), and `--performance-fixture` (optional JSON). The required positional report is the probe JSON shown in the registry. The operator runner reads Telegram and Meta settings from this same environment file.
 

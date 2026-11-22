@@ -1135,6 +1135,7 @@ def write_report(destination, report):
             output.close()
             path.replace(destination)
         finally:
+            output.close()
             path.unlink(missing_ok=True)
 
 

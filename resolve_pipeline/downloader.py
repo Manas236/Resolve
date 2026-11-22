@@ -304,4 +304,5 @@ class Downloader:
                 staging.replace(result)
                 return Download(result, provider.name, media)
             finally:
+                output.close()
                 staging.unlink(missing_ok=True)

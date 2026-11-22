@@ -115,7 +115,7 @@ On **AnalyticsDashboard Lightsail**, from the reviewed Resolve checkout after th
 screen -L -Logfile resolve-dashboard-acceptance.log -dmS resolve-dashboard-acceptance env RESOLVE_BROWSER_E2E=1 .venv/bin/python -m unittest discover -s tests -p test_dashboard_browser.py -v
 ```
 
-Retain the log and share the final unittest summary or the error. The browser remains sandboxed.
+The test writes all eight pages in both themes to `research/ui_screenshots/` on AnalyticsDashboard. Copy that directory for review and retain the unittest log. The browser remains sandboxed.
 
 ## M6 and M7 editorial review
 

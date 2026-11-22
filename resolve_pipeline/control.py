@@ -37,6 +37,7 @@ class Pipeline:
         self.lifecycle = Lock()
         self.stop_signal = Event()
         self.worker = None
+        self.rendering_id = None
         with closing(sqlite3.connect(self.database)) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS reels (id INTEGER PRIMARY KEY, "
                        "source TEXT NOT NULL, status TEXT NOT NULL, error TEXT)")
@@ -94,6 +95,7 @@ class Pipeline:
                 out.close()
                 temporary.replace(path)
             finally:
+                out.close()
                 temporary.unlink(missing_ok=True)
 
     def log_action(self, action, outcome):
@@ -263,6 +265,7 @@ class Pipeline:
                 return
             source, format_id, song_id = row
             error = None
+            self.rendering_id = reel_id
             try:
                 if format_id:
                     if self.reel_builder is None:
@@ -277,6 +280,8 @@ class Pipeline:
                     self._render_preview(reel_id, source)
             except (OSError, ValueError, RuntimeError, ImportError, subprocess.SubprocessError) as exc:
                 error = str(exc) if isinstance(exc, (ValueError, RuntimeError)) else type(exc).__name__
+            finally:
+                self.rendering_id = None
             with db:
                 db.execute("UPDATE reels SET status=?, error=? WHERE id=?",
                            ("failed" if error else "review", error, reel_id))
@@ -375,6 +380,14 @@ class Pipeline:
             if not changed:
                 raise ValueError("Reel cannot be deleted")
 
+    def reel_details(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return db.execute("""
+                SELECT reels.id, status, error, source, format_id, library.path
+                FROM reels LEFT JOIN library ON library.id = reels.song_id
+                WHERE status != 'deleted' ORDER BY reels.id DESC
+            """).fetchall()
+
     def list_reels(self):
         with closing(sqlite3.connect(self.database)) as db:
             return db.execute("SELECT id,status,error FROM reels WHERE status != 'deleted' ORDER BY id DESC").fetchall()
@@ -398,6 +411,11 @@ class Pipeline:
             self.stop_signal.clear()
             self.worker = Thread(target=self._loop, daemon=True)
             self.worker.start()
+
+    def shutdown(self):
+        self.stop()
+        if self.worker is not None:
+            self.worker.join()
 
     def stop(self):
         with self.lifecycle:
