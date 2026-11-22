@@ -1,0 +1,195 @@
+{
+  "video": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+  "song": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Strength%20of%20the%20Titans.mp3",
+  "renders": [
+    {
+      "path": "/tmp/resolve-m7/reels/F1-1.mp4",
+      "duration": 22.0,
+      "video_start": 0.0,
+      "format": "F1",
+      "word_count": 9,
+      "last_word": "one.",
+      "last_word_end_ms": 10300,
+      "sha256": "2bd0fdef50a329641674a59431febbb3969005067457fa2d085a5527859112ff",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F2-1.mp4",
+      "duration": 22,
+      "video_start": 0,
+      "format": "F2",
+      "word_count": 0,
+      "last_word": null,
+      "last_word_end_ms": null,
+      "sha256": "5fb1f113f4d3fa4341c724cb622de574aba78b33f3b483a86cb09cba74a0a34d",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F3-1.mp4",
+      "duration": 22,
+      "video_start": 0,
+      "format": "F3",
+      "word_count": 37,
+      "last_word": "tomorrow.",
+      "last_word_end_ms": 10520,
+      "sha256": "5206c9db78a3be21bbc93e79b77be378a72b6893a61c79ff8c47daa61e8e0b73",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F1-2.mp4",
+      "duration": 22.1,
+      "video_start": 23.0,
+      "format": "F1",
+      "word_count": 69,
+      "last_word": "done!",
+      "last_word_end_ms": 22080,
+      "sha256": "1e9c7f4c8715079e7bcb197b6b1378835fb524a5580baef13465059497686496",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.083333
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.1
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F2-2.mp4",
+      "duration": 22,
+      "video_start": 5,
+      "format": "F2",
+      "word_count": 0,
+      "last_word": null,
+      "last_word_end_ms": null,
+      "sha256": "2fd614c39d1890192a985e1bd97f74fd64e2eaa57775e647d785edede6b18cc5",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F3-2.mp4",
+      "duration": 22,
+      "video_start": 5,
+      "format": "F3",
+      "word_count": 29,
+      "last_word": "promise.",
+      "last_word_end_ms": 8340,
+      "sha256": "f23c59f85802cd0e12f777a63159e343eaa18e56fa575f5edff9a0053831d694",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F1-3.mp4",
+      "duration": 23.2,
+      "video_start": 30.5,
+      "format": "F1",
+      "word_count": 51,
+      "last_word": "luck.",
+      "last_word_end_ms": 23200,
+      "sha256": "bb68f2630e9a34ac52918af34369a7ae85a3098d7c4c7583fed9a998b834523e",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 23.208333
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 23.2
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F2-3.mp4",
+      "duration": 22,
+      "video_start": 10,
+      "format": "F2",
+      "word_count": 0,
+      "last_word": null,
+      "last_word_end_ms": null,
+      "sha256": "fc351a1c3ee92a226c568359d1eacaa38913853188be5d41a6fea6c03f02e2ae",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    },
+    {
+      "path": "/tmp/resolve-m7/reels/F3-3.mp4",
+      "duration": 22,
+      "video_start": 10,
+      "format": "F3",
+      "word_count": 27,
+      "last_word": "moving.",
+      "last_word_end_ms": 7180,
+      "sha256": "54062d1709b99bc3158ccbc119bcd7b4755d55d36fcb9a147aab05409ae66940",
+      "video": {
+        "width": 1080,
+        "height": 1920,
+        "codec": "h264",
+        "fps": "24/1",
+        "duration": 22.0
+      },
+      "audio": {
+        "codec": "aac",
+        "duration": 22.0
+      }
+    }
+  ]
+}

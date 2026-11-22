@@ -29,6 +29,14 @@ class HighlightedCaptionTests(unittest.TestCase):
         self.assertIn("Dialogue: 0,0:00:00.00,0:00:00.25,Word,Keep", result)
         self.assertIn("Dialogue: 0,0:00:00.26,0:00:00.40,Word,｛going｝", result)
 
+    def test_zero_length_word_is_skipped_without_shifting_neighbours(self):
+        from resolve_pipeline.captions import highlighted_ass
+
+        result = highlighted_ass([Cue(0, 300, "First"), Cue(300, 300, "collapsed"),
+                                  Cue(300, 600, "Last.")], start_ms=0, end_ms=1000)
+        self.assertNotIn("collapsed", result)
+        self.assertIn("0:00:00.30,0:00:00.60,Word,Last.", result)
+
     def test_whisper_adapter_uses_word_timestamps(self):
         from unittest.mock import Mock
         from resolve_pipeline.captions import transcribe_words

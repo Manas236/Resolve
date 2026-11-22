@@ -48,7 +48,7 @@ def _ass_text(text):
     return " ".join(text.split()).translate(str.maketrans({"{": "｛", "}": "｝", "\\": "＼"}))
 
 
-def highlighted_ass(words: Iterable[Cue], *, start_ms: int, end_ms: int, hook: str = "") -> str:
+def highlighted_ass(words: Iterable[Cue], *, start_ms: int, end_ms: int, hook: str = "", quote: str = "") -> str:
     """Create burn-in subtitle events from measured word timestamps."""
     if not 0 <= start_ms < end_ms:
         raise ValueError("Invalid clip interval")
@@ -57,14 +57,17 @@ def highlighted_ass(words: Iterable[Cue], *, start_ms: int, end_ms: int, hook: s
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, Bold, BorderStyle, Outline, Alignment, MarginL, MarginR, MarginV",
         "Style: Word,DejaVu Sans,76,&H0000E9FF,&H00000000,-1,1,5,2,80,80,300",
+        "Style: Quote,DejaVu Sans,80,&H00FFFFFF,&H00000000,-1,1,6,5,100,100,80",
         "Style: Hook,DejaVu Sans,100,&H00FFFFFF,&H00000000,-1,1,6,8,80,80,230",
         "[Events]", "Format: Layer, Start, End, Style, Text",
     ]
     if _ass_text(hook):
         lines.append(f"Dialogue: 1,0:00:00.00,{_ass_time((min(2000, end_ms - start_ms) + 9) // 10)},Hook,{_ass_text(hook)}")
+    if _ass_text(quote):
+        lines.append(f"Dialogue: 0,0:00:00.00,{_ass_time((end_ms - start_ms + 9) // 10)},Quote,{_ass_text(quote)}")
     previous_end = 0
     for word in sorted(words, key=lambda cue: (cue.start_ms, cue.end_ms)):
-        if not 0 <= word.start_ms < word.end_ms:
+        if not 0 <= word.start_ms <= word.end_ms:
             raise ValueError("Invalid word interval")
         start = max(word.start_ms, start_ms)
         end = min(word.end_ms, end_ms)
