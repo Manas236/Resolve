@@ -47,6 +47,8 @@ class Pipeline:
             db.execute("CREATE TABLE IF NOT EXISTS site_overrides (name TEXT PRIMARY KEY, enabled INTEGER NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS dashboard_events (id INTEGER PRIMARY KEY, "
                        "time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, action TEXT NOT NULL, outcome TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS telegram_reviews (callback_id TEXT PRIMARY KEY, "
+                       "reel_id INTEGER NOT NULL, action TEXT NOT NULL, UNIQUE(reel_id,action))")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -249,6 +251,37 @@ class Pipeline:
                                  (status, time.time_ns() if status == 'approved' else None, reel_id)).rowcount
         if not changed:
             raise ValueError("Reel is no longer awaiting review")
+
+    def telegram_review(self, callback_id, reel_id, action):
+        """Apply one authorized callback once, even across bot restarts."""
+        replacement = None
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT source,status FROM reels WHERE id=?", (reel_id,)).fetchone()
+            allowed = {
+                "approve": {"review"}, "reject": {"review"},
+                "regenerate": {"review", "rejected", "failed"},
+                "muted": {"review", "approved", "posted"},
+            }
+            if row is None or row[1] not in allowed.get(action, ()):
+                return False
+            changed = db.execute(
+                "INSERT OR IGNORE INTO telegram_reviews VALUES (?,?,?)", (callback_id, reel_id, action)
+            ).rowcount
+            if not changed:
+                return False
+            if action in ("approve", "reject"):
+                approved = action == "approve"
+                db.execute("UPDATE reels SET status=?,posting_order=? WHERE id=?",
+                           ("approved" if approved else "rejected",
+                            time.time_ns() if approved else None, reel_id))
+            if action == "regenerate":
+                replacement = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
+                                         (row[0],)).lastrowid
+        if replacement is not None:
+            with self.render_lock:
+                self._render(replacement)
+        return True
 
     def regenerate(self, reel_id):
         with self.render_lock, closing(sqlite3.connect(self.database)) as db:
