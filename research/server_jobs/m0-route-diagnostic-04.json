@@ -1,0 +1,593 @@
+{
+  "schema_version": 3,
+  "scope": "m0_diagnostic",
+  "recorded_at_utc": "2026-11-22T10:52:04.640695+00:00",
+  "complete": true,
+  "tools": {
+    "python": "3.12.3",
+    "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+    "ffprobe": "ffprobe version 6.1.1-3ubuntu5 Copyright (c) 2007-2023 the FFmpeg developers",
+    "repo_revision": "31204f9c3a09efa03f41a75d4748263784af505d"
+  },
+  "browser_status": "ready",
+  "browser_failure": null,
+  "http_landing_checks": {
+    "mp7": {
+      "http_status": 200,
+      "status": "landing_reached"
+    },
+    "cnvmp3": {
+      "http_status": 200,
+      "status": "landing_reached"
+    },
+    "ythd": {
+      "http_status": 200,
+      "status": "landing_reached"
+    },
+    "piped": {
+      "status": "api_probe"
+    },
+    "invidious": {
+      "status": "api_probe"
+    },
+    "cobalt": {
+      "status": "api_probe"
+    },
+    "soundcloud": {
+      "status": "api_probe"
+    },
+    "deezer": {
+      "status": "api_probe"
+    },
+    "itunes": {
+      "status": "api_probe"
+    }
+  },
+  "provider_summary": {
+    "mp7": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "cnvmp3": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "ythd": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "piped": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 1,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "invidious": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 1,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "cobalt": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      },
+      "video": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "soundcloud": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 0,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "deezer": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      }
+    },
+    "itunes": {
+      "audio": {
+        "target": 10,
+        "observed": 2,
+        "verified": 0,
+        "attempted": 2,
+        "corpus_success_rate": 0.0
+      }
+    }
+  },
+  "outcome_summary": {
+    "audio": {
+      "publisher_verified": 0,
+      "timestamp_methods_selected": {
+        "unavailable": 2
+      }
+    },
+    "video": {
+      "publisher_verified": 0,
+      "timestamp_methods_selected": {
+        "unavailable": 2
+      }
+    }
+  },
+  "baseline_summary": {
+    "audio": {
+      "publisher_verified": 0,
+      "timestamp_methods_selected": {}
+    },
+    "video": {
+      "publisher_verified": 0,
+      "timestamp_methods_selected": {}
+    }
+  },
+  "gemini_grounding": {
+    "status": "skipped_no_billing_disabled_key"
+  },
+  "results": [
+    {
+      "id": "gCESZzZ4Z38",
+      "kind": "audio",
+      "title": "LOS VOLTAJE \u2014 Sayfalse, Yb Wasg\u2019ood, Ariis",
+      "corpus": "target",
+      "watch_url": "https://www.youtube.com/watch?v=gCESZzZ4Z38",
+      "publisher_control": {
+        "status": "not_applicable"
+      },
+      "converters": {
+        "mp7": {
+          "status": "provider_rejected",
+          "stage": "poll"
+        },
+        "cnvmp3": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": []
+        },
+        "ythd": {
+          "status": "no_result_frame",
+          "stage": "result_link",
+          "request_statuses": [
+            200
+          ]
+        },
+        "piped": {
+          "status": "http_error",
+          "http_status": 403,
+          "instances": {
+            "pipedapi.kavin.rocks": {
+              "status": "http_error",
+              "http_status": 403
+            },
+            "pipedapi.adminforge.de": {
+              "status": "http_error",
+              "http_status": 301
+            }
+          }
+        },
+        "invidious": {
+          "status": "http_error",
+          "http_status": 403,
+          "instances": {
+            "invidious.nerdvpn.de": {
+              "status": "http_error",
+              "http_status": 403
+            },
+            "yt.chocolatemoo53.com": {
+              "status": "http_error",
+              "http_status": 403
+            }
+          }
+        },
+        "cobalt": {
+          "status": "skipped_no_permitted_instance"
+        },
+        "soundcloud": {
+          "status": "skipped_no_soundcloud_token",
+          "instances": {
+            "api.soundcloud.com": {
+              "status": "skipped_no_soundcloud_token"
+            }
+          }
+        },
+        "deezer": {
+          "status": "no_matching_preview",
+          "catalog_results": 0,
+          "exact_track_matches": 0,
+          "preview_start_seconds": null,
+          "peak_overlap": "unknown",
+          "instances": {
+            "api.deezer.com": {
+              "status": "no_matching_preview",
+              "catalog_results": 0,
+              "exact_track_matches": 0,
+              "preview_start_seconds": null,
+              "peak_overlap": "unknown"
+            }
+          }
+        },
+        "itunes": {
+          "status": "no_matching_preview",
+          "catalog_results": 10,
+          "exact_track_matches": 0,
+          "preview_start_seconds": null,
+          "peak_overlap": "unknown",
+          "instances": {
+            "itunes.apple.com": {
+              "status": "no_matching_preview",
+              "catalog_results": 10,
+              "exact_track_matches": 0,
+              "preview_start_seconds": null,
+              "peak_overlap": "unknown"
+            }
+          }
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=gCESZzZ4Z38",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "challenge_detected"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_watch_block"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "validation_audio_source": null,
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "jJu1bmjctUM",
+      "kind": "audio",
+      "title": "NUNCA MUDA? \u2014 Scythermane, NXGHT!, MC Fabinho da Osk",
+      "corpus": "target",
+      "watch_url": "https://www.youtube.com/watch?v=jJu1bmjctUM",
+      "publisher_control": {
+        "status": "not_applicable"
+      },
+      "converters": {
+        "mp7": {
+          "status": "provider_rejected",
+          "stage": "poll"
+        },
+        "cnvmp3": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": []
+        },
+        "ythd": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": [
+            200
+          ]
+        },
+        "piped": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "pipedapi.kavin.rocks": {
+              "status": "skipped_provider_block"
+            },
+            "pipedapi.adminforge.de": {
+              "status": "http_error",
+              "http_status": 301
+            }
+          }
+        },
+        "invidious": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "invidious.nerdvpn.de": {
+              "status": "skipped_provider_block"
+            },
+            "yt.chocolatemoo53.com": {
+              "status": "skipped_provider_block"
+            }
+          }
+        },
+        "cobalt": {
+          "status": "skipped_no_permitted_instance"
+        },
+        "soundcloud": {
+          "status": "skipped_no_soundcloud_token",
+          "instances": {
+            "api.soundcloud.com": {
+              "status": "skipped_no_soundcloud_token"
+            }
+          }
+        },
+        "deezer": {
+          "status": "no_matching_preview",
+          "catalog_results": 0,
+          "exact_track_matches": 0,
+          "preview_start_seconds": null,
+          "peak_overlap": "unknown",
+          "instances": {
+            "api.deezer.com": {
+              "status": "no_matching_preview",
+              "catalog_results": 0,
+              "exact_track_matches": 0,
+              "preview_start_seconds": null,
+              "peak_overlap": "unknown"
+            }
+          }
+        },
+        "itunes": {
+          "status": "no_matching_preview",
+          "catalog_results": 15,
+          "exact_track_matches": 0,
+          "preview_start_seconds": null,
+          "peak_overlap": "unknown",
+          "instances": {
+            "itunes.apple.com": {
+              "status": "no_matching_preview",
+              "catalog_results": 15,
+              "exact_track_matches": 0,
+              "preview_start_seconds": null,
+              "peak_overlap": "unknown"
+            }
+          }
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=jJu1bmjctUM",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "peak",
+          "start_seconds": 0.0,
+          "score": 1,
+          "marker_count": 100,
+          "marker_schema": "macro_markers"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_http_already_worked"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "validation_audio_source": null,
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "RC6sMFbL288",
+      "kind": "video",
+      "title": "Rocky Balboa: Keep Moving Forward",
+      "corpus": "target",
+      "watch_url": "https://www.youtube.com/watch?v=RC6sMFbL288",
+      "publisher_control": {
+        "status": "not_applicable"
+      },
+      "converters": {
+        "mp7": {
+          "status": "provider_rejected",
+          "stage": "poll"
+        },
+        "cnvmp3": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": []
+        },
+        "ythd": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": [
+            200
+          ]
+        },
+        "piped": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "pipedapi.kavin.rocks": {
+              "status": "skipped_provider_block"
+            },
+            "pipedapi.adminforge.de": {
+              "status": "http_error",
+              "http_status": 301
+            }
+          }
+        },
+        "invidious": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "invidious.nerdvpn.de": {
+              "status": "skipped_provider_block"
+            },
+            "yt.chocolatemoo53.com": {
+              "status": "skipped_provider_block"
+            }
+          }
+        },
+        "cobalt": {
+          "status": "skipped_no_permitted_instance"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=RC6sMFbL288",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "challenge_detected"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_watch_block"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "validation_audio_source": null,
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    },
+    {
+      "id": "5GYP-HSmtFY",
+      "kind": "video",
+      "title": "The Pursuit of Happyness: Protect Your Dream",
+      "corpus": "target",
+      "watch_url": "https://www.youtube.com/watch?v=5GYP-HSmtFY",
+      "publisher_control": {
+        "status": "not_applicable"
+      },
+      "converters": {
+        "mp7": {
+          "status": "provider_rejected",
+          "stage": "poll"
+        },
+        "cnvmp3": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": []
+        },
+        "ythd": {
+          "status": "no_download_link",
+          "stage": "result_link",
+          "request_statuses": [
+            200
+          ]
+        },
+        "piped": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "pipedapi.kavin.rocks": {
+              "status": "skipped_provider_block"
+            },
+            "pipedapi.adminforge.de": {
+              "status": "http_error",
+              "http_status": 301
+            }
+          }
+        },
+        "invidious": {
+          "status": "skipped_provider_block",
+          "instances": {
+            "invidious.nerdvpn.de": {
+              "status": "skipped_provider_block"
+            },
+            "yt.chocolatemoo53.com": {
+              "status": "skipped_provider_block"
+            }
+          }
+        },
+        "cobalt": {
+          "status": "skipped_no_permitted_instance"
+        }
+      },
+      "timestamps": {
+        "youtube_replay": {
+          "url": "https://www.youtube.com/watch?v=5GYP-HSmtFY",
+          "method": "watch_html",
+          "http_status": 200,
+          "status": "challenge_detected"
+        },
+        "youtube_replay_headless": {
+          "status": "skipped_watch_block"
+        },
+        "social": {
+          "status": "no_validated_source_mapping"
+        },
+        "gemini": {
+          "status": "skipped_grounding_unavailable"
+        },
+        "validation_audio_source": null,
+        "audio_energy": {
+          "status": "no_reference_audio"
+        },
+        "selected": null
+      }
+    }
+  ]
+}
