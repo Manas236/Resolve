@@ -26,7 +26,7 @@ def choose_format(weights, observations, rng=None):
 
 
 class Scheduler:
-    def __init__(self, pipeline, publishers, video_url, *, zone="UTC"):
+    def __init__(self, pipeline, publishers, video_url, *, zone="UTC", refresh=None):
         self.pipeline = pipeline
         self.publishers = dict(publishers)
         modes = {publisher.dry_run for publisher in self.publishers.values()}
@@ -34,6 +34,7 @@ class Scheduler:
             raise ValueError("Use the same dry-run mode for all publishers")
         self.mode = "dry" if modes == {True} else "live"
         self.video_url = video_url
+        self.refresh = refresh
         self.zone = ZoneInfo(zone)
         with closing(self._db()) as db, db:
             db.executescript("""
@@ -98,11 +99,14 @@ class Scheduler:
         """Attempt due slots. Uncertain outbound calls stay held for reconciliation."""
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("Scheduler requires a timezone-aware datetime")
+        settings = self.pipeline.settings()
+        if self.refresh is not None:
+            for name, result in self.refresh.tick(now, settings["refresh_cadence"]).items():
+                self.pipeline.log_action("refresh:" + name, result)
         if not self.publishers:
             return []
         instant = now.astimezone(timezone.utc)
         local = now.astimezone(self.zone)
-        settings = self.pipeline.settings()
         slots = settings["posting_slots"].split(",")[:int(settings["volume"])]
         day, clock = local.date().isoformat(), local.strftime("%H:%M")
         self._reserve(instant, day, [slot for slot in slots if slot <= clock], settings)

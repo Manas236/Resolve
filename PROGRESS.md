@@ -146,3 +146,7 @@ The SQLite posting ledger reserves daily slots and each platform delivery indepe
 ## H. Performance tracking and feedback
 
 Added immutable reel/song/clip/format attribution, ingestion of comparable 24-hour view snapshots, peer baselines, and distinct reported versus inferred mute flags. Exposed fixture and measured dashboard rollups, plus song and clip ranking multipliers and format observations. The existing batch clip selection now uses measured feedback after operator pinning. The format selector reads performance when supplied through the pipeline. Fixture tests check low-view and reported mutes, aggregation and feedback, early snapshots and attempts to change source attribution. Live insights ingestion and integration with live song selection remain open.
+
+## I. Refresh cadence and scheduler wiring
+
+The scheduler runs independent song-library, clip-library and provider-health refresh hooks, including when no publishers are configured. SQLite persists success, attempted time, failure and an active claim for each job. A failure in one hook does not suppress either of the others. Tests cover retry after failure and restart, month-end clamping, weekly intervals and scheduler dispatch. Live source and provider callbacks still depend on the library and server gates, so M5 stays open.
