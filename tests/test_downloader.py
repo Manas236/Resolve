@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from resolve_pipeline.downloader import (
-    AdapterUnavailable, DownloadExhausted, DownloadRequest, Downloader, Media,
+    AdapterTemporary, AdapterUnavailable, DownloadExhausted, DownloadRequest, Downloader, Media,
     MediaRejected, Provider, Registry, validate_media,
 )
 
@@ -67,6 +67,60 @@ class DownloaderTests(unittest.TestCase):
                 downloader.download(DownloadRequest("fixture", "audio", 2))
             self.assertEqual(raised.exception.attempts, (("empty", "empty_media"), ("large", "size_limit")))
             self.assertEqual(list(root.iterdir()), [])
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg tools unavailable")
+    def test_persistent_cache_revalidates_and_health_does_not_replace_cached_media(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            audio = root / "source.wav"
+            subprocess.run(
+                ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
+                 "sine=frequency=440:duration=1", str(audio)], check=True, timeout=10,
+            )
+            registry = Registry((Provider("source", "source", frozenset({"audio"})),))
+            calls = []
+            adapters = {"source": MemoryAdapter(audio.read_bytes(), calls, "source")}
+            directory = root / "downloads"
+            request = DownloadRequest("versioned source", "audio", 1)
+            first = Downloader(registry, adapters, directory, persistent=True)
+            result = first.download(request)
+            second = Downloader(registry, adapters, directory, persistent=True)
+            self.assertEqual(second.download(request).path, result.path)
+            self.assertEqual(calls, ["source"])
+            self.assertEqual(second.health(), {("source", "audio"): 0.625})
+            self.assertEqual(second.check_health(request), {"source": "verified"})
+            self.assertEqual(list(directory.glob("*.media")), [result.path])
+            result.path.write_bytes(b"<html>bad media</html>")
+            recovered = second.download(request)
+            self.assertNotEqual(recovered.path, result.path)
+            self.assertEqual(recovered.path.read_bytes(), audio.read_bytes())
+            self.assertEqual(calls, ["source", "source", "source"])
+
+    def test_explicit_transient_failure_retries_but_provider_rejection_does_not(self):
+        from resolve_pipeline.retry import retry_read
+
+        with TemporaryDirectory() as directory:
+            calls = []
+            adapter = MemoryAdapter(b"valid", calls, "temporary")
+            request = DownloadRequest("fixture", "audio", 2)
+            registry = Registry((Provider("temporary", "temporary", frozenset({"audio"})),))
+
+            @contextmanager
+            def occasionally_unavailable(req):
+                if not calls:
+                    calls.append("temporary-failure")
+                    raise AdapterTemporary("temporary provider outage")
+                with adapter.open(req) as stream:
+                    yield stream
+
+            from types import SimpleNamespace
+            downloader = Downloader(registry, {"temporary": SimpleNamespace(open=occasionally_unavailable)},
+                                    Path(directory))
+            with patch("resolve_pipeline.downloader.validate_media", return_value=Media(2)), \
+                 patch("resolve_pipeline.downloader.retry_read",
+                       side_effect=lambda operation, **kwargs: retry_read(operation, wait=lambda _: None, **kwargs)):
+                self.assertEqual(downloader.download(request).provider, "temporary")
+            self.assertEqual(calls, ["temporary-failure", "temporary"])
 
     def test_duplicate_provider_and_bad_reference_are_rejected(self):
         provider = Provider("valid", "adapter", frozenset({"audio"}))

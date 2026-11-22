@@ -160,3 +160,7 @@ The dry-run acceptance test runs the scheduler refresh hooks, registers a local 
 ## K. Operator guide
 
 The README now documents startup, local password setup, renderer dependencies, the dashboard controls, stored settings, every .env.example key, CLI options and the remaining AnalyticsDashboard and platform integrations. Checked the CLI help and compared key names with .env.example. The recurring task's current hourly prompt is recorded in DECISIONS.md.
+
+## M2 persistent transport groundwork
+
+The provider-independent downloader can now retain health and cache records in SQLite. Cache hits are rechecked with ffprobe and respect provider enablement. Cache keys include the reference duration. The health check measures every eligible provider without using cached transfers and removes its probe media afterward. Retries apply only when an adapter explicitly classifies a failure as transient. Tested restart cache reuse, corrupt cached media recovery, independent probes, and retry behavior. Production provider promotion is still blocked by Stage B.

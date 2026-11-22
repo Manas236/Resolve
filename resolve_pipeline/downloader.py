@@ -1,14 +1,19 @@
 """Provider-independent download rotation and media validation."""
 
 from collections.abc import Mapping
+from contextlib import closing
+from hashlib import sha256
 from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
 import re
+import sqlite3
 import subprocess
 from tempfile import NamedTemporaryFile
 from typing import BinaryIO, ContextManager, Literal, Protocol
+
+from .retry import retry_read
 
 MediaKind = Literal["audio", "video"]
 CONTAINERS = frozenset({"mp3", "mov", "mp4", "webm", "matroska", "wav", "ogg", "flac"})
@@ -72,6 +77,10 @@ class Registry:
 
 class AdapterUnavailable(Exception):
     """A provider declined the attempt or temporarily cannot supply media."""
+
+
+class AdapterTemporary(AdapterUnavailable):
+    """A provider explicitly classified its failure as transient and safe to retry."""
 
 
 class Adapter(Protocol):
@@ -159,7 +168,7 @@ class Downloader:
     """Try enabled, configured adapters in priority and recent-health order."""
 
     def __init__(self, registry: Registry, adapters: Mapping[str, Adapter], directory: Path,
-                 *, max_bytes: int = 256 * 1024 * 1024):
+                 *, max_bytes: int = 256 * 1024 * 1024, persistent=False):
         if max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
         self.registry = registry
@@ -167,28 +176,107 @@ class Downloader:
         self.directory = directory
         self.max_bytes = max_bytes
         self._health: dict[tuple[str, MediaKind], float] = {}
+        self.database = directory / "downloads.sqlite3" if persistent else None
+        if self.database is not None:
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+            with closing(sqlite3.connect(self.database)) as db, db:
+                db.executescript("""
+                    CREATE TABLE IF NOT EXISTS provider_health (
+                        provider TEXT, kind TEXT, score REAL NOT NULL, PRIMARY KEY (provider,kind));
+                    CREATE TABLE IF NOT EXISTS cache (
+                        request TEXT PRIMARY KEY, provider TEXT NOT NULL, filename TEXT NOT NULL);
+                """)
 
-    def download(self, request: DownloadRequest) -> Download:
-        eligible = [
+    def _eligible(self, request):
+        return [
             provider for provider in self.registry.providers
             if provider.enabled and request.kind in provider.kinds and provider.adapter in self.adapters
         ]
-        eligible.sort(key=lambda provider: (-self._health.get((provider.name, request.kind), 0.5),
+
+    def health(self):
+        if self.database is None:
+            return dict(self._health)
+        with closing(sqlite3.connect(self.database)) as db:
+            return {(name, kind): score for name, kind, score in
+                    db.execute("SELECT provider,kind,score FROM provider_health")}
+
+    def _update_health(self, provider, kind, success):
+        key = (provider.name, kind)
+        gain = 0.25 * success
+        if self.database is None:
+            self._health[key] = self._health.get(key, 0.5) * 0.75 + gain
+            return
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("""
+                INSERT INTO provider_health VALUES (?,?,?)
+                ON CONFLICT(provider,kind) DO UPDATE SET score=0.75*score+?
+            """, (*key, 0.375 + gain, gain))
+
+    @staticmethod
+    def _cache_key(request):
+        identity = json.dumps((request.source, request.kind, request.reference_seconds))
+        return sha256(identity.encode()).hexdigest()
+
+    def _cached(self, request, eligible):
+        if self.database is None:
+            return None
+        key = self._cache_key(request)
+        with closing(sqlite3.connect(self.database)) as db:
+            item = db.execute("SELECT provider,filename FROM cache WHERE request=?", (key,)).fetchone()
+        if item is None or item[0] not in {provider.name for provider in eligible}:
+            return None
+        provider, filename = item
+        path = self.directory / filename
+        if (re.fullmatch(r"download-[a-z0-9_]+[.]media", filename) and not path.is_symlink()
+                and path.is_file() and 0 < path.stat().st_size <= self.max_bytes):
+            try:
+                media = validate_media(path, request)
+            except MediaRejected:
+                pass
+            else:
+                return Download(path, provider, media)
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("DELETE FROM cache WHERE request=? AND filename=?", (key, filename))
+        return None
+
+    def _retrieve(self, provider, request):
+        try:
+            result = retry_read(lambda: self._attempt(provider, request), transient=AdapterTemporary)
+        except (AdapterUnavailable, MediaRejected) as error:
+            self._update_health(provider, request.kind, False)
+            return None, str(error) if isinstance(error, MediaRejected) else "adapter_unavailable"
+        self._update_health(provider, request.kind, True)
+        return result, "verified"
+
+    def download(self, request: DownloadRequest) -> Download:
+        eligible = self._eligible(request)
+        cached = self._cached(request, eligible)
+        if cached:
+            return cached
+        health = self.health()
+        eligible.sort(key=lambda provider: (-health.get((provider.name, request.kind), 0.5),
                                              -provider.priority, provider.name))
         attempts = []
         for provider in eligible:
-            health_key = (provider.name, request.kind)
-            health = self._health.get(health_key, 0.5)
-            try:
-                result = self._attempt(provider, request)
-            except (AdapterUnavailable, MediaRejected) as error:
-                reason = str(error) if isinstance(error, MediaRejected) else "adapter_unavailable"
-                attempts.append((provider.name, reason))
-                self._health[health_key] = health * 0.75
-            else:
-                self._health[health_key] = health * 0.75 + 0.25
+            result, outcome = self._retrieve(provider, request)
+            if result:
+                if self.database is not None:
+                    with closing(sqlite3.connect(self.database)) as db, db:
+                        db.execute("INSERT OR REPLACE INTO cache VALUES (?,?,?)",
+                                   (self._cache_key(request), provider.name, result.path.name))
                 return result
+            attempts.append((provider.name, outcome))
         raise DownloadExhausted(attempts)
+
+    def check_health(self, request):
+        """Measure each configured provider directly with a versioned target."""
+        scores = {}
+        for provider in self._eligible(request):
+            result, outcome = self._retrieve(provider, request)
+            if result is not None:
+                result.path.unlink(missing_ok=True)
+            scores[provider.name] = outcome
+        return scores
 
     def _attempt(self, provider: Provider, request: DownloadRequest) -> Download:
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
