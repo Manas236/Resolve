@@ -97,3 +97,48 @@ def render_reel(
         if any(stream_durations.get(kind, 0) < duration - 0.12 for kind in ("video", "audio")):
             raise ValueError("Selected inputs do not cover the requested reel duration")
         staged.replace(destination)
+
+
+def speech_duration(words: Sequence[Cue]) -> float:
+    """Pick the first whole-sentence cut in the standard closing window."""
+    for end_ms in range(22000, 25000, 100):
+        try:
+            _validate_speech(words, end_ms)
+        except ValueError:
+            continue
+        return end_ms / 1000
+    raise ValueError("No complete sentence ends in the standard reel window")
+
+
+class LocalReelBuilder:
+    """Prepare clean speech and render a local editorial preset."""
+
+    def __init__(self, *, hook, quote="", voice_script="", whisper_model=None, piper_model=None):
+        if not hook.strip():
+            raise ValueError("Set a hook for the local format renderer")
+        self.hook, self.quote, self.voice_script = hook, quote, voice_script
+        self.whisper_model, self.piper_model = whisper_model, piper_model
+
+    def __call__(self, video, song, destination, format_id):
+        from .captions import transcribe_local_words
+        from .tts import synthesize
+
+        if format_id != "F2" and self.whisper_model is None:
+            raise ValueError("Configure a local Whisper model for speech formats")
+        with TemporaryDirectory(dir=destination.parent) as directory:
+            speech = Path(directory) / "speech.wav"
+            words, voiceover, duration = (), None, 22
+            if format_id == "F1":
+                subprocess.run(
+                    ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
+                     "-i", str(video), "-t", "25", "-map", "0:a:0",
+                     "-ac", "1", "-ar", "16000", str(speech)], check=True, timeout=45,
+                )
+                words = transcribe_local_words(speech, self.whisper_model)
+                duration = speech_duration(words)
+            if format_id == "F3":
+                synthesize(self.voice_script, speech, piper_model=self.piper_model)
+                voiceover = speech
+                words = transcribe_local_words(speech, self.whisper_model)
+            render_reel(video, song, destination, format_id=format_id, hook=self.hook,
+                        quote=self.quote, words=words, voiceover=voiceover, duration=duration)

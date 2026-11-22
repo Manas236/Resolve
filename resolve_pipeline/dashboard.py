@@ -12,6 +12,7 @@ from secrets import token_urlsafe
 from urllib.parse import parse_qs
 
 from .control import Pipeline
+from .reels import LocalReelBuilder
 from .dashboard_auth import DashboardAuth
 from .config import read_env_file
 from pathlib import Path
@@ -141,7 +142,10 @@ document.addEventListener("submit", async (event) => {
                 return
             status = "Running" if pipeline.running else "Stopped"
             controls = (f"<h2>Pipeline</h2><p>{status}</p>"
-                        + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>', "Make N reels now")
+                        + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>'
+                               '<label>Format <select name="format"><option value="auto">Auto</option>'
+                               '<option>F1</option><option>F2</option><option>F3</option></select></label>',
+                               "Make N reels now")
                         + form("start", "", "Start runner") + form("stop", "", "Stop runner"))
             if auth is not None:
                 controls += form("logout", "", "Log out")
@@ -236,7 +240,7 @@ document.addEventListener("submit", async (event) => {
                         self.redirect("resolve_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict")
                         return
                 if self.path == "/make":
-                    pipeline.make_now(int(fields["count"][0]))
+                    pipeline.make_now(int(fields["count"][0]), fields.get("format", ["auto"])[0])
                 elif self.path in ("/approve", "/reject"):
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
                 elif self.path in ("/library-pin", "/library-retire", "/library-timestamp"):
@@ -285,13 +289,22 @@ def main():
     parser.add_argument("--song", type=Path, action="append", default=[])
     parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
     parser.add_argument("--performance-fixture", type=Path)
+    parser.add_argument("--hook")
+    parser.add_argument("--quote", default="")
+    parser.add_argument("--voice-script", default="")
+    parser.add_argument("--whisper-model", type=Path)
+    parser.add_argument("--piper-model", type=Path)
     args = parser.parse_args()
     settings = read_env_file(Path(".env")) | dict(os.environ)
     try:
         auth = DashboardAuth(settings.get("RESOLVE_DASHBOARD_PASSWORD_HASH", ""))
+        builder = (None if args.hook is None else LocalReelBuilder(
+            hook=args.hook, quote=args.quote, voice_script=args.voice_script,
+            whisper_model=args.whisper_model, piper_model=args.piper_model,
+        ))
     except ValueError as error:
         parser.error(str(error))
-    pipeline = Pipeline(args.state, args.source)
+    pipeline = Pipeline(args.state, args.source, reel_builder=builder)
     for song in args.song:
         pipeline.add_song(song)
     performance = None

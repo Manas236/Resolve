@@ -9,6 +9,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from .retry import retry_read
+
 _RATE_LIMIT_CODES = {4, 17, 32, 613, 80004}
 
 
@@ -36,6 +38,10 @@ class PostingError(RuntimeError):
 
 
 class RateLimited(PostingError):
+    pass
+
+
+class TemporaryGraphError(PostingError):
     pass
 
 
@@ -85,9 +91,13 @@ class MetaPublisher:
             finally:
                 error.close()
             self._check(payload, status=error.code)
+            if error.code in (408, 500, 502, 503, 504):
+                raise TemporaryGraphError(f"Meta returned HTTP {error.code}") from None
             raise PostingError(f"Meta returned HTTP {error.code}") from None
-        except (OSError, URLError, ValueError):
-            raise PostingError("Meta request failed; publishing outcome may need reconciliation") from None
+        except (OSError, URLError):
+            raise TemporaryGraphError("Meta transport failed") from None
+        except ValueError:
+            raise PostingError("Meta returned an invalid response") from None
         self._check(payload)
         return payload
 
@@ -106,7 +116,10 @@ class MetaPublisher:
         for index in range(self.poll_attempts):
             if index:
                 sleep(self.poll_interval)
-            payload = self._request("GET", f"{self.graph}/{remote_id}", {"fields": field})
+            payload = retry_read(
+                lambda: self._request("GET", f"{self.graph}/{remote_id}", {"fields": field}),
+                transient=(TemporaryGraphError, RateLimited),
+            )
             if field == "status_code":
                 state = payload.get(field)
                 if state == "FINISHED":

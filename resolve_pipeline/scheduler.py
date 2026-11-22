@@ -26,7 +26,7 @@ def choose_format(weights, observations, rng=None):
 
 
 class Scheduler:
-    def __init__(self, pipeline, publishers, video_url, *, zone="UTC", refresh=None):
+    def __init__(self, pipeline, publishers, video_url, *, zone="UTC", refresh=None, alert=None):
         self.pipeline = pipeline
         self.publishers = dict(publishers)
         modes = {publisher.dry_run for publisher in self.publishers.values()}
@@ -35,6 +35,7 @@ class Scheduler:
         self.mode = "dry" if modes == {True} else "live"
         self.video_url = video_url
         self.refresh = refresh
+        self.alert = alert
         self.zone = ZoneInfo(zone)
         with closing(self._db()) as db, db:
             db.executescript("""
@@ -95,6 +96,13 @@ class Scheduler:
             self.tick(datetime.now(timezone.utc))
             stop.wait(interval)
 
+    def _notify_failure(self, summary):
+        if self.alert is not None:
+            try:
+                self.alert(summary)
+            except (OSError, RuntimeError, ValueError):
+                self.pipeline.log_action("failure alert", "delivery failed")
+
     def tick(self, now):
         """Attempt due slots. Uncertain outbound calls stay held for reconciliation."""
         if now.tzinfo is None or now.utcoffset() is None:
@@ -103,6 +111,8 @@ class Scheduler:
         if self.refresh is not None:
             for name, result in self.refresh.tick(now, settings["refresh_cadence"]).items():
                 self.pipeline.log_action("refresh:" + name, result)
+                if result != "completed":
+                    self._notify_failure(f"Resolve {name} refresh failed ({result}).")
         if not self.publishers:
             return []
         instant = now.astimezone(timezone.utc)
@@ -147,6 +157,7 @@ class Scheduler:
                 with closing(self._db()) as db, db:
                     db.execute("UPDATE deliveries SET status='uncertain' WHERE slot=? AND platform=?",
                                (slot, platform))
+                self._notify_failure(f"Resolve {platform} delivery for reel {reel_id} requires reconciliation.")
                 events.append((slot, platform, "uncertain"))
                 continue
             with closing(self._db()) as db, db:

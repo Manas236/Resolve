@@ -2,6 +2,8 @@
 
 import re
 
+from .retry import retry_read
+
 _CALLBACK = re.compile(r"(approve|reject|regenerate|muted):([A-Za-z0-9_-]{1,48})")
 
 
@@ -18,6 +20,10 @@ def review_callback(update, *, chat_id, reviewer_id):
     return match.groups() if match is not None else None
 
 
+class TemporaryTelegramError(RuntimeError):
+    pass
+
+
 class TelegramAPI:
     """Minimal Bot API client for review previews, polling, and acknowledgements."""
 
@@ -30,7 +36,7 @@ class TelegramAPI:
     def _request(self, method, fields, video=None):
         import json
         from pathlib import Path
-        from urllib.error import URLError
+        from urllib.error import HTTPError, URLError
         from urllib.request import Request, urlopen
         from uuid import uuid4
 
@@ -60,7 +66,18 @@ class TelegramAPI:
         try:
             with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read(2_000_000))
-        except (URLError, OSError, ValueError):
+        except HTTPError as error:
+            retry_after = error.headers.get("Retry-After", "")
+            error.close()
+            if error.code in (408, 429, 500, 502, 503, 504):
+                temporary = TemporaryTelegramError(f"Telegram {method} temporarily unavailable")
+                if retry_after.isascii() and retry_after.isdigit() and len(retry_after) <= 6:
+                    temporary.retry_after = int(retry_after)
+                raise temporary from None
+            raise RuntimeError(f"Telegram {method} returned HTTP {error.code}") from None
+        except (URLError, OSError):
+            raise TemporaryTelegramError(f"Telegram {method} transport failed") from None
+        except ValueError:
             raise RuntimeError(f"Telegram {method} request failed") from None
         if not isinstance(result, dict) or not result.get("ok") or "result" not in result:
             raise RuntimeError(f"Telegram {method} returned an unsuccessful response")
@@ -77,9 +94,15 @@ class TelegramAPI:
         }, video=video)
 
     def updates(self, offset):
-        return self._request("getUpdates", {
-            "offset": offset, "timeout": 20, "allowed_updates": ["callback_query"],
-        })
+        return retry_read(
+            lambda: self._request("getUpdates", {
+                "offset": offset, "timeout": 20, "allowed_updates": ["callback_query"],
+            }),
+            transient=TemporaryTelegramError,
+        )
+
+    def failure_alert(self, chat_id, summary):
+        return self._request("sendMessage", {"chat_id": chat_id, "text": summary[:1000]})
 
     def acknowledge(self, callback_id, message):
         return self._request("answerCallbackQuery", {

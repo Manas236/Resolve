@@ -150,3 +150,9 @@ Added immutable reel/song/clip/format attribution, ingestion of comparable 24-ho
 ## I. Refresh cadence and scheduler wiring
 
 The scheduler runs independent song-library, clip-library and provider-health refresh hooks, including when no publishers are configured. SQLite persists success, attempted time, failure and an active claim for each job. A failure in one hook does not suppress either of the others. Tests cover retry after failure and restart, month-end clamping, weekly intervals and scheduler dispatch. Live source and provider callbacks still depend on the library and server gates, so M5 stays open.
+
+## J. Hardening and local dry-run path
+
+Added bounded retries for idempotent Meta status and Telegram polling requests. Uncertain outbound publishes remain held in the scheduler ledger. Telegram failure alerts can be attached to the scheduler; fake HTTP tests cover alert delivery and a transient Graph status failure. Added a one-command health check and AnalyticsDashboard deployment draft with a scoped AppArmor profile and unprivileged Chromium preflight. Shell syntax passed. The local health check measured working FFmpeg and ffprobe, zero verified target providers, and a missing Playwright Chromium bundle. Host profile installation remains unverified.
+
+The dry-run acceptance test runs the scheduler refresh hooks, registers a local song, queues a site-health retest, makes a real F2 reel from the libraries, requires a Telegram approval record, then records separate Instagram and Facebook dry-run receipts. A repeat tick produces no duplicate receipt. Dashboard batch creation now accepts Auto, F1, F2 or F3 with a configured local renderer. Explicit format requests fail clearly if it is unconfigured. The full suite passed 50 tests and the code audit found no committed media or credentials. Network flows tied to real source discovery and posting remain open.

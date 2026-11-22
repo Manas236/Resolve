@@ -92,3 +92,17 @@ If providers still fail, a weekly refresh on an existing home or office machine 
 ## M9 live posting setup
 
 In Meta for Developers, create a dedicated Resolve app and add the Instagram API with Facebook Login. Connect the target Instagram professional account to the Facebook Page and grant the Resolve app access as a tester or developer during development. Configure Instagram content publishing and Page publishing permissions in the app and obtain a token for the connected assets. In the ignored AnalyticsDashboard .env, supply META_ACCESS_TOKEN, META_IG_USER_ID, META_PAGE_ID and the app's supported META_GRAPH_VERSION. Keep META_DRY_RUN=true during setup. Live upload needs a public HTTPS URL for each reel that Meta can fetch. The serving method and a first explicitly approved live test remain pending.
+
+## M13 AnalyticsDashboard profile and health check
+
+After reviewing the deployment draft, run these from the Resolve probe checkout on **AnalyticsDashboard Lightsail** as ubuntu. The install checks the profile syntax and stops if a different local profile already exists. In that case keep your existing profile, compare it with the documented attachment and verify it below.
+
+```sh
+sudo -n bash tools/deploy_analyticsdashboard.sh install-profile
+```
+
+```sh
+bash tools/deploy_analyticsdashboard.sh verify
+```
+
+Verify reports the loaded AppArmor profile, sandboxed Chromium launch and verified provider counts independently. A registry failure is expected while the committed server report still shows zero verified target providers.

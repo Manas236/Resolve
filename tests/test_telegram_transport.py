@@ -55,6 +55,9 @@ class TelegramTransportTests(unittest.TestCase):
                 api = TelegramAPI("123:fake", base_url=f"http://127.0.0.1:{server.server_port}")
                 bot = ReviewBot(api, pipeline, chat_id=17, reviewer_id=9)
                 self.assertTrue(bot.send_preview(1))
+                self.assertTrue(api.failure_alert(17, "A job failed"))
+                self.assertEqual(requests[1][0], "sendMessage")
+                self.assertEqual(json.loads(requests[1][1]), {"chat_id": 17, "text": "A job failed"})
                 body = requests[0][1]
                 self.assertIn(b"preview bytes", body)
                 for action in ("approve", "reject", "regenerate", "muted"):

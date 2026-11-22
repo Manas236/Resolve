@@ -19,17 +19,19 @@ from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .framing import render_vertical
 from .performance import Performance
+from .scheduler import FORMATS, choose_format
 from .segments import clip_window
 
 
 class Pipeline:
-    def __init__(self, directory, sources, downloader=None):
+    def __init__(self, directory, sources, downloader=None, *, reel_builder=None):
         self.sources = tuple(Path(source).resolve() for source in sources)
         if not self.sources:
             raise ValueError("At least one local source is required")
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.downloader = downloader if downloader is not None else Downloader(Registry(()), {}, self.directory / "downloads")
+        self.reel_builder = reel_builder
         self.database = self.directory / "reels.sqlite3"
         self.render_lock = Lock()
         self.lifecycle = Lock()
@@ -55,6 +57,8 @@ class Pipeline:
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
                 ("hashtags", "TEXT NOT NULL DEFAULT ''"),
                 ("posting_order", "INTEGER"),
+                ("format_id", "TEXT"),
+                ("song_id", "INTEGER"),
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
@@ -202,53 +206,89 @@ class Pipeline:
     def running(self):
         return self.worker is not None and self.worker.is_alive() and not self.stop_signal.is_set()
 
-    def enqueue(self, count):
+    def enqueue(self, count, format_id="auto"):
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
+        if format_id not in ("auto", *FORMATS):
+            raise ValueError("Choose Auto, F1, F2 or F3")
+        if format_id != "auto" and self.reel_builder is None:
+            raise ValueError("Configure the format renderer before selecting F1, F2 or F3")
+        weights = tuple(map(int, self.settings()["format_weights"].split(",")))
+        observations = self.performance.format_observations()
         with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("BEGIN IMMEDIATE")
             assets = db.execute(
                 "SELECT id,path,pinned FROM library WHERE kind='clip' AND retired=0 ORDER BY id",
             ).fetchall()
             feedback = self.performance.asset_multipliers("clip")
             assets.sort(key=lambda row: (-row[2], -feedback.get(row[0], 1)))
-            sources = [row[1] for row in assets]
-            if not sources:
+            if not assets:
                 raise ValueError("No active clips available")
-            first = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                               (sources[0],)).lastrowid
-            for offset in range(1, count):
-                db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                           (sources[offset % len(sources)],))
-        return range(first, first + count)
+            songs = []
+            if self.reel_builder is not None:
+                songs = db.execute(
+                    "SELECT id,pinned FROM library WHERE kind='song' AND retired=0 ORDER BY id",
+                ).fetchall()
+                feedback = self.performance.asset_multipliers("song")
+                songs.sort(key=lambda row: (-row[1], -feedback.get(row[0], 1)))
+                if not songs:
+                    raise ValueError("Add an active song before rendering")
+            ids = []
+            for offset in range(count):
+                selected = format_id
+                if format_id == "auto":
+                    selected = choose_format(weights, observations) if songs else None
+                song_id = songs[offset % len(songs)][0] if songs else None
+                cursor = db.execute(
+                    "INSERT INTO reels(source,status,format_id,song_id) VALUES (?, 'queued', ?, ?)",
+                    (assets[offset % len(assets)][1], selected, song_id),
+                )
+                ids.append(cursor.lastrowid)
+        return ids
 
-    def make_now(self, count):
+    def make_now(self, count, format_id="auto"):
         with self.render_lock:
-            for reel_id in self.enqueue(count):
+            ids = self.enqueue(count, format_id)
+            for reel_id in ids:
                 self._render(reel_id)
+        return ids
 
     def _render(self, reel_id):
         with closing(sqlite3.connect(self.database)) as db:
-            row = db.execute("SELECT source FROM reels WHERE id=? AND status='queued'",
+            row = db.execute("SELECT source,format_id,song_id FROM reels WHERE id=? AND status='queued'",
                              (reel_id,)).fetchone()
             if row is None:
                 return
-            source = row[0]
+            source, format_id, song_id = row
             error = None
             try:
-                duration = float(subprocess.check_output(
-                    ["ffprobe", "-v", "error", "-protocol_whitelist", "file",
-                     "-show_entries", "format=duration", "-of", "csv=p=0", source],
-                    text=True, timeout=20,
-                ).strip())
-                window = clip_window(timestamp_seconds=0, media_seconds=duration, requested_seconds=22)
-                render_vertical(source, self.directory / f"{reel_id}.mp4",
-                                start_seconds=window.start_seconds,
-                                duration_seconds=window.duration_seconds)
-            except (OSError, ValueError, subprocess.SubprocessError) as exc:
-                error = type(exc).__name__
+                if format_id:
+                    if self.reel_builder is None:
+                        raise RuntimeError("Configured reel renderer is unavailable")
+                    song = db.execute("SELECT path FROM library WHERE id=?", (song_id,)).fetchone()
+                    clip = db.execute("SELECT id FROM library WHERE path=?", (source,)).fetchone()
+                    if song is None or clip is None:
+                        raise ValueError("A reel media source is no longer available")
+                    self.reel_builder(Path(source), Path(song[0]), self.directory / f"{reel_id}.mp4", format_id)
+                    self.performance.register(reel_id, song_id, clip[0], format_id)
+                else:
+                    self._render_preview(reel_id, source)
+            except (OSError, ValueError, RuntimeError, ImportError, subprocess.SubprocessError) as exc:
+                error = str(exc) if isinstance(exc, (ValueError, RuntimeError)) else type(exc).__name__
             with db:
                 db.execute("UPDATE reels SET status=?, error=? WHERE id=?",
                            ("failed" if error else "review", error, reel_id))
+
+    def _render_preview(self, reel_id, source):
+        duration = float(subprocess.check_output(
+            ["ffprobe", "-v", "error", "-protocol_whitelist", "file",
+             "-show_entries", "format=duration", "-of", "csv=p=0", source],
+            text=True, timeout=20,
+        ).strip())
+        window = clip_window(timestamp_seconds=0, media_seconds=duration, requested_seconds=22)
+        render_vertical(source, self.directory / f"{reel_id}.mp4",
+                        start_seconds=window.start_seconds,
+                        duration_seconds=window.duration_seconds)
 
     def review(self, reel_id, status):
         if status not in ("approved", "rejected"):
@@ -264,7 +304,7 @@ class Pipeline:
         replacement = None
         with closing(sqlite3.connect(self.database)) as db, db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT source,status FROM reels WHERE id=?", (reel_id,)).fetchone()
+            row = db.execute("SELECT source,status,format_id,song_id FROM reels WHERE id=?", (reel_id,)).fetchone()
             allowed = {
                 "approve": {"review"}, "reject": {"review"},
                 "regenerate": {"review", "rejected", "failed"},
@@ -283,8 +323,10 @@ class Pipeline:
                            ("approved" if approved else "rejected",
                             time.time_ns() if approved else None, reel_id))
             if action == "regenerate":
-                replacement = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                                         (row[0],)).lastrowid
+                replacement = db.execute(
+                    "INSERT INTO reels(source,status,format_id,song_id) VALUES (?, 'queued', ?, ?)",
+                    (row[0], row[2], row[3]),
+                ).lastrowid
         if replacement is not None:
             with self.render_lock:
                 self._render(replacement)
@@ -293,12 +335,13 @@ class Pipeline:
     def regenerate(self, reel_id):
         with self.render_lock, closing(sqlite3.connect(self.database)) as db:
             with db:
-                row = db.execute("SELECT source FROM reels WHERE id=? AND status IN "
+                row = db.execute("SELECT source,format_id,song_id FROM reels WHERE id=? AND status IN "
                                  "('review','rejected','failed')", (reel_id,)).fetchone()
                 if row is None:
                     raise ValueError("Reel cannot be regenerated")
-                replacement = db.execute("INSERT INTO reels(source,status) VALUES (?, 'queued')",
-                                         row).lastrowid
+                replacement = db.execute(
+                    "INSERT INTO reels(source,status,format_id,song_id) VALUES (?, 'queued', ?, ?)", row,
+                ).lastrowid
             self._render(replacement)
 
     def delete(self, reel_id):

@@ -59,12 +59,13 @@ class MetaPublisherTests(unittest.TestCase):
 
         with self.subTest(platform="instagram"):
             for server, base in serve([
-                (200, {"id": "10"}), (200, {"status_code": "IN_PROGRESS"}),
+                (200, {"id": "10"}), (503, {}), (200, {"status_code": "IN_PROGRESS"}),
                 (200, {"status_code": "FINISHED"}), (200, {"id": "20"}),
             ]):
                 self.assertEqual(publisher("instagram", base).publish(post).remote_id, "20")
                 self.assertEqual([req[1] for req in server.requests],
-                                 ["/v24.0/42/media", "/v24.0/10", "/v24.0/10", "/v24.0/42/media_publish"])
+                                 ["/v24.0/42/media", "/v24.0/10", "/v24.0/10",
+                                  "/v24.0/10", "/v24.0/42/media_publish"])
                 self.assertEqual(server.requests[0][2]["caption"], ["Caption #goal"])
                 self.assertEqual(server.requests[-1][2], {"creation_id": ["10"]})
                 self.assertEqual(server.requests[0][3], "Bearer fake")
