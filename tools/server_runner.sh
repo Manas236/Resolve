@@ -54,6 +54,15 @@ PY
     if [[ -f "$state/$id.json" ]]; then
         echo "Resuming report publication for $id"
     else
+        if [[ "$id" == m0-browser-diagnostic-03 ]] &&
+           ! git -C "$probe" merge-base --is-ancestor 4260e103cc07262d73d2ea640ee356ebf298404c HEAD 2>/dev/null; then
+            echo "Diagnostic 03 needs the reviewed replay parser at 4260e10 or later. Update the probe checkout first." >&2
+            exit 1
+        fi
+        if [[ -n "$(git -C "$probe" status --porcelain -- tools/m0_probe.py research/m0_corpus.json)" ]]; then
+            echo "Commit or restore the locally modified probe or corpus before running a server job." >&2
+            exit 1
+        fi
         flags=()
         if [[ "$no_browser" == 1 ]]; then flags+=(--no-browser); fi
         if (( ${#options[@]} > 3 )); then flags+=(--providers "${options[@]:3}"); fi

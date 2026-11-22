@@ -200,3 +200,7 @@ Fixed the current watch-data shape. Replay points are now read from the macro ma
 ## M7 encoded output audit
 
 New full-format outputs use 30 fps H.264 and 48 kHz AAC. The real FFmpeg test verifies the output profile, checks the highlight pixels at an active word event and their absence after it, and measures attenuation of the song tone during speech. The archived publisher proof retains the earlier encoding profile and its original hashes. Actual target media and editorial sign-off remain open.
+
+## Server probe revision guard
+
+Diagnostic 03 now waits for the reviewed checkout to contain the current replay parser before spending a Lightsail run. The runner also rejects local changes to the probe and its corpus so the reported Git revision is meaningful. The server report is still pending.
