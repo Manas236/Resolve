@@ -25,6 +25,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 WATCH_SMOKE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+MACRO_MARKERS_START = re.compile(r'"macroMarkersListEntity"\s*:\s*(?={)')
 HEATMAP_START = re.compile(r'"heatMarkerRenderer"\s*:\s*(?={)')
 BLOCK_MESSAGES = (
     "sign in to confirm you’re not a bot",
@@ -192,38 +193,61 @@ def run_sample(identifier, kind, url, folder, reference_seconds=None):
     return result
 
 
-def replay_result(html):
-    normalized = html.casefold()
-    if any(message in normalized for message in BLOCK_MESSAGES):
+def replay_result(html, *, video_id=None):
+    if any(message in html.casefold() for message in BLOCK_MESSAGES):
         return {"status": "challenge_detected"}
-    markers = []
     decoder = json.JSONDecoder()
-    for match in HEATMAP_START.finditer(html):
-        try:
-            marker, _ = decoder.raw_decode(html, match.end())
-        except json.JSONDecodeError:
+
+    def objects(pattern):
+        for match in pattern.finditer(html):
+            try:
+                result, _ = decoder.raw_decode(html, match.end())
+            except (json.JSONDecodeError, RecursionError):
+                continue
+            if isinstance(result, dict):
+                yield result
+
+    def points(rows, start_field, score_field):
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            start, score = row.get(start_field), row.get(score_field)
+            if (type(start) in {str, int} and re.fullmatch(r"[0-9]{1,12}", str(start))
+                    and type(score) in {int, float} and 0 <= score <= 1):
+                yield score, int(start)
+
+    markers = []
+    for entity in objects(MACRO_MARKERS_START):
+        marker_list = entity.get("markersList")
+        if (not isinstance(marker_list, dict) or marker_list.get("markerType") != "MARKER_TYPE_HEATMAP"
+                or (video_id is not None and entity.get("externalVideoId") != video_id)):
             continue
-        start = marker.get("timeRangeStartMillis")
-        score = marker.get("heatMarkerIntensityScoreNormalized")
-        if type(start) in {str, int} and str(start).isdigit() and type(score) in {int, float}:
-            if 0 <= score <= 1:
-                markers.append((score, int(start)))
+        rows = marker_list.get("markers")
+        if isinstance(rows, list):
+            markers.extend(points(rows, "startMillis", "intensityScoreNormalized"))
+    schema = "macro_markers"
+    if not markers:
+        schema = "legacy_heat_markers"
+        markers = list(points(objects(HEATMAP_START), "timeRangeStartMillis",
+                              "heatMarkerIntensityScoreNormalized"))
     if not markers:
         return {"status": "no_heatmap_in_html"}
     score, start = max(markers, key=lambda pair: (pair[0], -pair[1]))
-    return {"status": "peak", "start_seconds": start / 1000,
-            "score": score, "marker_count": len(markers)}
-
+    return {"status": "peak", "start_seconds": start / 1000, "score": score,
+            "marker_count": len(markers), "marker_schema": schema}
 
 def probe_replay(url=WATCH_SMOKE_URL):
     result = {"url": url, "method": "watch_html"}
+    arguments = parse_qs(urlsplit(url).query)
+    video_id = arguments.get("v", [None])[0]
+    request_url = url if "hl" in arguments else url + ("&" if arguments else "?") + "hl=en"
     try:
-        with build_opener(NoRedirect()).open(url, timeout=12) as response:
+        with build_opener(NoRedirect()).open(request_url, timeout=12) as response:
             result["http_status"] = response.status
             html = response.read(8 * 1024 * 1024 + 1)
             if len(html) > 8 * 1024 * 1024:
                 return {**result, "status": "size_limit"}
-            return {**result, **replay_result(html.decode("utf-8", errors="replace"))}
+            return {**result, **replay_result(html.decode("utf-8", errors="replace"), video_id=video_id)}
     except HTTPError as error:
         result.update(status="http_error", http_status=error.code)
         error.close()
@@ -663,7 +687,8 @@ def browser_replay(browser, watch, replay):
         if browser_blocked(page):
             return {"status": "challenge_detected"}
         state = page.evaluate("() => JSON.stringify(window.ytInitialData || {})")
-        return replay_result(state)
+        video_id = parse_qs(urlsplit(watch).query).get("v", [None])[0]
+        return replay_result(state, video_id=video_id)
     except Exception as error:
         return {"status": "browser_error", "error_type": type(error).__name__}
     finally:

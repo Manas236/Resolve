@@ -188,3 +188,7 @@ The pending job is now m0-browser-diagnostic-03. It selects MP7, CnvMP3 and YTHD
 Observed MP7's live submission returns a numeric job ID. The original HTTP adapter expected a string, so it dropped valid queued jobs before polling. It now recognizes positive numeric IDs and tolerates bounded transient poll failures. CnvMP3's published script creates a same-origin iframe for its results. YTHD renders a public ClickAPI iframe. The browser adapters now look inside those bounded result frames and stop if a challenge is detected. Source inspection confirms the frame routes. Lightsail verification is pending.
 
 The initial focused local run completed with no watch HTML replay markers on all four items. Chromium could not start because the workspace denied its singleton socket. Separate discoveries and verified publisher control downloads are listed in RESEARCH.md. Neither the control downloads nor the four-target diagnostic can satisfy the server gate.
+
+## M0 live local replay parser verification
+
+Fixed the current watch-data shape. Replay points are now read from the macro markers for the requested video, with the previous renderer parser retained for older HTML. A fixture proves that chapters and another upload's peaks cannot take precedence. Real plain HTTP extracted replay peaks from 10 of 10 target songs and seven of 10 target videos. The per-target evidence is in research/m0_replay_local.json. The next AnalyticsDashboard checkout must include this revision. Server replay and download gates remain open.

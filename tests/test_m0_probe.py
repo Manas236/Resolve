@@ -202,3 +202,28 @@ class ProviderJobTests(unittest.TestCase):
         self.assertTrue(provider_url("https://clickapi.net/api/widgetplus?url=example", "ythd"))
         self.assertFalse(provider_url("https://clickapi.net.example.com/api/widgetplus", "ythd"))
         self.assertFalse(provider_url("https://challenges.cloudflare.com/widget", "ythd"))
+
+
+class CurrentReplayMarkerTests(unittest.TestCase):
+    def test_current_watch_payload_filters_video_and_marker_type(self):
+        import json
+
+        def entity(video_id, marker_type, score, start):
+            return {"payload": {"macroMarkersListEntity": {
+                "externalVideoId": video_id,
+                "markersList": {
+                    "markerType": marker_type,
+                    "markers": [{"startMillis": str(start), "intensityScoreNormalized": score}],
+                },
+            }}}
+
+        page = json.dumps({"frameworkUpdates": {"entityBatchUpdate": {"mutations": [
+            entity("requested", "MARKER_TYPE_HEATMAP", 0.9, 42000),
+            entity("other", "MARKER_TYPE_HEATMAP", 1, 3000),
+            entity("requested", "MARKER_TYPE_CHAPTERS", 1, 1000),
+        ]}}})
+        result = replay_result(page, video_id="requested")
+        self.assertEqual((result["start_seconds"], result["marker_count"], result["marker_schema"]),
+                         (42, 1, "macro_markers"))
+        self.assertEqual(replay_result(page, video_id="unknown")["status"], "no_heatmap_in_html")
+        self.assertEqual(replay_result(page + " verify you are human")["status"], "challenge_detected")

@@ -163,3 +163,9 @@ Local GET checks on 22 November 2026 produced the following results. Together wi
 | Video | <https://www.stockfootageforfree.com/> | 503. |
 
 The existing SoundCloud lead remains the creator-enabled download flow. Its help page was reachable, and the account-only route was 401. There was no verified matching download from SoundCloud.
+
+### Current Most Replayed payload
+
+Public watch HTML now exposes normalized replay bins in ytInitialData framework updates. The probed path is frameworkUpdates.entityBatchUpdate.mutations → payload.macroMarkersListEntity → markersList. The parser accepts only MARKER_TYPE_HEATMAP for the requested externalVideoId, reads startMillis and intensityScoreNormalized, and retains the older renderer shape as a fallback. Two public implementations report the same current path. [Current heatmap structure](https://github.com/kernelheaders/yt-heatmap) · [Independent implementation](https://github.com/Benjamin-Loison/YouTube-operational-API/blob/main/videos.php)
+
+The November 22 local run parsed peaks on 10/10 song watch pages and 7/10 video watch pages with plain HTTP. All 20 pages returned HTTP 200. The three with no heatmap were the Rocky Balboa, Creed and Arnold Schwarzenegger uploads. LOS VOLTAJE peaked at 6.36s and the Pursuit of Happyness clip at 65.34s. See research/m0_replay_local.json for per-upload fields. This measures replay metadata availability. Exact song-version checks and server extraction remain required.
