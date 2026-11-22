@@ -88,3 +88,7 @@ screen -L -Logfile resolve-runner.log -dmS resolve-runner bash tools/server_runn
 A job at jobs/next_job.json takes id (unique), limit (1–10 targets per kind), and no_browser (boolean). Reports appear under research/server_jobs. Review a new probe revision locally before updating the separate checkout.
 
 If providers still fail, a weekly refresh on an existing home or office machine avoids paid services but depends on its uptime and requires syncing media. An existing permitted residential connection could relay traffic, but it adds operational work and any provider blocks still apply. A direct-download library or manual creator supply is free where offered and simpler to validate, but changes the available track and clip catalog. A paid residential proxy falls outside the current no-paid-services rule. No option is selected.
+
+## M9 live posting setup
+
+In Meta for Developers, create a dedicated Resolve app and add the Instagram API with Facebook Login. Connect the target Instagram professional account to the Facebook Page and grant the Resolve app access as a tester or developer during development. Configure Instagram content publishing and Page publishing permissions in the app and obtain a token for the connected assets. In the ignored AnalyticsDashboard .env, supply META_ACCESS_TOKEN, META_IG_USER_ID, META_PAGE_ID and the app's supported META_GRAPH_VERSION. Keep META_DRY_RUN=true during setup. Live upload needs a public HTTPS URL for each reel that Meta can fetch. The serving method and a first explicitly approved live test remain pending.

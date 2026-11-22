@@ -134,3 +134,7 @@ Audit: rejected a final word crossing the cut, a transcript ending without sente
 ## E. Telegram review transport
 
 The Bot API client sends a video preview with Approve, Reject, Regenerate and Muted controls, then polls and acknowledges callbacks. The loopback Telegram API test verified the multipart preview and all four actions against SQLite pipeline state. A forged reviewer, forged chat, conflicting review, duplicate callbacks and replay after reopening the database caused no extra mutation. Regenerate creates one replacement and dispatches the local renderer. The test spies on that handoff and the dashboard integration covers the real render separately. Live transport and deployment configuration remain open.
+
+## F. Meta Graph posting adapter
+
+Implemented Instagram reel container creation, bounded status polling and publication, plus Facebook Page upload-session creation, hosted file upload, status checking and finish. The dry-run path returns receipts without network traffic. The Publisher protocol leaves the YouTube slot open. Local fake Graph responses exercise successful sequences, both forms of rate-limit response, a processing error and timeout, and rejection of a foreign Facebook upload origin. Live publication additionally requires a pipeline authorization and an HTTPS media URL. Actual Meta integration remains open.
