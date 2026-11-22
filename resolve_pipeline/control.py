@@ -255,7 +255,8 @@ class Pipeline:
                     "SELECT path,metadata FROM imported_media WHERE kind='song'")}
                 songs.sort(key=lambda row: (row[2] not in music,
                     music.get(row[2], {}).get("genre") not in {"phonk", "gym_edit"},
-                    -row[1], -feedback.get(row[0], 1)))
+                    -row[1], -feedback.get(row[0], 1),
+                    -music.get(row[2], {}).get("source_appearances", 0)))
                 if production_only:
                     songs = [row for row in songs if row[2] in music]
                 if not songs:

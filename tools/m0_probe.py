@@ -350,7 +350,7 @@ def exact_track(item, title, artist, duration):
             and abs(duration - item["reference_seconds"]) <= 3)
 
 
-def preview_result(name, origin, item):
+def preview_result(name, origin, item, *, include_url=False):
     title, _, credits = item["title"].partition(" — ")
     query = f'{title} {credits.split(",")[0]}'
     if name == "itunes":
@@ -368,9 +368,13 @@ def preview_result(name, origin, item):
                  row.get("duration"), row.get("preview")) for row in data.get("data", [])]
     matched = [row for row in rows if exact_track(item, *row[:3])]
     # Neither search result documents the clip's offset within the original.
-    return {"status": "preview_metadata" if any(row[3] for row in matched) else "no_matching_preview",
-            "catalog_results": len(rows), "exact_track_matches": len(matched),
-            "preview_start_seconds": None, "peak_overlap": "unknown"}
+    url = next((row[3] for row in matched if isinstance(row[3], str) and row[3]), None)
+    result = {"status": "preview_metadata" if url else "no_matching_preview",
+              "catalog_results": len(rows), "exact_track_matches": len(matched),
+              "preview_start_seconds": None, "peak_overlap": "unknown"}
+    if include_url and url:
+        result["preview_url"] = url
+    return result
 
 
 def proxy_media(origin, streams):

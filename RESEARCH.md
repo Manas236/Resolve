@@ -222,7 +222,7 @@ The YouTube HTTP parser extracted a 0-second peak for NUNCA MUDA?. It reported a
 
 ## Windows ground truth
 
-Diagnostic 04 remains historical evidence about the Lightsail datacenter address. All nine routes produced zero verified files there. M0 now uses the Windows residential PC report. The new probe checks the 20 existing watch URLs, labels the successful route, logs replay markers and audio energy fallback, and reports exact catalog preview metadata where available. A preview's offset and overlap remain unknown until verified against the full audio. The video portion of that technical corpus includes speech and film watch URLs, which do not qualify as production visuals. Production training footage is reviewed separately.
+Diagnostic 04 remains historical evidence about the Lightsail datacenter address. All nine routes produced zero verified files there. M0 now uses the Windows residential PC report. The new probe checks the 20 existing watch URLs, labels the successful route, logs replay markers and audio energy fallback, and reports exact catalog preview metadata where available. For a verified preview, the probe compares its audio envelope to the full recording and reports overlap only when there is a unique strong match and a replay peak. Weak or repeated matches remain unknown. The video portion of that technical corpus includes speech and film watch URLs, which do not qualify as production visuals. Production training footage is reviewed separately.
 
 ## Natural voice audition
 

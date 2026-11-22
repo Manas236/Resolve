@@ -202,14 +202,17 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
             if page == "Review":
                 content = view.review(pipeline, form)
             elif page == "Make":
+                requirements = pipeline.format_requirements()
                 availability = "".join(f"<li>{key} · {escape(reason or 'Available')}</li>"
-                                       for key, reason in pipeline.format_requirements().items())
+                                       for key, reason in requirements.items())
+                formats = "".join(f"<option{' disabled' if reason else ''}>{key}</option>"
+                                  for key, reason in requirements.items())
                 content = (
                     f"<ul>{availability}</ul>" +
                     '<div class="grid"><section class="card"><h2>Render a batch</h2>'
                     + form("make", '<label>Count <input name="count" type="number" min="1" max="20" value="1" required></label>'
                            '<label>Format <select name="format"><option value="auto">Auto</option>'
-                           '<option>F1</option><option>F2</option><option>F3</option></select></label>', "Make N reels now")
+                           f'{formats}</select></label>', "Make N reels now")
                     + '</section><section class="card"><h2>Make from a URL</h2>'
                     + form("make-url", '<label>Media URL <input name="url" type="url" required></label>', "Make reel from URL")
                     + '</section></div><h2>Render progress</h2><div id="renders" role="status">No render in progress.</div>')
@@ -222,7 +225,11 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                     data = json.loads(report.read_text(encoding="utf-8"))
                 except (OSError, ValueError):
                     data = {}
-                content = view.sources(pipeline, data, form, job_file is not None)
+                on_pc = job_file is not None and (job_file.parent / "pc-acquisition").exists()
+                content = view.sources(pipeline, data, form, job_file is not None and not on_pc)
+                if on_pc:
+                    content = ('<p>Acquisition runs on Windows. Run the PC probe to retest sources. '
+                               'The datacenter results below are historical.</p>' + content)
             elif page == "Settings":
                 content = view.settings(pipeline, form, zone)
             elif page == "Performance":
@@ -271,6 +278,8 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                 elif self.path == "/site-toggle":
                     pipeline.toggle_site(fields["site"][0])
                 elif self.path == "/site-retest" and job_file is not None:
+                    if (job_file.parent / "pc-acquisition").exists():
+                        raise ValueError("Run the source probe from the Windows acquisition PC.")
                     pipeline.request_site_retest(job_file)
                 elif self.path == "/settings":
                     pipeline.save_settings({key: values[0] for key, values in fields.items()})

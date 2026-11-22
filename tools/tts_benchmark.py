@@ -1,4 +1,4 @@
-"""Generate comparable local speech samples with Flite, eSpeak NG and Piper."""
+"""Generate comparable local speech samples with configured offline engines."""
 
 import argparse
 import json
@@ -20,6 +20,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("--piper-model", type=Path)
+    parser.add_argument("--kokoro-model", type=Path)
+    parser.add_argument("--kokoro-voices", type=Path)
+    parser.add_argument("--kokoro-voice", default="af_heart")
     parser.add_argument("--engine", action="append", choices=ENGINES,
                         help="Select engines individually. The default runs all three.")
     args = parser.parse_args()
@@ -29,8 +32,10 @@ def main():
         output = args.output / f"{engine}.wav"
         started = perf_counter()
         try:
-            properties = synthesize(SCRIPT, output, engine=engine, piper_model=args.piper_model)
-        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
+            properties = synthesize(SCRIPT, output, engine=engine, piper_model=args.piper_model,
+                                    kokoro_model=args.kokoro_model, kokoro_voices=args.kokoro_voices,
+                                    voice=args.kokoro_voice)
+        except (ImportError, OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
             results.append({"engine": engine, "error": str(exc)})
         else:
             results.append({"engine": engine, "path": str(output.resolve()),

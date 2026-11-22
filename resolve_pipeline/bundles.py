@@ -102,7 +102,9 @@ def import_bundle(pipeline, bundle):
             for path, destination, row in staged:
                 if not destination.exists():
                     path.replace(destination)
-                db.execute("INSERT OR IGNORE INTO imported_media VALUES(?,?,?)",
+                db.execute("""INSERT INTO imported_media VALUES(?,?,?)
+                              ON CONFLICT(path) DO UPDATE SET metadata=excluded.metadata
+                              WHERE kind=excluded.kind""",
                            (str(destination), row["kind"], json.dumps(row)))
                 db.execute("INSERT OR IGNORE INTO library(path,kind,peak) VALUES(?,?,?)",
                            (str(destination), row["kind"], row["timestamp"]))

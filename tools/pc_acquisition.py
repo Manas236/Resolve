@@ -1,8 +1,15 @@
 """Windows acquisition probe and manual/scheduled library refresh."""
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit("Resolve PC acquisition requires Python 3.11 or newer.")
+
 import argparse
+from array import array
 from datetime import datetime, timezone
 import json
 import os
+import math
 from shutil import which
 from pathlib import Path
 import subprocess
@@ -14,9 +21,9 @@ from resolve_pipeline.public_sources import article_watch_links, spotify_playlis
 
 from resolve_pipeline.bundles import sync_bundle, write_bundle
 from resolve_pipeline.config import read_env_file
-from resolve_pipeline.downloader import DownloadRequest, validate_media
+from resolve_pipeline.downloader import CONTAINERS, DownloadRequest, validate_media
 from tools.m0_probe import (blocked_text, chosen_timestamp, convert, mp7_convert, probe_energy,
-                            probe_replay, read_corpus, write_report, preview_result, NoRedirect)
+                            probe_replay, read_corpus, write_report, preview_result, NoRedirect, run_sample)
 
 
 def acquire(url, kind, directory):
@@ -68,6 +75,18 @@ def fallback(item, directory):
         f"{provider}={result['status']}" for provider, result in routes))
 
 
+
+def verify_asset(path, item):
+    kind = item["kind"]
+    seconds = item.get("duration")
+    if kind == "speech" and seconds is None:
+        seconds = float(subprocess.check_output(
+            ["ffprobe", "-v", "error", "-protocol_whitelist", "file",
+             "-format_whitelist", ",".join(sorted(CONTAINERS)), "-show_entries",
+             "format=duration", "-of", "csv=p=0", str(path)], timeout=20))
+    return validate_media(path, DownloadRequest(item["source"], "video" if kind == "clip" else "audio",
+                                                seconds))
+
 def checked_asset(item, directory):
     url, kind = item["source"], item["kind"]
     if not url.startswith(("https://www.youtube.com/watch?v=", "https://youtu.be/")):
@@ -77,17 +96,14 @@ def checked_asset(item, directory):
         raise ValueError("provider_challenge")
     try:
         media_path, route = acquire(url, kind, directory), "yt-dlp"
-    except ValueError as error:
+        verified = verify_asset(media_path, item)
+    except (ValueError, subprocess.SubprocessError) as error:
         if str(error) == "provider_challenge":
             raise
-        media_path, route = fallback(item, directory)
-    requested = item.get("duration")
-    if kind == "speech" and requested is None:
-        requested = float(subprocess.check_output(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
-             str(media_path)], timeout=20))
-    verified = validate_media(media_path, DownloadRequest(url, "video" if kind == "clip" else "audio",
-                                                          requested))
+        fallback_dir = directory / "fallback"
+        fallback_dir.mkdir()
+        media_path, route = fallback(item, fallback_dir)
+        verified = verify_asset(media_path, item)
     energy = probe_energy(media_path)
     chosen = chosen_timestamp(replay, {}, {"status": "unavailable"}, {"status": "unavailable"},
                               {"duration_seconds": verified.duration_seconds, "energy": energy})
@@ -100,6 +116,74 @@ def checked_asset(item, directory):
                         "observed_at": datetime.now(timezone.utc).isoformat()}, replay
 
 
+
+def decoded_envelope(path):
+    pcm = subprocess.check_output(
+        ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
+         "-i", str(path), "-map", "0:a:0", "-ac", "1", "-ar", "2000",
+         "-t", "600", "-f", "s16le", "pipe:1"], timeout=30)
+    samples = array("h", pcm)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    return [math.log1p(sum(sample * sample for sample in samples[i:i + 200]) / 200)
+            for i in range(0, len(samples) - 199, 200)]
+
+
+def match_preview(full, preview):
+    """Find an unambiguous offset at tenth-second resolution."""
+    if len(preview) < 50 or len(preview) > len(full):
+        return None
+    mean = sum(preview) / len(preview)
+    centered = [x - mean for x in preview]
+    norm = math.sqrt(sum(x * x for x in centered))
+    if norm < 0.01:
+        return None
+    scores = []
+    for i in range(len(full) - len(preview) + 1):
+        segment = full[i:i + len(preview)]
+        average = sum(segment) / len(segment)
+        variance = sum((x - average) ** 2 for x in segment)
+        score = (sum(x * y for x, y in zip(centered, segment)) / (norm * math.sqrt(variance))
+                 if variance else 0)
+        scores.append((score, i))
+    best, offset = max(scores)
+    competing = max((score for score, i in scores if abs(i - offset) > 5), default=0)
+    return offset / 10 if best >= 0.85 and best - competing >= 0.05 else None
+
+
+def check_preview(provider, origin, item, audio_path, folder, replay):
+    result = preview_result(provider, origin, item, include_url=True)
+    url = result.pop("preview_url", None)
+    if not url:
+        return result
+    parts = urlsplit(url)
+    domains = ("itunes.apple.com", "mzstatic.com") if provider == "itunes" else ("dzcdn.net",)
+    if (parts.scheme != "https" or parts.username or parts.password or not parts.hostname
+            or not any(parts.hostname == d or parts.hostname.endswith("." + d) for d in domains)):
+        return {**result, "status": "unsupported_preview_origin"}
+    folder.mkdir()
+    downloaded = run_sample(item["id"], "audio", url, folder, keep=True)
+    if downloaded["status"] != "verified":
+        return {**result, "status": "preview_download_failed", "transfer": downloaded["status"]}
+    preview = decoded_envelope(folder / "asset")
+    offset = match_preview(decoded_envelope(audio_path), preview)
+    overlap = ("unknown" if offset is None or replay.get("status") != "peak"
+               else offset <= replay["start_seconds"] < offset + len(preview) / 10)
+    return {**result, "status": "preview_verified", "preview_start_seconds": offset,
+            "peak_overlap": overlap, "preview_seconds": len(preview) / 10}
+
+
+def catalog_previews(item, audio_path, directory, replay):
+    previews = {}
+    for provider, origin in (("itunes", "https://itunes.apple.com"),
+                             ("deezer", "https://api.deezer.com")):
+        try:
+            previews[provider] = check_preview(provider, origin, item, audio_path,
+                                               directory / provider, replay)
+        except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
+            previews[provider] = {"status": "unavailable", "error": type(error).__name__}
+    return previews
+
 def probe(output):
     rows = []
     blocked = False
@@ -110,7 +194,7 @@ def probe(output):
             continue
         with TemporaryDirectory() as staging:
             try:
-                _, metadata, replay = checked_asset(
+                audio_path, metadata, replay = checked_asset(
                     {"source": item["watch_url"], "kind": "song" if item["kind"] == "audio" else "clip",
                      "duration": item.get("reference_seconds"), "title": item["title"],
                      "source_page": item["source_url"]}, Path(staging))
@@ -119,14 +203,8 @@ def probe(output):
                 rows.append({**row, "status": str(error) if isinstance(error, ValueError)
                              else type(error).__name__})
             else:
-                previews = {}
-                if item["kind"] == "audio":
-                    for provider, origin in (("itunes", "https://itunes.apple.com"),
-                                             ("deezer", "https://api.deezer.com")):
-                        try:
-                            previews[provider] = preview_result(provider, origin, item)
-                        except (OSError, ValueError, TypeError, KeyError) as error:
-                            previews[provider] = {"status": "unavailable", "error": type(error).__name__}
+                previews = (catalog_previews(item, audio_path, Path(staging), replay)
+                            if item["kind"] == "audio" else {})
                 rows.append({**row, "status": "verified", "metadata": metadata, "replay": replay,
                              "previews": previews})
         write_report(output, {"complete": False, "results": rows})
@@ -203,12 +281,16 @@ def refresh(catalog, output, env_file, send):
             folder = Path(staging) / str(index)
             folder.mkdir()
             try:
-                path, metadata, _ = checked_asset(item, folder)
+                path, metadata, replay = checked_asset(item, folder)
             except (ValueError, OSError, subprocess.SubprocessError) as error:
                 print(f"{item['source']}: {error if isinstance(error, ValueError) else type(error).__name__}")
                 if isinstance(error, ValueError) and str(error) == "provider_challenge":
                     break
                 continue
+            if item["kind"] == "song" and item.get("title") and item.get("duration"):
+                metadata["previews"] = catalog_previews(
+                    {**item, "id": str(index), "reference_seconds": item["duration"]},
+                    path, folder, replay)
             batch.append((path, metadata))
         write_bundle(output, batch)
     if send:

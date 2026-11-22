@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import random
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -34,6 +35,14 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(len(alerts), 1)
             self.assertEqual(pipeline.library(), [])
             self.assertTrue((inbox / "resolve-bad.rejected").is_file())
+
+    def test_preview_alignment_requires_unique_match(self):
+        rng = random.Random(17)
+        full = [rng.random() for _ in range(500)]
+        reference = full[231:341]
+        self.assertEqual(pc_acquisition.match_preview(full, reference), 23.1)
+        self.assertIsNone(pc_acquisition.match_preview(full + full, reference))
+        self.assertIsNone(pc_acquisition.match_preview(full, [0] * 110))
 
     def test_discovery_reports_unreviewed_links_without_releasing_them(self):
         watch = "https://www.youtube.com/watch?v=abcdefghijk"
