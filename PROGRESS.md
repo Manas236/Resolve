@@ -164,3 +164,11 @@ The README now documents startup, local password setup, renderer dependencies, t
 ## M2 persistent transport groundwork
 
 The provider-independent downloader can now retain health and cache records in SQLite. Cache hits are rechecked with ffprobe and respect provider enablement. Cache keys include the reference duration. The health check measures every eligible provider without using cached transfers and removes its probe media afterward. Retries apply only when an adapter explicitly classifies a failure as transient. Tested restart cache reuse, corrupt cached media recovery, independent probes, and retry behavior. Production provider promotion is still blocked by Stage B.
+
+## M3/M4 provider-independent catalog and cutting
+
+The public HTML parsers read Spotify's embedded playlist metadata without its API and canonicalize watch links from public articles, including legacy embeds. A live local GET and parse returned 100 distinct tracks from the GYM PHONK playlist, including LOS VOLTAJE at 99.285 seconds. The Statement of Intent article returned three distinct watch IDs. Catalog ranking deduplicates repeated mentions, weights newer independent pages, preserves edit version names and accepts measured performance penalties. Timestamp selection rejects out-of-range candidates and requires an audio peak to corroborate social or grounded Gemini suggestions.
+
+The segment cutter validates the full source version before it writes output, then verifies the cut's streams and duration. Local proof: Strength of the Titans produced a 22.047s MP3 at a planned 22s window. The SampleLib control produced a 4.004s, 1920×1080 MP4 at a planned 4s window. The Blender film's source was 1280×534 and was rejected by the production download/cut validation, while remaining usable as a local renderer control. This is publisher evidence. Production source retrieval, viral timestamp coverage and 30 verified segments per library are still open.
+
+Baseline archives retained outside Git for editorial review. [Three TTS samples](https://chatgpt.com/library?file_id=libfile_001ff68cd7608191a733f972d8eb102d&account_id=personal) and [nine publisher reels](https://chatgpt.com/library?file_id=libfile_3a64c33c517c8191b34476163738d6a3&account_id=personal).
