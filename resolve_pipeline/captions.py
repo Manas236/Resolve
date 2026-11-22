@@ -35,3 +35,54 @@ def clip_srt(cues: Iterable[Cue], *, start_ms: int, end_ms: int) -> str:
                 f"{_timecode(end - start_ms)}\n{text}\n"
             )
     return "\n".join(blocks)
+
+
+def _ass_time(centiseconds):
+    seconds, fraction = divmod(centiseconds, 100)
+    minutes, second = divmod(seconds, 60)
+    hours, minute = divmod(minutes, 60)
+    return f"{hours}:{minute:02}:{second:02}.{fraction:02}"
+
+
+def _ass_text(text):
+    return " ".join(text.split()).translate(str.maketrans({"{": "｛", "}": "｝", "\\": "＼"}))
+
+
+def highlighted_ass(words: Iterable[Cue], *, start_ms: int, end_ms: int, hook: str = "") -> str:
+    """Create burn-in subtitle events from measured word timestamps."""
+    if not 0 <= start_ms < end_ms:
+        raise ValueError("Invalid clip interval")
+    lines = [
+        "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
+        "[V4+ Styles]",
+        "Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, Bold, BorderStyle, Outline, Alignment, MarginL, MarginR, MarginV",
+        "Style: Word,DejaVu Sans,76,&H0000E9FF,&H00000000,-1,1,5,2,80,80,300",
+        "Style: Hook,DejaVu Sans,100,&H00FFFFFF,&H00000000,-1,1,6,8,80,80,230",
+        "[Events]", "Format: Layer, Start, End, Style, Text",
+    ]
+    if _ass_text(hook):
+        lines.append(f"Dialogue: 1,0:00:00.00,{_ass_time((min(2000, end_ms - start_ms) + 9) // 10)},Hook,{_ass_text(hook)}")
+    previous_end = 0
+    for word in sorted(words, key=lambda cue: (cue.start_ms, cue.end_ms)):
+        if not 0 <= word.start_ms < word.end_ms:
+            raise ValueError("Invalid word interval")
+        start = max(word.start_ms, start_ms)
+        end = min(word.end_ms, end_ms)
+        text = _ass_text(word.text)
+        if start >= end or not text:
+            continue
+        begin_cs = max(previous_end, (start - start_ms + 5) // 10)
+        end_cs = min((end_ms - start_ms + 9) // 10, (end - start_ms + 5) // 10)
+        if begin_cs < end_cs:
+            lines.append(f"Dialogue: 0,{_ass_time(begin_cs)},{_ass_time(end_cs)},Word,{text}")
+            previous_end = end_cs
+    return "\n".join(lines) + "\n"
+
+
+def transcribe_words(clean_speech, model):
+    """Use an already loaded Whisper model on clean, local speech."""
+    result = model.transcribe(str(clean_speech), word_timestamps=True)
+    return [
+        Cue(round(word["start"] * 1000), round(word["end"] * 1000), word["word"].strip())
+        for segment in result["segments"] for word in segment["words"]
+    ]

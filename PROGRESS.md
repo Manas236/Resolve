@@ -116,3 +116,7 @@ Dashboard site registry now persists enable/disable choices and honors them for 
 Dashboard now displays measured probe success as provider health, recent persisted control outcomes and render failures, and clearly labeled fixture views for reels, songs, clips and formats. The full suite covers escaped fixture text and rejected actions in the audit log. Complete runner-on/off browser acceptance remains open.
 
 The dashboard integration suite now runs over loopback HTTP with actual password login and logout, a session cookie, FFmpeg media, and both initial runner states. It checks that anonymous and logged-out mutations fail. The full 32-test suite passed. Browser execution of the in-place JavaScript and the server retest handoff remain unverified, so M12 remains open.
+
+## C. Measured word caption groundwork
+
+Added a Whisper adapter that requests word timestamps from clean speech, and clip-relative ASS output with bold hook text and per-word highlight events. Tests verify adapter arguments and exact timing on known cues, including clipping and escaping literal ASS control characters. Real Whisper inference and the three-engine TTS comparison remain open. The browser acceptance check still fails before navigation because the local Chromium process cannot create its singleton socket under the executor restrictions.
