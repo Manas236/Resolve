@@ -220,3 +220,11 @@ Verified locally using real FFmpeg fixtures for import, render and dry-run deliv
 The Windows refresh now builds its candidate list from public feeds and YouTube metadata, reads the imported library inventory over SSH, ranks and deduplicates candidates, and applies a five-frame CLIP screen before packaging accepted clips. Optional pins use the same screen. Fixture verification covers feed extraction, ranking, cross-session identities, inventory export and FFmpeg frame extraction with deterministic classifier scores. Windows provider yield, real CLIP decisions, and SSH acceptance remain pending.
 
 Linux suite: 78 passed, 1 sandboxed browser acceptance skipped. Compileall and staged whitespace checks passed.
+
+## On-screen caption rebuild
+
+F2 now generates a hook and 2–4 timed lines. F1 and F3 generate a hook alongside their speech captions. Gemini 2.5 Flash uses the configured key, and the 512-line local bank covers API failures and duplicates against the most recent 100 text-bearing reels. Review edits render a new review copy and invalidate approval of the old preview. Anton, Bebas Neue, and Montserrat Black are available as presets. Deno 2.3+ is checked on Windows.
+
+Rendered and probed three matched 1080×1920, 22-second comparison MP4s in `research/caption_presets/`. They use a synthetic test pattern and bass pulse. [Preview ZIP](https://chatgpt.com/library?file_id=libfile_44ac215cfbe8819180ed26e8ae3def9e&account_id=personal). Live Gemini and Windows runtime checks remain pending on the owner's machines. No milestone was ticked.
+
+Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and staged whitespace checks passed.

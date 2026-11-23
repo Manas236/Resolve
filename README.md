@@ -106,4 +106,13 @@ An optional `--catalog` file pins specific YouTube watch URLs ahead of discovery
 
 The PC writes a ZIP with verified media and a SHA-256 manifest. SCP uploads to a temporary remote name, and SSH renames it to a ready bundle. The server operator checks the inbox while running and accepts only validated media. Set `RESOLVE_BUNDLE_INBOX` on AnalyticsDashboard and run the existing operator with `--telegram` for stale-bundle alerts. The operator generates a daily batch using the dashboard's configured volume and uses existing imported media during an acquisition outage.
 
-Set `RESOLVE_REEL_HOOK`, `RESOLVE_REEL_QUOTE`, `RESOLVE_WHISPER_MODEL` and `RESOLVE_VOICE_SCRIPT` for the shared server renderer. Make shows which formats have their dependencies configured. F1 requires separately imported speech for production; a source without speech is skipped with an explanation. Local sources are labeled placeholder/test and cannot reserve a posting slot. Set `RESOLVE_TTS_ENGINE` to `kokoro` or `piper`; see `.env.example` for model and voice paths.
+Set `RESOLVE_WHISPER_MODEL` and `RESOLVE_VOICE_SCRIPT` for speech formats. F2 needs no static hook or quote. Make shows which formats have their dependencies configured. F1 requires separately imported speech for production; a source without speech is skipped with an explanation. Local sources are labeled placeholder/test and cannot reserve a posting slot. Set `RESOLVE_TTS_ENGINE` to `kokoro` or `piper`; see `.env.example` for model and voice paths.
+
+
+## On-screen captions
+
+Configure `GEMINI_API_KEY` in the dashboard and operator environment using the designated unbilled Gemini project. Resolve asks Gemini 2.5 Flash for an original hook on every formatted reel and 2–4 additional lines on F2. Invalid, duplicate, and unavailable responses fall back to the local bank. Generated lines are checked against the most recent 100 reels with generated text.
+
+**Review → On-screen text** edits the hook and F2 lines before approval. Saving renders a new review copy and retires the old preview, so approve the new copy. **Settings → Caption preset** changes future renders. **Generate preset previews** renders three matched videos in `research/caption_presets/`. F2 changes lines on detected beats or onsets near the intended pacing, with even timing on audio without usable markers. F1 and F3 keep speech-aligned word timestamps.
+
+The Windows acquisition venv installs the yt-dlp default extras. Install Deno 2.3+ separately as shown in NEEDS_MANAS.md. The acquisition CLI checks its version before starting.

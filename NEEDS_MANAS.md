@@ -2,14 +2,17 @@
 
 ## M0 one-pass audio and video probe
 
-On the **Windows acquisition PC**, run from the Resolve clone in PowerShell on the residential connection. Use Python 3.11+, FFmpeg and ffprobe, Git, and Windows OpenSSH Client. Install these with your existing local tooling and make them available on PATH.
+On the **Windows acquisition PC**, run from the Resolve clone in PowerShell on the residential connection. Use Python 3.11+, FFmpeg and ffprobe, Git, Windows OpenSSH Client, and Deno 2.3 or newer. Install these with your existing local tooling and make them available on PATH.
 
 ```powershell
+winget install --id DenoLand.Deno -e --accept-source-agreements --accept-package-agreements --disable-interactivity
 $env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main
 py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements-pc.txt
 Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition probe --output research/m0_pc_results.json' -RedirectStandardError resolve-pc-probe.log -Wait
 ```
+
+Open a new PowerShell window after installing Deno and verify `deno --version` works before the probe. The scheduled task needs the same account PATH.
 
 For optional browser fallbacks on the **Windows acquisition PC**, install Playwright with `.venv\Scripts\python.exe -m pip --no-input install playwright`, install Chromium with `.venv\Scripts\python.exe -m playwright install chromium`, and set `RESOLVE_PC_BROWSER_FALLBACK=1` in .env.
 
@@ -29,7 +32,7 @@ install -d -m 700 "$PWD/state/incoming" && realpath "$PWD/state/incoming"
 
 On the **Windows acquisition PC**, set local .env `RESOLVE_SSH_HOST` to the existing SSH login and hostname, `RESOLVE_SSH_KEY` to the existing Lightsail key path, and `RESOLVE_SSH_INBOX` to the same absolute path. Use the existing verified host key entry in the Windows OpenSSH known-hosts file. Keep the key and .env out of git.
 
-On **AnalyticsDashboard Lightsail**, start the updated operator using the same state directory as the dashboard and `RESOLVE_BUNDLE_INBOX` from above. It writes `inventory.json` to the inbox even when the library is empty. The Windows refresh reads that inventory over SSH before acquiring media. Set the reel hook, quote and optional speech model settings as documented in README. Telegram credentials have not been created. The operator can run without Telegram until you set up the bot under M8.
+On **AnalyticsDashboard Lightsail**, start the updated operator using the same state directory as the dashboard and `RESOLVE_BUNDLE_INBOX` from above. It writes `inventory.json` to the inbox even when the library is empty. The Windows refresh reads that inventory over SSH before acquiring media. Set `GEMINI_API_KEY` from the designated unbilled project and configure the optional speech models as documented in README. Telegram credentials have not been created. The operator can run without Telegram until you set up the bot under M8.
 
 On the **Windows acquisition PC**, run the first refresh and register the Sunday task. The first refresh with a candidate clip downloads the free CLIP weights (about 605 MB), then scores frames locally on CPU. The task runs under your signed-in Windows account and starts when available after a missed trigger. Your editorial review happens on finished reels.
 

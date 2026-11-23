@@ -1,5 +1,6 @@
 -r requirements.txt
-yt-dlp
+# Deno 2.3+ is installed separately on Windows; see NEEDS_MANAS.md.
+yt-dlp[default]
 torch>=2.6,<3
 transformers>=4.49,<5
 pillow>=10

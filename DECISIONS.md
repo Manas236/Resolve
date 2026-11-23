@@ -50,3 +50,6 @@ For user-only work, document the exact machine and single-line non-interactive c
 - Kokoro-82M and Piper medium form the new audition set. Manas chooses the production voice. Engine, local model paths and the voice identifier are deployment configuration.
 
 - Windows weekly acquisition now builds its own catalog. Public feed inputs and batch limits are configurable, existing library identities come from a server-side inventory, and a local CLIP majority vote screens candidate footage. The editorial decision remains approval of the finished reel. A catalog is optional for prioritized pins.
+
+- Generated on-screen text is separate from the social caption. Gemini 2.5 Flash is preferred, and 512 validated lines cover quota gaps without repeating in a 100-reel window. An edit creates a new preview ID so a stale Telegram approval cannot approve revised text.
+- Default caption treatment is Anton. Bebas Neue and Montserrat Black are selectable. FFmpeg burns the vendored OFL fonts, and librosa aligns F2 transitions within a bounded window near the intended pacing.

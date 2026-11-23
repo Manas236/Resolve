@@ -9,6 +9,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 from .captions import Cue, highlighted_ass
+from .caption_style import FONTS, music_markers, styled_ass
 from .framing import VERTICAL_FRAME
 
 _SENTENCE_END = re.compile(r"""[.!?]["'’”)]*$""")
@@ -36,6 +37,8 @@ def render_reel(
     video_start: float = 0,
     song_start: float = 0,
     duration: float = 22,
+    text_lines: Sequence[str] = (),
+    caption_preset: str | None = None,
 ) -> None:
     """Burn in clip-relative captions and mix local files into a vertical MP4."""
     if format_id not in {"F1", "F2", "F3"}:
@@ -46,7 +49,7 @@ def render_reel(
         raise ValueError("Standard reels must last 20–25 seconds")
     if not hook.strip():
         raise ValueError("Hook text is required")
-    if format_id == "F2" and not quote.strip():
+    if format_id == "F2" and not (quote.strip() or text_lines):
         raise ValueError("F2 requires a quote")
     if format_id == "F3" and voiceover is None:
         raise ValueError("F3 requires clean voiceover audio")
@@ -60,7 +63,8 @@ def render_reel(
     if destination in inputs:
         raise ValueError("Output must differ from the inputs")
     speech = {"F1": "2:a:0" if voiceover is not None else "0:a:0", "F3": "2:a:0"}.get(format_id)
-    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30,ass=captions.ass[outv]"]
+    font_option = ":fontsdir=fonts" if caption_preset else ""
+    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30,ass=captions.ass{font_option}[outv]"]
     if speech is None:
         filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
     else:
@@ -72,10 +76,15 @@ def render_reel(
         ])
     with TemporaryDirectory(dir=destination.parent) as directory:
         staging = Path(directory)
-        ass = highlighted_ass(
-            words if speech else (), start_ms=0, end_ms=end_ms, hook=hook,
-            quote=quote if speech is None else "",
-        )
+        if caption_preset:
+            from shutil import copytree
+
+            copytree(FONTS, staging / "fonts")
+            markers = music_markers(song, song_start, duration) if text_lines else ()
+            ass = styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers)
+        else:
+            ass = highlighted_ass(words if speech else (), start_ms=0, end_ms=end_ms, hook=hook,
+                                  quote=quote if speech is None else "")
         (staging / "captions.ass").write_text(ass, encoding="utf-8")
         staged = staging / "reel.mp4"
         command = ["ffmpeg", "-nostdin", "-v", "error"]
@@ -118,11 +127,13 @@ class LocalReelBuilder:
     """Prepare clean speech and render a local editorial preset."""
 
     def __init__(self, *, hook, quote="", voice_script="", whisper_model=None, piper_model=None, voice="piper",
-                 kokoro_model=None, kokoro_voices=None, voice_id="af_heart"):
-        if not hook.strip():
+                 kokoro_model=None, kokoro_voices=None, voice_id="af_heart",
+                 generate_captions=False, gemini_key=""):
+        if not (hook.strip() or generate_captions):
             raise ValueError("Set a hook for the local format renderer")
         self.hook, self.quote, self.voice_script = hook, quote, voice_script
         self.whisper_model, self.piper_model = whisper_model, piper_model
+        self.generate_captions, self.gemini_key = generate_captions, gemini_key
         self.voice = voice
         self.kokoro_model, self.kokoro_voices, self.voice_id = kokoro_model, kokoro_voices, voice_id
 
@@ -144,7 +155,7 @@ class LocalReelBuilder:
                            and Path(str(self.piper_model) + ".json").is_file())
         return {
             "F1": None if whisper else "Configure a local Whisper model.",
-            "F2": None if self.quote.strip() else "Configure quote text.",
+            "F2": None if self.quote.strip() or self.generate_captions else "Configure quote text.",
             "F3": next((reason for ready, reason in (
                 (whisper, "Configure a local Whisper model."),
                 (bool(self.voice_script.strip()), "Configure a voice script."),
@@ -152,7 +163,7 @@ class LocalReelBuilder:
             ) if not ready), None),
         }
 
-    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0)):
+    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None):
         from .captions import transcribe_local_words
         from .tts import synthesize
 
@@ -183,9 +194,10 @@ class LocalReelBuilder:
                            voice=self.voice_id)
                 voiceover = speech
                 words = transcribe_local_words(speech, self.whisper_model)
-            render_reel(video, song, destination, format_id=format_id, hook=self.hook,
+            render_reel(video, song, destination, format_id=format_id, hook=video_text["hook"] if video_text else self.hook,
                         quote=self.quote, words=words, voiceover=voiceover, duration=duration,
-                        video_start=starts[0], song_start=starts[1])
+                        video_start=starts[0], song_start=starts[1],
+                        text_lines=video_text["lines"] if video_text else (), caption_preset=caption_preset)
 
 
 def configured_builder(settings, *, hook=None, quote="", voice_script="", whisper_model=None, piper_model=None):
@@ -193,10 +205,9 @@ def configured_builder(settings, *, hook=None, quote="", voice_script="", whispe
         value = argument or settings.get(name)
         return Path(value).expanduser() if value else None
 
-    hook = hook or settings.get("RESOLVE_REEL_HOOK")
-    if not hook:
-        return None
+    hook = hook or settings.get("RESOLVE_REEL_HOOK", "")
     return LocalReelBuilder(
+        generate_captions=True, gemini_key=settings.get("GEMINI_API_KEY", ""),
         hook=hook, quote=quote or settings.get("RESOLVE_REEL_QUOTE", ""),
         voice_script=voice_script or settings.get("RESOLVE_VOICE_SCRIPT", ""),
         whisper_model=model_path(whisper_model, "RESOLVE_WHISPER_MODEL"),

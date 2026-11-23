@@ -19,6 +19,7 @@ from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .bundles import schema
 from .reels import NoSpeech
+from .reel_text import checked_text, choose_text, gemini_text, normalized
 from .framing import render_vertical
 from .performance import Performance
 from .scheduler import FORMATS, choose_format
@@ -65,6 +66,7 @@ class Pipeline:
                 ("song_id", "INTEGER"),
                 ("production", "INTEGER NOT NULL DEFAULT 0"),
                 ("render_claim", "INTEGER"),
+                ("video_text", "TEXT"),
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
@@ -150,7 +152,8 @@ class Pipeline:
             return DEFAULTS | dict(db.execute("SELECT name,value FROM settings"))
 
     def save_settings(self, values):
-        validated = validate_settings({key: values[key] for key in DEFAULTS})
+        current = self.settings()
+        validated = validate_settings({key: values.get(key, current[key]) for key in DEFAULTS})
         with closing(sqlite3.connect(self.database)) as db, db:
             db.executemany("INSERT INTO settings VALUES (?,?) ON CONFLICT(name) DO UPDATE "
                            "SET value=excluded.value", validated.items())
@@ -194,6 +197,47 @@ class Pipeline:
         with closing(sqlite3.connect(self.database)) as db:
             return {row[0]: row[1:] for row in db.execute(
                 "SELECT id,caption,hashtags FROM reels WHERE status IN ('review','approved')")}
+
+    def video_texts(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return {reel_id: json.loads(text) for reel_id, text in db.execute(
+                "SELECT id,video_text FROM reels WHERE status='review' AND video_text IS NOT NULL")}
+
+    def edit_video_text(self, reel_id, hook, lines):
+        with self.render_lock, closing(sqlite3.connect(self.database)) as db:
+            with db:
+                db.execute("BEGIN IMMEDIATE")
+                row = db.execute("SELECT source,format_id,song_id,caption,hashtags FROM reels "
+                                 "WHERE id=? AND status='review' AND video_text IS NOT NULL",
+                                 (reel_id,)).fetchone()
+                if row is None:
+                    raise ValueError("Only reels awaiting review can have their video text changed.")
+                text = checked_text(hook, lines, row[1]) | {"source": "edited"}
+                db.execute("UPDATE reels SET status='rejected' WHERE id=?", (reel_id,))
+                replacement = db.execute(
+                    "INSERT INTO reels(source,format_id,song_id,caption,hashtags,video_text,status) "
+                    "VALUES(?,?,?,?,?,?,'queued')", (*row, json.dumps(text))).lastrowid
+            self._render(replacement)
+        return replacement
+
+    @staticmethod
+    def _recent_video_text(db, reel_id):
+        used = set()
+        for (raw,) in db.execute("SELECT video_text FROM reels WHERE id!=? AND video_text IS NOT NULL "
+                                 "ORDER BY id DESC LIMIT 100", (reel_id,)):
+            text = json.loads(raw)
+            used.update(normalized(line) for line in [text["hook"], *text["lines"]])
+        return used
+
+    def _reserve_video_text(self, db, reel_id, format_id, context):
+        key = self.reel_builder.gemini_key
+        recent = self._recent_video_text(db, reel_id)
+        proposed = gemini_text(key, format_id, context, recent) if key else None
+        with db:
+            db.execute("BEGIN IMMEDIATE")
+            text = choose_text(format_id, self._recent_video_text(db, reel_id), proposed, context=context)
+            db.execute("UPDATE reels SET video_text=? WHERE id=?", (json.dumps(text), reel_id))
+        return text
 
     def posting_queue(self):
         with closing(sqlite3.connect(self.database)) as db:
@@ -299,10 +343,10 @@ class Pipeline:
                     """UPDATE reels SET status='rendering',render_claim=unixepoch()
                        WHERE id=? AND (status='queued' OR
                                        (status='rendering' AND render_claim < unixepoch()-3600))
-                       RETURNING source,format_id,song_id""", (reel_id,)).fetchone()
+                       RETURNING source,format_id,song_id,video_text""", (reel_id,)).fetchone()
             if row is None:
                 return
-            source, format_id, song_id = row
+            source, format_id, song_id, stored_text = row
             error = None
             skipped = False
             production = False
@@ -320,6 +364,12 @@ class Pipeline:
                         "SELECT path,metadata FROM imported_media WHERE (path=? AND kind='clip') OR (path=? AND kind='song')",
                         (source, song[0]))}
                     production = len(imported) == 2
+                    styling = {}
+                    if getattr(self.reel_builder, "generate_captions", False) is True:
+                        context = imported.get(source, {}).get("title") or "gym training"
+                        video_text = (json.loads(stored_text) if stored_text else
+                                      self._reserve_video_text(db, reel_id, format_id, context))
+                        styling = {"video_text": video_text, "caption_preset": self.settings()["caption_preset"]}
                     if production and format_id == "F1":
                         voice = db.execute("""SELECT library.path,metadata FROM library JOIN imported_media
                             ON library.path=imported_media.path WHERE library.kind='speech' AND retired=0
@@ -328,11 +378,11 @@ class Pipeline:
                         if not voice:
                             raise NoSpeech("F1 skipped: import a verified speech source first.")
                         segments = [imported[source], imported[song[0]], json.loads(voice[1])]
-                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=segment_starts(segments))
+                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=segment_starts(segments), **styling)
                     elif production:
-                        self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]))
+                        self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]), **styling)
                     else:
-                        self.reel_builder(*args)
+                        self.reel_builder(*args, **styling)
                     self.performance.register(reel_id, song_id, clip[0], format_id)
                 else:
                     self._render_preview(reel_id, source)

@@ -17,6 +17,7 @@ from urllib.parse import parse_qs
 from .control import Pipeline
 from . import dashboard_view as view
 from .reels import configured_builder
+from .caption_style import PRESETS, PREVIEW_DIR
 from .dashboard_auth import DashboardAuth
 from .config import read_env_file
 from pathlib import Path
@@ -150,6 +151,13 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                 rows = [{"id": key, "state": "rendering" if key == active and state == "queued" else state,
                          "error": error} for key, state, error in pipeline.list_reels()]
                 self.payload(json.dumps(rows).encode(), "application/json")
+                return
+            if self.path.startswith("/caption-preset/"):
+                key = self.path.rsplit("/", 1)[1]
+                if key not in PRESETS:
+                    self.send_error(404)
+                    return
+                self.media(PREVIEW_DIR / f"{key}.mp4", "video/mp4")
                 return
             match = re.fullmatch(r"/(reel|preview|waveform)/([0-9]{1,18})", self.path)
             if match:
@@ -290,6 +298,13 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                     pipeline.reorder([int(value) for value in order.split(",")] if order else [])
                 elif self.path == "/edit":
                     pipeline.edit_reel(int(fields["id"][0]), fields["caption"][0], fields["hashtags"][0])
+                elif self.path == "/edit-video-text":
+                    pipeline.edit_video_text(int(fields["id"][0]), fields["hook"][0],
+                                             fields.get("lines", [""])[0].strip().splitlines())
+                elif self.path == "/render-caption-presets":
+                    from .caption_preview import render_previews
+
+                    render_previews()
                 elif self.path == "/regenerate":
                     pipeline.regenerate(int(fields["id"][0]))
                 elif self.path == "/delete":
@@ -301,7 +316,7 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                 else:
                     self.send_error(404)
                     return
-            except (ValueError, KeyError) as error:
+            except (ValueError, KeyError, ImportError, OSError, subprocess.SubprocessError) as error:
                 if self.path != "/login" and (auth is None or auth.valid(self.session())):
                     pipeline.log_action(self.path.split("?", 1)[0][:64], "rejected")
                 self.send_error(400, explain=str(error))

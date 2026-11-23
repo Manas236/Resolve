@@ -2,16 +2,21 @@
 
 import re
 
+from .caption_style import PRESETS
+
 DEFAULTS = {
     "posting_slots": "09:00,18:00",
     "volume": "2",
     "mode": "approval",
     "refresh_cadence": "weekly",
     "format_weights": "1,1,1",
+    "caption_preset": "anton",
 }
 
 
 def validate_settings(values):
+    if values.get("caption_preset", "anton") not in PRESETS:
+        raise ValueError("Choose a caption preset.")
     slots = [item.strip() for item in values["posting_slots"].split(",")]
     if (len(set(slots)) != len(slots) or
             any(not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", slot) for slot in slots)):

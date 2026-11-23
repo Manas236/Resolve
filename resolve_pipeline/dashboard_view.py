@@ -48,6 +48,7 @@ def asset_field(asset_id):
 
 def review(pipeline, form):
     editorial = pipeline.editorial()
+    video_texts = pipeline.video_texts()
     cards = []
     for reel_id, state, error, source, format_id, song, production in pipeline.reel_details():
         field = asset_field(reel_id)
@@ -68,6 +69,14 @@ def review(pipeline, form):
                 "edit", field + f'<label>Caption<textarea name="caption">{escape(caption)}</textarea></label>'
                 f'<label>Hashtags<input name="hashtags" value="{escape(tags)}"></label>',
                 "Save caption and hashtags") + '</details>'
+        if reel_id in video_texts:
+            text = video_texts[reel_id]
+            hook = escape(text["hook"])
+            lines = escape("\n".join(text["lines"]))
+            edit += '<details open><summary>On-screen text</summary>' + form(
+                "edit-video-text", field + f'<label>Hook<input name="hook" value="{hook}" required></label>'
+                + (f'<label>Lines (one per row)<textarea name="lines" required>{lines}</textarea></label>'
+                   if format_id == "F2" else ""), "Save text and render for review") + '</details>'
         cards.append(
             f'<article class="card reel-card" tabindex="0" data-reel="{reel_id}" data-state="{state}">'
             f'{media}<div><span class="badge">{escape(format_id or "Local preview")}</span> '
@@ -136,6 +145,14 @@ def settings(pipeline, form, zone):
                       for name, value in zip(("F1", "F2", "F3"), values["format_weights"].split(",")))
     cadence = "".join(f'<option {"selected" if value == values["refresh_cadence"] else ""}>{value}</option>'
                      for value in ("weekly", "monthly"))
+    from .caption_style import PRESETS, PREVIEW_DIR
+
+    presets = "".join(f'<option value="{key}" {"selected" if key == values["caption_preset"] else ""}>{item[0]}</option>'
+                      for key, item in PRESETS.items())
+    previews = "".join(f'<article class="card"><h3>{item[0]}</h3>'
+                       + (f'<video controls playsinline preload="metadata" src="/caption-preset/{key}"></video>'
+                          if (PREVIEW_DIR / f"{key}.mp4").is_file() else "<p>Preview not generated yet.</p>")
+                       + '</article>' for key, item in PRESETS.items())
     fields = (f'<input type="hidden" name="posting_slots" value="{escape(values["posting_slots"])}">'
               f'<input type="hidden" name="format_weights" value="{escape(values["format_weights"])}">'
               f'<fieldset><legend>Posting slots ({escape(zone)})</legend><div id="slots">{slots}</div>'
@@ -143,8 +160,11 @@ def settings(pipeline, form, zone):
               f'<label>Daily volume<input type="number" min="1" name="volume" value="{escape(values["volume"])}" required></label>'
               f'<fieldset><legend>Publishing</legend><div class="segmented">{modes}</div></fieldset>'
               f'<label>Refresh cadence<select name="refresh_cadence">{cadence}</select></label>'
+              f'<label>Caption preset<select name="caption_preset">{presets}</select></label>'
               f'<fieldset><legend>Format weights</legend>{weights}</fieldset><p class="inline-error" role="alert"></p>')
-    return '<div class="card settings">' + form("settings", fields, "Save settings") + '</div>'
+    return ('<div class="card settings">' + form("settings", fields, "Save settings")
+            + '</div><h2>Caption previews</h2><div class="grid caption-previews">' + previews + '</div>'
+            + form("render-caption-presets", "", "Generate preset previews"))
 
 
 def sources(pipeline, report, form, can_retest):

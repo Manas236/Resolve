@@ -44,3 +44,10 @@ meter{width:min(60%,190px)}.chart-row{display:grid;grid-template-columns:minmax(
 #feedback{position:fixed;bottom:20px;right:20px;z-index:2;max-width:calc(100vw - 40px);padding:12px 16px;background:var(--raised);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px #0003}#feedback:empty{display:none}
 .login{max-width:415px;margin:12vh auto;padding:28px}.login .brand{padding:0;margin-bottom:22px}
 @media(max-width:740px){.sidebar{position:static;width:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px;gap:12px}.sidebar nav{display:flex;overflow:auto}.sidebar nav a{white-space:nowrap}.sidebar footer{display:flex}.workspace{margin:0}#status-bar{gap:9px;font-size:.83rem}.reel-card{gap:10px;padding:12px}.queue-row{padding:9px;gap:6px}}
+
+.caption-previews video {
+    width: 100%;
+    max-height: 430px;
+    aspect-ratio: 9 / 16;
+    background: #000;
+}

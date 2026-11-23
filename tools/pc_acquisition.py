@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import json
 import os
 import math
+import re
 from shutil import which
 from pathlib import Path
 import subprocess
@@ -283,6 +284,18 @@ def refresh(catalog, output, env_file, send, limits, threshold, sources):
         sync_bundle(output, settings)
 
 
+
+def check_deno():
+    try:
+        process = subprocess.run(["deno", "--version"], capture_output=True, text=True,
+                                 timeout=10, check=True)
+        version = re.search(r"^deno (\d+)\.(\d+)\.", process.stdout)
+        if version and tuple(map(int, version.groups())) >= (2, 3):
+            return
+    except (OSError, subprocess.SubprocessError):
+        pass
+    raise ValueError("Install Deno 2.3+ and make deno.exe available on the Windows account's PATH.")
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("probe", "refresh"))
@@ -299,6 +312,10 @@ def main():
     for binary in ("ffmpeg", "ffprobe"):
         if not which(binary):
             parser.error(f"Install {binary} on the Windows acquisition PC and add it to PATH.")
+    try:
+        check_deno()
+    except ValueError as error:
+        parser.error(str(error))
     os.environ.setdefault("RESOLVE_PC_BROWSER_FALLBACK",
                           read_env_file(args.env_file).get("RESOLVE_PC_BROWSER_FALLBACK", "0"))
     if args.command == "probe":
