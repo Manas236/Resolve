@@ -59,7 +59,7 @@ class FormatReadinessTests(unittest.TestCase):
     def test_auto_uses_quote_without_whisper_and_skips_ineligible_phony_queue(self):
         with TemporaryDirectory() as folder:
             root = Path(folder)
-            builder = LocalReelBuilder(hook="Hook", quote="Quote")
+            builder = LocalReelBuilder(hook="Hook", quote="Quote", generate_captions=True)
             pipeline = Pipeline(root / "state", [root / "clip.mp4"], reel_builder=builder)
             (root / "song.wav").touch()
             pipeline.add_song(root / "song.wav")
@@ -67,7 +67,7 @@ class FormatReadinessTests(unittest.TestCase):
             self.assertIn("Whisper", pipeline.format_requirements()["F3"])
             self.assertIsNone(pipeline.format_requirements()["F2"])
             pipeline.enqueue(10)
-            self.assertEqual({row[4] for row in pipeline.reel_details()}, {"F2"})
+            self.assertTrue({row[4] for row in pipeline.reel_details()} <= {"P", "L", "F4"})
             self.assertEqual(pipeline.posting_queue(), [])
 
     def test_f1_explains_missing_audio_without_transcribing(self):

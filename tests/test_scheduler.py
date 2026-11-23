@@ -72,8 +72,8 @@ class SchedulerTests(unittest.TestCase):
 
     def test_bandit_explores_and_favors_observed_wins(self):
         rng = Random(17)
-        initial = {choose_format((1, 1, 1), {}, rng) for _ in range(30)}
-        self.assertEqual(initial, {"F1", "F2", "F3"})
-        choices = [choose_format((1, 1, 0), {"F1": (20, 0), "F2": (0, 20)}, rng)
+        initial = {choose_format((1, 99, 99, 1, 1, 1), {}, rng) for _ in range(200)}
+        self.assertEqual(initial, {"F1", "P", "L", "F4"})
+        choices = [choose_format((1, 1, 0, 0, 1, 0), {"F1": (20, 0), "P": (0, 20)}, rng)
                    for _ in range(30)]
         self.assertGreater(choices.count("F1"), 27)

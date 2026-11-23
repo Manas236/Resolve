@@ -21,7 +21,7 @@ def validate_piece(text, fmt):
     low, high = (40, 75) if fmt == "P" else (10, 25)
     if not low <= len(text.split()) <= high or not re.fullmatch(r"[A-Za-z0-9’' ,.!?—–:;-]+", text):
         raise ValueError(f"Use {low}–{high} words of sentence-case English prose.")
-    if text.isupper() or BAD.search(text) or text[-1] not in ".!?":
+    if not text[0].isupper() or re.search(r"\b[A-Z]{3,}\b", text) or text.isupper() or BAD.search(text) or text[-1] not in ".!?":
         raise ValueError("Use a complete, quiet observation without slogans.")
     if fmt == "P" and not 3 <= len(SENTENCES.split(text)) <= 4:
         raise ValueError("A paragraph needs three or four sentences.")
@@ -35,6 +35,11 @@ def as_fields(text, fmt):
             raise ValueError("A reveal needs two distinct clauses.")
         return {"hook": parts[0], "lines": [parts[1]]}
     return {"hook": text, "lines": []}
+
+
+def unused(piece, used, normalize):
+    blocks = [piece["hook"], *piece["lines"]]
+    return all(normalize(text) not in used for text in [*blocks, " ".join(blocks)])
 
 
 def candidate(request, fmt, context, used, normalize):
@@ -56,7 +61,7 @@ object with candidates, each containing text and scores keyed by those five rubr
             scores = [row["scores"][k] for k in RUBRIC]
             if any(type(n) is not int or not 0 <= n <= 5 for n in scores):
                 continue
-            if not any(normalize(s) in used for s in [piece["hook"], *piece["lines"]]):
+            if unused(piece, used, normalize):
                 ranked.append((sum(scores), piece | {"scores": row["scores"]}))
         except (KeyError, TypeError, ValueError):
             continue
@@ -70,7 +75,7 @@ def fallback(fmt, used, normalize):
             piece = as_fields(validate_piece(text, fmt), fmt)
         except ValueError:
             continue
-        if not any(normalize(s) in used for s in [piece["hook"], *piece["lines"]]):
+        if unused(piece, used, normalize):
             options.append(piece)
     if not options:
         raise ValueError("All eligible fallback pieces appeared in the last 200 reels.")

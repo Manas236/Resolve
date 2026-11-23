@@ -31,7 +31,7 @@ class SpeechEditTests(unittest.TestCase):
         from resolve_pipeline.reel_text import choose_text
         from resolve_pipeline.scheduler import choose_format
         text = choose_text("F4", set())
-        self.assertEqual(len(text["lines"]), 3)
+        self.assertEqual(len(text["lines"]), 1)
         rng = random.Random(25)
-        experimental = sum(choose_format((1, 1, 1, 1), {}, rng) == "F4" for _ in range(1000))
+        experimental = sum(choose_format((3, 0, 0, 1, 4, 4), {}, rng) == "F4" for _ in range(1000))
         self.assertTrue(0 < experimental < 200)

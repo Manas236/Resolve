@@ -78,14 +78,14 @@ def review(pipeline, form):
             hook = escape(text["hook"])
             lines = escape("\n".join(text["lines"]))
             edit += '<details open><summary>On-screen text</summary>' + form(
-                "edit-video-text", field + f'<label>Hook<input name="hook" value="{hook}" required></label>'
+                "edit-video-text", field + f'<label>On-screen copy<textarea name="hook" required>{hook}</textarea></label>'
                 + (f'<label>Lines (one per row)<textarea name="lines" required>{lines}</textarea></label>'
                    if format_id in {"F2", "F4"} else ""), "Save text and render for review") + '</details>'
         if reel_id in decisions:
             decision = decisions[reel_id]
             music = decision["song_tags"]
-            edit += ('<details><summary>Speech and music match</summary>'
-                     f'<p>{escape(decision["mood"])} · {decision["start"]:.2f}–{decision["end"]:.2f}s'
+            edit += ('<details><summary>Music and footage match</summary>'
+                     f'<p>{escape(decision.get("transcript", ""))}</p><p>{escape(decision["mood"])} · {escape(decision.get("footage_reason", ""))}'
                      f' · {escape(decision["passage_reason"])}</p>'
                      f'<p>{escape(decision["song"])} · {escape(music["mood"])} · {music["bpm"]} BPM'
                      f' · energy {music["energy"]} · {escape(music["mood_source"])}</p>'
@@ -153,9 +153,9 @@ def settings(pipeline, form, zone):
     modes = "".join(f'<label><input type="radio" name="mode" value="{value}" '
                     f'{"checked" if values["mode"] == value else ""}>{label}</label>'
                     for value, label in (("approval", "Require approval"), ("auto", "Auto-post")))
-    weights = "".join(f'<label>{name}<input data-weight type="range" min="0" max="100" value="{escape(value)}">'
+    weights = "".join(f'<label>{name}<input data-weight {"disabled" if "retired" in name else ""} type="range" min="0" max="100" value="{escape(value)}">'
                       f'<output>{escape(value)}</output></label>'
-                      for name, value in zip(("F1", "F2", "F3", "F4 experimental"), values["format_weights"].split(",")))
+                      for name, value in zip(("F1", "F2 retired", "F3 retired", "F4 reveal", "P paragraph", "L one-liner"), values["format_weights"].split(",")))
     cadence = "".join(f'<option {"selected" if value == values["refresh_cadence"] else ""}>{value}</option>'
                      for value in ("weekly", "monthly"))
     from .caption_style import PRESETS, PREVIEW_DIR
@@ -173,11 +173,11 @@ def settings(pipeline, form, zone):
               f'<label>Daily volume<input type="number" min="1" name="volume" value="{escape(values["volume"])}" required></label>'
               f'<fieldset><legend>Publishing</legend><div class="segmented">{modes}</div></fieldset>'
               f'<label>Refresh cadence<select name="refresh_cadence">{cadence}</select></label>'
-              f'<label>Kokoro voice<input name="kokoro_voice" value="{escape(values["kokoro_voice"])}"></label>'
-              f'<label>Caption preset<select name="caption_preset">{presets}</select></label>'
+              f'<label>Legacy F3 voice (optional)<input name="kokoro_voice" value="{escape(values["kokoro_voice"])}"></label>'
+              f'<label>Legacy F2/F3 caption preset<select name="caption_preset">{presets}</select></label>'
               f'<fieldset><legend>Format weights</legend>{weights}</fieldset><p class="inline-error" role="alert"></p>')
     return ('<div class="card settings">' + form("settings", fields, "Save settings")
-            + '</div><h2>Caption previews</h2><div class="grid caption-previews">' + previews + '</div>'
+            + '</div><h2>Legacy caption previews</h2><div class="grid caption-previews">' + previews + '</div>'
             + form("render-caption-presets", "", "Generate preset previews"))
 
 

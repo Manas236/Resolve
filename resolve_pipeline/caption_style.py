@@ -106,3 +106,38 @@ def styled_ass(hook, lines, words, preset, end_ms, markers=(), *, experimental=F
             end = chunk[index + 1].start_ms if index + 1 < len(chunk) else word.end_ms
             event("Word", max(0, word.start_ms), min(end_ms, end), word.text, 1210, phrase=(chunk, index))
     return "\n".join(header) + "\n"
+
+
+def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
+    """Let libass balance a full block inside fixed safe margins."""
+    size = 52 if format_id == "P" else 66
+    ass = [
+        "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
+        "WrapStyle: 0", "[V4+ Styles]",
+        "Format: Name,Fontname,Fontsize,PrimaryColour,OutlineColour,BackColour,Bold,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV",
+        f"Style: Quiet,Resolve Montserrat Black,{size},&H00FFFFFF,&H60000000,&H88000000,0,1,1.5,2,5,88,88,0",
+        "[Events]", "Format: Layer,Start,End,Style,Text",
+    ]
+
+    def block(start, end, body, fade=True):
+        if start < end:
+            effects = r"{\an5\pos(540,855)\blur0.4" + (r"\fad(400,0)" if fade else "") + "}"
+            ass.append(f"Dialogue: 0,{_ass_time(start // 10)},{_ass_time(end // 10)},Quiet,{effects}{body}")
+
+    if format_id == "F1":
+        groups = max(1, (len(words) + 4) // 5)
+        for i in range(groups):
+            chunk = words[len(words)*i//groups:len(words)*(i+1)//groups]
+            for j, word in enumerate(chunk):
+                body = [_ass_text(w.text) for w in chunk]
+                body[j] = r"{\1c&H00DDDDDD&\u1}" + body[j] + r"{\rQuiet}"
+                block(word.start_ms, min(end_ms, chunk[j+1].start_ms if j+1 < len(chunk) else word.end_ms),
+                      " ".join(body), False)
+    elif format_id == "F4":
+        eligible = [(weight, when) for when, weight in markers if end_ms*.38 <= when <= end_ms*.66]
+        turn = max(eligible)[1] if eligible else end_ms//2
+        block(0, turn, _ass_text(text))
+        block(turn, end_ms, _ass_text(lines[0]))
+    else:
+        block(0, end_ms, _ass_text(text))
+    return "\n".join(ass) + "\n"

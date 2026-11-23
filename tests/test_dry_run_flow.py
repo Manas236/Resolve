@@ -27,7 +27,7 @@ class DryRunFlowTest(unittest.TestCase):
                 ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
                  "sine=frequency=350:duration=22", str(song)], check=True,
             )
-            builder = LocalReelBuilder(hook="Start now", quote="Start with one rep.")
+            builder = LocalReelBuilder(hook="", generate_captions=True)
             pipeline = Pipeline(root / "state", [], reel_builder=builder)
             bundle = root / "sample.zip"
             write_bundle(bundle, [

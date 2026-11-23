@@ -46,12 +46,8 @@ class TrainingVision:
                 frames.append((second, frame))
         result = score_frames(frames, self.classify, self.threshold, self.model)
         if result["accepted"]:
-            import numpy as np
-            raw = subprocess.check_output(["ffmpeg", "-v", "error", "-protocol_whitelist", "file",
-                "-ss", str(start), "-i", str(path), "-t", str(end-start), "-an", "-vf",
-                "fps=4,scale=48:32,format=gray", "-threads", "1", "-f", "rawvideo", "pipe:1"], timeout=30)
-            pixels = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 32, 48).astype(np.float32)
-            motion = float(np.abs(np.diff(pixels, axis=0)).mean()/255) if len(pixels) > 1 else 0.
+            from resolve_pipeline.visual_energy import measure
+            _, motion = measure(path, start, end-start)
             result["mood"] = visual_mood(frames, self.classify, motion)
         return result
 

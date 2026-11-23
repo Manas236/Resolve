@@ -58,6 +58,7 @@ class Pipeline:
             db.execute("CREATE TABLE IF NOT EXISTS telegram_previews ("
                        "reel_id INTEGER PRIMARY KEY, status TEXT NOT NULL)")
             schema(db)
+            db.execute("CREATE TABLE IF NOT EXISTS clip_moods(path TEXT PRIMARY KEY, fingerprint TEXT, tags TEXT)")
             db.execute("CREATE TABLE IF NOT EXISTS song_moods(path TEXT PRIMARY KEY, fingerprint TEXT, tags TEXT)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
@@ -159,9 +160,7 @@ class Pipeline:
     def settings(self):
         with closing(sqlite3.connect(self.database)) as db:
             values = DEFAULTS | dict(db.execute("SELECT name,value FROM settings"))
-        if values["format_weights"].count(",") == 2:
-            values["format_weights"] += ",1"
-        return values
+        return validate_settings(values)
 
     def save_settings(self, values):
         current = self.settings()
@@ -236,9 +235,10 @@ class Pipeline:
     def _recent_video_text(db, reel_id):
         used = set()
         for (raw,) in db.execute("SELECT video_text FROM reels WHERE id!=? AND video_text IS NOT NULL "
-                                 "ORDER BY id DESC LIMIT 100", (reel_id,)):
+                                 "ORDER BY id DESC LIMIT 200", (reel_id,)):
             text = json.loads(raw)
-            used.update(normalized(line) for line in [text["hook"], *text["lines"]])
+            blocks = [text["hook"], *text["lines"]]
+            used.update(normalized(line) for line in [*blocks, " ".join(blocks)])
         return used
 
     def _reserve_video_text(self, db, reel_id, format_id, context):
@@ -247,6 +247,8 @@ class Pipeline:
         quote = getattr(self.reel_builder, "quote", "")
         hook = hook if isinstance(hook, str) else ""
         quote = quote if isinstance(quote, str) and format_id == "F2" else ""
+        if format_id in {"P", "L", "F4"}:
+            hook = quote = ""
         if quote and len(quote.splitlines()) == 1:
             raise ValueError("--quote needs two to four short lines separated by newlines.")
         recent = self._recent_video_text(db, reel_id)
@@ -291,9 +293,9 @@ class Pipeline:
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
         if format_id not in ("auto", *FORMATS):
-            raise ValueError("Choose Auto, F1, F2, F3 or F4")
+            raise ValueError("Choose Auto, P, L, F1, F4, or a legacy format")
         if format_id != "auto" and self.reel_builder is None:
-            raise ValueError("Configure the format renderer before selecting F1, F2, F3 or F4")
+            raise ValueError("Configure the format renderer before selecting a format")
         weights = tuple(map(int, self.settings()["format_weights"].split(",")))
         requirements = self.format_requirements()
         if format_id != "auto" and requirements[format_id]:
@@ -366,6 +368,37 @@ class Pipeline:
             return {key: json.loads(raw) for key, raw in db.execute(
                 "SELECT id,music_decision FROM reels WHERE music_decision IS NOT NULL")}
 
+    def _match_footage(self, db, mood, production, current):
+        from .speech_edit import footage_distance
+        options = []
+        for identifier, name, raw in db.execute("""SELECT library.id,library.path,metadata FROM library
+                LEFT JOIN imported_media USING(path) WHERE library.kind='clip' AND retired=0
+                AND (?=0 OR metadata IS NOT NULL)""", (int(production),)):
+            meta = json.loads(raw) if raw else {}
+            tags = meta.get("vision", {}).get("mood", {})
+            if not tags:
+                from .visual_energy import fallback_tags
+                try:
+                    stat = Path(name).stat()
+                    start = segment_starts([meta])[0] if meta else 0
+                    fingerprint = f"{stat.st_size}:{stat.st_mtime_ns}:{start}"
+                    cached = db.execute("SELECT tags FROM clip_moods WHERE path=? AND fingerprint=?",
+                                        (name, fingerprint)).fetchone()
+                    tags = json.loads(cached[0]) if cached else fallback_tags(name, start)
+                    if not cached:
+                        with db:
+                            db.execute("INSERT OR REPLACE INTO clip_moods VALUES(?,?,?)",
+                                       (name, fingerprint, json.dumps(tags)))
+                except (OSError, ValueError, subprocess.SubprocessError):
+                    continue
+            options.append((footage_distance(mood, tags), name != current, identifier, name, meta, tags))
+        if not options:
+            raise ValueError("No active training clip has readable frames.")
+        distance, _, identifier, name, meta, tags = min(options)
+        reason = (f"{tags['label']}, visual intensity {tags['intensity']:.2f} versus text energy {mood['energy']:.2f}."
+                  if tags else "No clip in this library has mood tags yet; retained the queued training clip.")
+        return identifier, Path(name), segment_starts([meta])[0] if meta else 0, reason
+
     def _match_song(self, db, reel_id, speech, production):
         rows = db.execute("""SELECT library.id,library.path,imported_media.metadata FROM library
                              LEFT JOIN imported_media USING(path)
@@ -379,10 +412,10 @@ class Pipeline:
             try:
                 stat = path.stat()
                 key = self.reel_builder.gemini_key
-                fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}:{title}:{bool(key)}"
+                fingerprint = f"poetic:{metadata.get('genre', '')}:{stat.st_mtime_ns}:{stat.st_size}:{title}:{bool(key)}"
                 cached = db.execute("SELECT tags FROM song_moods WHERE path=? AND fingerprint=?",
                                     (name, fingerprint)).fetchone()
-                tags = json.loads(cached[0]) if cached else song_tags(path, title, key)
+                tags = json.loads(cached[0]) if cached else song_tags(path, title + " " + metadata.get("genre", ""), key)
                 if not cached:
                     with db:
                         db.execute("INSERT OR REPLACE INTO song_moods VALUES(?,?,?)",
@@ -394,7 +427,7 @@ class Pipeline:
             raise ValueError("No usable song could be matched to the speech.")
         distance, asset_id, path, title, metadata, tags = min(matches, key=lambda row: row[0])
         decision = speech | {"song": title, "song_tags": tags, "distance": round(distance, 3),
-                             "reason": "Lowest combined mood mismatch and speech/music energy distance."}
+                             "reason": "Closest available song by editorial mood and measured energy."}
         with db:
             db.execute("UPDATE reels SET song_id=?, music_decision=? WHERE id=?",
                        (asset_id, json.dumps(decision), reel_id))
@@ -430,7 +463,7 @@ class Pipeline:
                         (source, song[0]))}
                     production = len(imported) == 2
                     styling = {}
-                    if getattr(self.reel_builder, "generate_captions", False) is True:
+                    if getattr(self.reel_builder, "generate_captions", False) is True and format_id != "F1":
                         context = imported.get(source, {}).get("title") or "gym training"
                         video_text = (json.loads(stored_text) if stored_text else
                                       self._reserve_video_text(db, reel_id, format_id, context))
@@ -446,10 +479,26 @@ class Pipeline:
                             raise NoSpeech("F1 skipped: add a separate speech source.")
                         starts = segment_starts([imported[source], imported[song[0]]]) if production else (0, 0, 0)
                         def select_music(mood):
-                            return self._match_song(db, reel_id, mood, production)
+                            nonlocal clip
+                            clip_id, video, start, reason = self._match_footage(db, mood, production, source)
+                            clip = (clip_id,)
+                            path, offset = self._match_song(db, reel_id, mood | {"footage_reason": reason}, production)
+                            with db:
+                                db.execute("UPDATE reels SET source=? WHERE id=?", (str(video), reel_id))
+                            return path, offset, video, start
 
                         self.reel_builder(*args, speech_source=Path(voice[0]), starts=starts,
                                           select_music=select_music, **styling)
+                        song_id = db.execute("SELECT song_id FROM reels WHERE id=?", (reel_id,)).fetchone()[0]
+                    elif format_id in {"P", "L", "F4"} and styling:
+                        from .speech_edit import text_mood
+                        mood = text_mood(" ".join([video_text["hook"], *video_text["lines"]]), self.reel_builder.gemini_key)
+                        clip_id, video, start, reason = self._match_footage(db, mood, production, source)
+                        clip = (clip_id,)
+                        path, offset = self._match_song(db, reel_id, mood | {"footage_reason": reason}, production)
+                        with db:
+                            db.execute("UPDATE reels SET source=? WHERE id=?", (str(video), reel_id))
+                        self.reel_builder(video, path, args[2], format_id, starts=(start, offset, 0), **styling)
                         song_id = db.execute("SELECT song_id FROM reels WHERE id=?", (reel_id,)).fetchone()[0]
                     elif production:
                         self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]), **styling)

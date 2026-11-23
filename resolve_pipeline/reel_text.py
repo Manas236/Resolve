@@ -76,34 +76,13 @@ def gemini_json(api_key, prompt):
 
 
 def choose_text(format_id, used, proposed=None, *, context=""):
-    if proposed and not any(normalized(line) in used for line in [proposed["hook"], *proposed["lines"]]):
+    if proposed and poetry.unused(proposed, used, normalized):
         return {**proposed, "source": "gemini"}
     if format_id in {"P", "L", "F4"}:
         return poetry.fallback(format_id, used, normalized)
     bank = BANK.read_text(encoding="utf-8").splitlines()
     choices = [line for line in bank if normalized(line) not in used]
     count = 4 if format_id in {"F2", "F4"} else 1
-    if format_id == "F4":
-        # Separate each role so fallback copy retains the experiment's structure.
-        friction = ["Rushing the first rep", "Skipping the hard range", "Losing tension halfway"]
-        friction += [f"{verb} {target}" for verb in (
-            "Rushing", "Forgetting", "Overthinking", "Skipping", "Misjudging", "Changing", "Dreading",
-            "Second guessing", "Cutting short", "Holding back on", "Losing focus through"
-        ) for target in ("the first rep", "the warmup", "the reset", "the last rep", "the next set",
-                         "the easy sets", "the hard part", "the last round", "the walkback", "the first set")]
-        turning = ["Slow the first rep", "Own the bottom position", "Reset before you pull", *bank[:96]]
-        actions = ["Next session start lighter", "Film your first set", "Pause on rep one",
-                   *[f"Next time {line.lower()}" for line in bank if len(line.split()) <= 4 and len(line) <= 32]]
-        picked = []
-        excluded = set(used)
-        for pool in (friction, turning, actions, choices):
-            unused = [line for line in pool if normalized(line) not in excluded]
-            if not unused:
-                raise ValueError("No unused F4 template lines remain in the last 100 reels.")
-            line = random.choice(unused)
-            excluded.add(normalized(line))
-            picked.append(line)
-        return {**checked_text(picked[-1], picked[:3], format_id), "source": "bank"}
     if len(choices) < count:
         raise ValueError("Caption bank exhausted for the last 100 reels. Add fresh lines or restore Gemini.")
     context = normalized(context)

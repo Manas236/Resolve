@@ -10,6 +10,8 @@ from tempfile import TemporaryDirectory
 
 from .captions import Cue, highlighted_ass
 from .caption_style import FONTS, music_markers, styled_ass
+from .poetry import reading_seconds
+from .caption_style import quiet_ass
 from .framing import VERTICAL_FRAME
 from .speech_edit import decode_speech, relative_words, select_passage
 
@@ -42,18 +44,21 @@ def render_reel(
     caption_preset: str | None = None,
 ) -> None:
     """Burn in clip-relative captions and mix local files into a vertical MP4."""
-    if format_id not in {"F1", "F2", "F3", "F4"}:
+    quiet = format_id in {"P", "L", "F1", "F4"}
+    if format_id in {"P", "L", "F4"}:
+        duration = reading_seconds(" ".join([hook, *text_lines]), format_id)
+    if format_id not in {"F1", "F2", "F3", "F4", "P", "L"}:
         raise ValueError("Use format F1, F2, F3 or F4")
     if not all(math.isfinite(value) and value >= 0 for value in (video_start, song_start, duration)):
         raise ValueError("Invalid render interval")
-    if not 20 <= duration <= (35 if format_id == "F1" else 25):
+    if not (10 if quiet else 20) <= duration <= (35 if quiet else 25) or format_id == "F1" and duration < 20:
         raise ValueError("F1 reels must last 20–35 seconds; other formats last 20–25 seconds")
-    if not hook.strip():
+    if not hook.strip() and format_id != "F1":
         raise ValueError("Hook text is required")
     if format_id == "F2" and not (quote.strip() or text_lines):
         raise ValueError("F2 requires a quote")
-    if format_id == "F4" and (len(text_lines) != 3 or not caption_preset):
-        raise ValueError("F4 requires three experimental lines and a caption preset.")
+    if format_id == "F4" and len(text_lines) != 1:
+        raise ValueError("F4 requires a paradox and its resolution.")
     if format_id == "F3" and voiceover is None:
         raise ValueError("F3 requires clean voiceover audio")
     end_ms = round(duration * 1000)
@@ -66,9 +71,9 @@ def render_reel(
     if destination in inputs:
         raise ValueError("Output must differ from the inputs")
     speech = {"F1": "2:a:0" if voiceover is not None else "0:a:0", "F3": "2:a:0"}.get(format_id)
-    font_option = ":fontsdir=fonts" if caption_preset else ""
-    turning_cut = r",select='not(between(t,8,8.6))',setpts=N/(30*TB)" if format_id == "F4" else ""
-    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30{turning_cut},ass=captions.ass{font_option}[outv]"]
+    font_option = ":fontsdir=fonts" if caption_preset or quiet else ""
+    shade = ",eq=brightness=-0.085" if quiet else ""
+    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30{shade},ass=captions.ass{font_option}[outv]"]
     if speech is None:
         filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
     else:
@@ -80,12 +85,12 @@ def render_reel(
         ])
     with TemporaryDirectory(dir=destination.parent) as directory:
         staging = Path(directory)
-        if caption_preset:
+        if caption_preset or quiet:
             from shutil import copytree
 
             copytree(FONTS, staging / "fonts")
-            markers = music_markers(song, song_start, duration) if text_lines and format_id == "F2" else ()
-            ass = styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers, experimental=format_id == "F4")
+            markers = music_markers(song, song_start, duration) if text_lines and format_id in {"F2", "F4"} else ()
+            ass = quiet_ass(format_id, hook, text_lines, words, end_ms, markers) if quiet else styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers, experimental=format_id == "F4")
         else:
             ass = highlighted_ass(words if speech else (), start_ms=0, end_ms=end_ms, hook=hook,
                                   quote=quote if speech is None else "")
@@ -93,9 +98,9 @@ def render_reel(
         staged = staging / "reel.mp4"
         command = ["ffmpeg", "-nostdin", "-v", "error"]
         for index, (path, start) in enumerate(zip(inputs, (video_start, song_start, 0))):
-            if index == 0 and (format_id == "F4" or format_id == "F1" and voiceover is not None):
+            if index == 0 and quiet:
                 command.extend(["-stream_loop", "-1"])
-            if index == 1 and format_id == "F1" and voiceover is not None:
+            if index == 1 and quiet:
                 command.extend(["-stream_loop", "-1"])
             command.extend(["-protocol_whitelist", "file", "-ss", str(start), "-i", str(path)])
         command.extend([
@@ -162,6 +167,8 @@ class LocalReelBuilder:
                            and Path(self.piper_model).is_file()
                            and Path(str(self.piper_model) + ".json").is_file())
         return {
+            "P": None if self.generate_captions else "Enable generated text.",
+            "L": None if self.generate_captions else "Enable generated text.",
             "F1": None if whisper else "Configure a local Whisper model.",
             "F2": None if self.quote.strip() or self.generate_captions else "Configure quote text.",
             "F4": None if self.generate_captions else "Configure the experimental format renderer.",
@@ -203,10 +210,11 @@ class LocalReelBuilder:
                 )
                 voiceover = speech
                 if select_music:
-                    song, offset = select_music(mood | {"speech": str(speech_source),
+                    song, offset, video, visual_start = select_music(mood | {"speech": str(speech_source),
+                                                       "transcript": passage.transcript,
                                                        "start": passage.clip_start_ms / 1000,
                                                        "end": passage.clip_end_ms / 1000})
-                    starts = (starts[0], offset, 0)
+                    starts = (visual_start, offset, 0)
             if format_id == "F3":
                 synthesize(self.voice_script, speech, engine=self.voice, piper_model=self.piper_model,
                            kokoro_model=self.kokoro_model, kokoro_voices=self.kokoro_voices,
