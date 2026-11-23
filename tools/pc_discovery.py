@@ -1,4 +1,6 @@
 """Build a bounded acquisition candidate list from public feeds and YouTube metadata."""
+from collections import defaultdict
+from itertools import zip_longest
 import json
 from pathlib import Path
 import re
@@ -70,7 +72,14 @@ def discover(config, pins, existing, fetch, search=youtube, *, track_limit=45):
         seed = {"kind": "song", "spotify_id": track.id, "title": f"{track.title} — {track.artist}"}
         if not asset_keys(seed) & existing:
             unsynced_tracks.append((track, pages, seed))
-    for track, pages, seed in sorted(unsynced_tracks, key=lambda row: -len(row[1]))[:track_limit]:
+    by_genre = defaultdict(list)
+    for track, pages, seed in sorted(unsynced_tracks, key=lambda row: -len(row[1])):
+        genre = next((config.get("playlist_genres", {})[p] for p in sorted(pages)
+                      if p in config.get("playlist_genres", {})), "phonk")
+        by_genre[genre].append((track, pages, seed, genre))
+    # Interleave feeds before the lookup budget is exhausted by the first playlist.
+    balanced = [entry for group in zip_longest(*by_genre.values()) for entry in group if entry]
+    for track, pages, seed, genre in balanced[:track_limit]:
         for row in search(f"ytsearch4:{track.title} {track.artist} official audio"):
             item = video_item(row, "song", sorted(pages)[0])
             if item is None:
@@ -81,7 +90,7 @@ def discover(config, pins, existing, fetch, search=youtube, *, track_limit=45):
                     and words(track.title) in title
                     and (artist in title or artist in words(row.get("channel") or row.get("uploader") or ""))):
                 candidates.append({**item, **seed, "duration": track.duration_seconds,
-                                   "genre": "phonk", "source_pages": sorted(pages),
+                                   "genre": genre, "source_pages": sorted(pages),
                                    "duration_reference": "spotify"})
                 break
 

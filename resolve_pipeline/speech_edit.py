@@ -95,6 +95,10 @@ def song_tags(path, title, key=""):
     energy = min(1.0, 0.5 * (min(bpm, 180)/180) + 0.5 * min(rms * 5, 1))
     mood = "aggressive" if energy > 0.66 else "calm resolve"
     source = "tempo and RMS heuristic"
+    if re.search(r"slowed|reverb|ambient|lo.fi|melanchol|sad phonk|academia", title, re.I):
+        mood, source = "calm resolve", "Reflective genre in title or playlist."
+    elif "phonk" in title.lower():
+        mood, source = "defiant", "Phonk title or playlist."
     if key:
         data = gemini_json(key, "Infer musical mood from title and artist only. "
                            "Return JSON with mood (aggressive, defiant, calm resolve, grief-to-strength). "
@@ -109,3 +113,21 @@ def music_distance(speech, music):
                "calm resolve": "grief-to-strength", "grief-to-strength": "calm resolve"}
     penalty = 0 if speech["mood"] == music["mood"] else 0.2 if similar[speech["mood"]] == music["mood"] else 0.65
     return abs(speech["energy"] - music["energy"]) + penalty
+
+
+def text_mood(text, key):
+    data = gemini_json(key, "Read this original reel text. Return JSON with mood (calm resolve, "
+                       "grief-to-strength, aggressive or defiant), energy from 0 to 1, and brief reason: "
+                       + text[:1500]) if key else None
+    if isinstance(data, dict) and data.get("mood") in MOODS and type(data.get("energy")) in (int, float) and 0 <= data["energy"] <= 1:
+        return {"mood": data["mood"], "energy": data["energy"], "passage_reason": str(data.get("reason", ""))[:300]}
+    defiant = re.search(r"\b(refused|defied|defiant|resisted|defiance)\b", text, re.I)
+    return {"mood": "defiant" if defiant else "calm resolve", "energy": .75 if defiant else .32,
+            "passage_reason": "Local keyword match for defiance." if defiant else "Reflective prose with no strong defiance cue."}
+
+
+def footage_distance(mood, tags):
+    if not tags:
+        return 2.0
+    intensity = tags["intensity"]
+    return abs(mood["energy"] - intensity)

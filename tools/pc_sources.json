@@ -2,7 +2,11 @@
   "spotify_playlists": [
     "https://open.spotify.com/embed/playlist/6gM109fGbzurLncnPx45Cq",
     "https://open.spotify.com/embed/playlist/0xF0eHm3eguBqBvgVyQ3UB",
-    "https://open.spotify.com/embed/playlist/3OL5heo9PTgpS07zRxdmZ1"
+    "https://open.spotify.com/embed/playlist/3OL5heo9PTgpS07zRxdmZ1",
+    "https://open.spotify.com/embed/playlist/7id2MqDNGaebcgGufiAEtb",
+    "https://open.spotify.com/embed/playlist/1EvJLdyjJuYUxxwUTnUwFV",
+    "https://open.spotify.com/embed/playlist/2y2NGgjkbAm11Auw3YZqZZ",
+    "https://open.spotify.com/embed/playlist/37i9dQZF1DX17GkScaAekA"
   ],
   "song_articles": [
     "https://www.nolimitsphonk.com/tools/music-for-video/"
@@ -14,6 +18,15 @@
   "training_searches": [
     "gym weight lifting training workout montage squat deadlift",
     "sprint training track athlete workout",
-    "boxing training heavy bag workout montage"
-  ]
+    "boxing training heavy bag workout montage",
+    "night run lone runner at dusk training",
+    "low light gym cinematic lone lifter",
+    "slow motion training sprint gym"
+  ],
+  "playlist_genres": {
+    "https://open.spotify.com/embed/playlist/7id2MqDNGaebcgGufiAEtb": "sad phonk",
+    "https://open.spotify.com/embed/playlist/1EvJLdyjJuYUxxwUTnUwFV": "slowed reverb",
+    "https://open.spotify.com/embed/playlist/2y2NGgjkbAm11Auw3YZqZZ": "melancholic",
+    "https://open.spotify.com/embed/playlist/37i9dQZF1DX17GkScaAekA": "dark academia"
+  }
 }

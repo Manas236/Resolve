@@ -44,7 +44,16 @@ class TrainingVision:
                  "-threads", "1", str(frame)], check=True, timeout=20)
             if frame.is_file():
                 frames.append((second, frame))
-        return score_frames(frames, self.classify, self.threshold, self.model)
+        result = score_frames(frames, self.classify, self.threshold, self.model)
+        if result["accepted"]:
+            import numpy as np
+            raw = subprocess.check_output(["ffmpeg", "-v", "error", "-protocol_whitelist", "file",
+                "-ss", str(start), "-i", str(path), "-t", str(end-start), "-an", "-vf",
+                "fps=4,scale=48:32,format=gray", "-threads", "1", "-f", "rawvideo", "pipe:1"], timeout=30)
+            pixels = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 32, 48).astype(np.float32)
+            motion = float(np.abs(np.diff(pixels, axis=0)).mean()/255) if len(pixels) > 1 else 0.
+            result["mood"] = visual_mood(frames, self.classify, motion)
+        return result
 
 
 def score_frames(frames, classify, threshold, model=MODEL):
@@ -60,3 +69,22 @@ def score_frames(frames, classify, threshold, model=MODEL):
     return {"model": model, "threshold": threshold,
             "accepted": len(scored) == 5 and sum(frame["passed"] for frame in scored) >= 3,
             "frames": scored}
+
+
+MOOD_PROMPTS = ("dark moody gym at night", "a lone runner at dusk", "slow-motion lifting",
+                "an intense sprint", "bright daytime training")
+
+
+def visual_mood(frames, classify, motion):
+    from PIL import Image, ImageStat
+    scores = dict.fromkeys(MOOD_PROMPTS, 0.0)
+    brightness = 0
+    for _, path in frames:
+        with Image.open(path) as frame:
+            brightness += ImageStat.Stat(frame.convert("L")).mean[0] / 255
+        for row in classify(str(path), candidate_labels=list(MOOD_PROMPTS), hypothesis_template="{}"):
+            scores[row["label"]] += float(row["score"]) / len(frames)
+    brightness /= len(frames)
+    intensity = .55 * scores["an intense sprint"] + .25 * min(1, motion * 6) + .20 * brightness
+    return {"label": max(scores, key=scores.get), "scores": scores, "brightness": round(brightness, 3),
+            "motion": round(motion, 3), "intensity": round(intensity, 3)}
