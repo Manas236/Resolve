@@ -42,8 +42,8 @@ def render_reel(
     caption_preset: str | None = None,
 ) -> None:
     """Burn in clip-relative captions and mix local files into a vertical MP4."""
-    if format_id not in {"F1", "F2", "F3"}:
-        raise ValueError("Use format F1, F2 or F3")
+    if format_id not in {"F1", "F2", "F3", "F4"}:
+        raise ValueError("Use format F1, F2, F3 or F4")
     if not all(math.isfinite(value) and value >= 0 for value in (video_start, song_start, duration)):
         raise ValueError("Invalid render interval")
     if not 20 <= duration <= (35 if format_id == "F1" else 25):
@@ -52,10 +52,12 @@ def render_reel(
         raise ValueError("Hook text is required")
     if format_id == "F2" and not (quote.strip() or text_lines):
         raise ValueError("F2 requires a quote")
+    if format_id == "F4" and (len(text_lines) != 3 or not caption_preset):
+        raise ValueError("F4 requires three experimental lines and a caption preset.")
     if format_id == "F3" and voiceover is None:
         raise ValueError("F3 requires clean voiceover audio")
     end_ms = round(duration * 1000)
-    if format_id != "F2":
+    if format_id in {"F1", "F3"}:
         _validate_speech(words, end_ms)
     destination = Path(destination).resolve()
     inputs = [Path(video).resolve(), Path(song).resolve()]
@@ -65,7 +67,8 @@ def render_reel(
         raise ValueError("Output must differ from the inputs")
     speech = {"F1": "2:a:0" if voiceover is not None else "0:a:0", "F3": "2:a:0"}.get(format_id)
     font_option = ":fontsdir=fonts" if caption_preset else ""
-    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30,ass=captions.ass{font_option}[outv]"]
+    turning_cut = r",select='not(between(t,8,8.6))',setpts=N/(30*TB)" if format_id == "F4" else ""
+    filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30{turning_cut},ass=captions.ass{font_option}[outv]"]
     if speech is None:
         filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
     else:
@@ -81,15 +84,19 @@ def render_reel(
             from shutil import copytree
 
             copytree(FONTS, staging / "fonts")
-            markers = music_markers(song, song_start, duration) if text_lines else ()
-            ass = styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers)
+            markers = music_markers(song, song_start, duration) if text_lines and format_id == "F2" else ()
+            ass = styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers, experimental=format_id == "F4")
         else:
             ass = highlighted_ass(words if speech else (), start_ms=0, end_ms=end_ms, hook=hook,
                                   quote=quote if speech is None else "")
         (staging / "captions.ass").write_text(ass, encoding="utf-8")
         staged = staging / "reel.mp4"
         command = ["ffmpeg", "-nostdin", "-v", "error"]
-        for path, start in zip(inputs, (video_start, song_start, 0)):
+        for index, (path, start) in enumerate(zip(inputs, (video_start, song_start, 0))):
+            if index == 0 and (format_id == "F4" or format_id == "F1" and voiceover is not None):
+                command.extend(["-stream_loop", "-1"])
+            if index == 1 and format_id == "F1" and voiceover is not None:
+                command.extend(["-stream_loop", "-1"])
             command.extend(["-protocol_whitelist", "file", "-ss", str(start), "-i", str(path)])
         command.extend([
             "-filter_complex_threads", "1", "-filter_complex", ";".join(filters),
@@ -157,6 +164,7 @@ class LocalReelBuilder:
         return {
             "F1": None if whisper else "Configure a local Whisper model.",
             "F2": None if self.quote.strip() or self.generate_captions else "Configure quote text.",
+            "F4": None if self.generate_captions else "Configure the experimental format renderer.",
             "F3": next((reason for ready, reason in (
                 (whisper, "Configure a local Whisper model."),
                 (bool(self.voice_script.strip()), "Configure a voice script."),
@@ -168,7 +176,7 @@ class LocalReelBuilder:
         from .captions import transcribe_local_words
         from .tts import synthesize
 
-        if format_id != "F2" and self.whisper_model is None:
+        if format_id in {"F1", "F3"} and self.whisper_model is None:
             raise ValueError("Configure a local Whisper model for speech formats")
         with TemporaryDirectory(dir=destination.parent) as directory:
             speech = Path(directory) / "speech.wav"
@@ -179,7 +187,7 @@ class LocalReelBuilder:
                 try:
                     samples = decode_speech(speech_source)
                 except subprocess.SubprocessError as error:
-                    raise NoSpeech("F1 skipped: the speech source has no audio track.") from error
+                    raise NoSpeech("F1 skipped: the speech source has no decodable audio.") from error
                 words = transcribe_local_words(speech_source, self.whisper_model, samples=samples)
                 try:
                     passage, mood = select_passage(words, samples, self.gemini_key)
@@ -205,6 +213,8 @@ class LocalReelBuilder:
                            voice=self.voice_id)
                 voiceover = speech
                 words = transcribe_local_words(speech, self.whisper_model)
+                if words:
+                    duration = min(25, max(22, words[-1].end_ms / 1000 + 0.1))
             render_reel(video, song, destination, format_id=format_id, hook=video_text["hook"] if video_text else self.hook,
                         quote=self.quote, words=words, voiceover=voiceover, duration=duration,
                         video_start=starts[0], song_start=starts[1],

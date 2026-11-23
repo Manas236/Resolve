@@ -63,7 +63,7 @@ def _accented(text, width, accent):
     return r"\N".join(" ".join(row) for row in rows)
 
 
-def styled_ass(hook, lines, words, preset, end_ms, markers=()):
+def styled_ass(hook, lines, words, preset, end_ms, markers=(), *, experimental=False):
     _, family, hook_size, line_size, accent = PRESETS[preset]
     header = [
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
@@ -95,8 +95,8 @@ def styled_ass(hook, lines, words, preset, end_ms, markers=()):
         header.append(f"Dialogue: 0,{_ass_time(start // 10)},{_ass_time((end + 9) // 10)},{style},"
                       f"{{\\pos(540,{y})\\blur0.6{pop}}}{payload}")
 
-    boundaries = line_boundaries(markers, len(lines), end_ms)
-    event("Hook", 0, min(1500, end_ms) if not boundaries else boundaries[0], hook, 480)
+    boundaries = [3500, 8000, 15000, end_ms] if experimental else line_boundaries(markers, len(lines), end_ms)
+    event("Hook", 0, min(1500, end_ms) if experimental or not boundaries else boundaries[0], hook, 480)
     for index, text in enumerate(lines):
         event("Line", boundaries[index], boundaries[index + 1], text, 1210, keyword=True)
     slots = max(1, (len(words) + 4) // 5)

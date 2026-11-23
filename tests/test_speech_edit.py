@@ -25,3 +25,13 @@ class SpeechEditTests(unittest.TestCase):
         speech = {"mood": "defiant", "energy": 0.7}
         self.assertLess(music_distance(speech, {"mood": "aggressive", "energy": 0.71}),
                         music_distance(speech, {"mood": "calm resolve", "energy": 0.7}))
+
+    def test_f4_has_role_specific_copy_and_limited_exploration(self):
+        import random
+        from resolve_pipeline.reel_text import choose_text
+        from resolve_pipeline.scheduler import choose_format
+        text = choose_text("F4", set())
+        self.assertEqual(len(text["lines"]), 3)
+        rng = random.Random(25)
+        experimental = sum(choose_format((1, 1, 1, 1), {}, rng) == "F4" for _ in range(1000))
+        self.assertTrue(0 < experimental < 200)

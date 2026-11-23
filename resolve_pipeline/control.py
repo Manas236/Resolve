@@ -158,7 +158,10 @@ class Pipeline:
 
     def settings(self):
         with closing(sqlite3.connect(self.database)) as db:
-            return DEFAULTS | dict(db.execute("SELECT name,value FROM settings"))
+            values = DEFAULTS | dict(db.execute("SELECT name,value FROM settings"))
+        if values["format_weights"].count(",") == 2:
+            values["format_weights"] += ",1"
+        return values
 
     def save_settings(self, values):
         current = self.settings()
@@ -288,9 +291,9 @@ class Pipeline:
         if type(count) is not int or not 1 <= count <= 20:
             raise ValueError("Choose between 1 and 20 reels")
         if format_id not in ("auto", *FORMATS):
-            raise ValueError("Choose Auto, F1, F2 or F3")
+            raise ValueError("Choose Auto, F1, F2, F3 or F4")
         if format_id != "auto" and self.reel_builder is None:
-            raise ValueError("Configure the format renderer before selecting F1, F2 or F3")
+            raise ValueError("Configure the format renderer before selecting F1, F2, F3 or F4")
         weights = tuple(map(int, self.settings()["format_weights"].split(",")))
         requirements = self.format_requirements()
         if format_id != "auto" and requirements[format_id]:

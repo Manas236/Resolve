@@ -17,8 +17,10 @@ def normalized(line):
 def checked_text(hook, lines, format_id):
     if not isinstance(hook, str) or not isinstance(lines, list) or any(not isinstance(line, str) for line in lines):
         raise ValueError("Invalid reel text")
-    if not (2 <= len(lines) <= 4 if format_id == "F2" else not lines):
+    if not (2 <= len(lines) <= 4 if format_id in {"F2", "F4"} else not lines):
         raise ValueError("Use 2–4 lines for F2. Speech formats use a hook.")
+    if format_id == "F4" and len(lines) != 3:
+        raise ValueError("F4 needs friction, turning point, and next-session action.")
     values = [" ".join(line.split()) for line in [hook, *lines]]
     for line in values:
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9’' ,.!?–-]{1,41}", line) or not 2 <= len(line.split()) <= 6:
@@ -34,7 +36,8 @@ def gemini_text(api_key, format_id, context, used):
         "2–6 words and at most 42 characters each. No hashtags, brands, profanity, cliché, or filler. "
         "Return JSON with a hook string and a lines array. "
         + ("Write 2–4 separate punchy lines that build on the hook. "
-           if format_id == "F2" else "Return an empty lines array. ")
+           if format_id == "F2" else "Write exactly three lines: a gym friction point, its turning point, and a concrete next-session action. "
+           if format_id == "F4" else "Return an empty lines array. ")
         + f"Footage context: {context[:180]}. Avoid repeating: {', '.join(sorted(used))[:3500]}."
     )
     data = gemini_json(api_key, prompt)
@@ -68,7 +71,28 @@ def choose_text(format_id, used, proposed=None, *, context=""):
         return {**proposed, "source": "gemini"}
     bank = BANK.read_text(encoding="utf-8").splitlines()
     choices = [line for line in bank if normalized(line) not in used]
-    count = 4 if format_id == "F2" else 1
+    count = 4 if format_id in {"F2", "F4"} else 1
+    if format_id == "F4":
+        # Separate each role so fallback copy retains the experiment's structure.
+        friction = ["Rushing the first rep", "Skipping the hard range", "Losing tension halfway"]
+        friction += [f"{verb} {target}" for verb in (
+            "Rushing", "Forgetting", "Overthinking", "Skipping", "Misjudging", "Changing", "Dreading",
+            "Second guessing", "Cutting short", "Holding back on", "Losing focus through"
+        ) for target in ("the first rep", "the warmup", "the reset", "the last rep", "the next set",
+                         "the easy sets", "the hard part", "the last round", "the walkback", "the first set")]
+        turning = ["Slow the first rep", "Own the bottom position", "Reset before you pull", *bank[:96]]
+        actions = ["Next session start lighter", "Film your first set", "Pause on rep one",
+                   *[f"Next time {line.lower()}" for line in bank if len(line.split()) <= 4 and len(line) <= 32]]
+        picked = []
+        excluded = set(used)
+        for pool in (friction, turning, actions, choices):
+            unused = [line for line in pool if normalized(line) not in excluded]
+            if not unused:
+                raise ValueError("No unused F4 template lines remain in the last 100 reels.")
+            line = random.choice(unused)
+            excluded.add(normalized(line))
+            picked.append(line)
+        return {**checked_text(picked[-1], picked[:3], format_id), "source": "bank"}
     if len(choices) < count:
         raise ValueError("Caption bank exhausted for the last 100 reels. Add fresh lines or restore Gemini.")
     context = normalized(context)

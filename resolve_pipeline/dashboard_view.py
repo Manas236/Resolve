@@ -80,7 +80,7 @@ def review(pipeline, form):
             edit += '<details open><summary>On-screen text</summary>' + form(
                 "edit-video-text", field + f'<label>Hook<input name="hook" value="{hook}" required></label>'
                 + (f'<label>Lines (one per row)<textarea name="lines" required>{lines}</textarea></label>'
-                   if format_id == "F2" else ""), "Save text and render for review") + '</details>'
+                   if format_id in {"F2", "F4"} else ""), "Save text and render for review") + '</details>'
         if reel_id in decisions:
             decision = decisions[reel_id]
             music = decision["song_tags"]
@@ -155,7 +155,7 @@ def settings(pipeline, form, zone):
                     for value, label in (("approval", "Require approval"), ("auto", "Auto-post")))
     weights = "".join(f'<label>{name}<input data-weight type="range" min="0" max="100" value="{escape(value)}">'
                       f'<output>{escape(value)}</output></label>'
-                      for name, value in zip(("F1", "F2", "F3"), values["format_weights"].split(",")))
+                      for name, value in zip(("F1", "F2", "F3", "F4 experimental"), values["format_weights"].split(",")))
     cadence = "".join(f'<option {"selected" if value == values["refresh_cadence"] else ""}>{value}</option>'
                      for value in ("weekly", "monthly"))
     from .caption_style import PRESETS, PREVIEW_DIR

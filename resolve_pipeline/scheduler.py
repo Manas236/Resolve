@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from .posting import Post, PostingError
 
 
-FORMATS = ("F1", "F2", "F3")
+FORMATS = ("F1", "F2", "F3", "F4")
 
 
 def choose_format(weights, observations, rng=None):
@@ -19,7 +19,7 @@ def choose_format(weights, observations, rng=None):
     for format_id, weight in zip(FORMATS, weights):
         if weight > 0:
             wins, losses = observations.get(format_id, (0, 0))
-            scores[format_id] = weight * rng.betavariate(1 + wins, 1 + losses)
+            scores[format_id] = weight * rng.betavariate(1 + wins, 1 + losses + (3 if format_id == "F4" else 0))
     if not scores:
         raise ValueError("At least one enabled format is required")
     return max(scores, key=scores.get)

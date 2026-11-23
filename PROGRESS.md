@@ -238,3 +238,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - F1 scores songs using tempo, energy and Gemini mood when available. Review shows the selected passage and music reasoning. Mood-distance test passed.
 
 - Explicit --hook and --quote override on-screen generation and trigger a Review warning. Caption tests passed.
+
+- F4 uses friction, an 8-second training jump cut and a next-session action. A conservative bandit prior gives it a low initial share. Exploration test passed.
