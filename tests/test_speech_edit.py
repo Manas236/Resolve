@@ -19,3 +19,9 @@ class SpeechEditTests(unittest.TestCase):
         self.assertEqual(meta["mood"], "defiant")
         with self.assertRaisesRegex(ValueError, "20–35"):
             select_passage(words[:1], np.ones(50), sample_rate=1)
+
+    def test_music_prefers_compatible_mood_and_energy(self):
+        from resolve_pipeline.speech_edit import music_distance
+        speech = {"mood": "defiant", "energy": 0.7}
+        self.assertLess(music_distance(speech, {"mood": "aggressive", "energy": 0.71}),
+                        music_distance(speech, {"mood": "calm resolve", "energy": 0.7}))

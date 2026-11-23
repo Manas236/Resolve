@@ -80,3 +80,32 @@ def decode_speech(path, limit=None):
 def relative_words(passage):
     return [replace(word, start_ms=word.start_ms - passage.clip_start_ms,
                     end_ms=word.end_ms - passage.clip_start_ms) for word in passage.words]
+
+
+def song_tags(path, title, key=""):
+    import librosa
+    import numpy as np
+
+    pcm = decode_speech(path, limit=90)
+    if not pcm.size:
+        raise ValueError("Song has no audio samples.")
+    tempo, _ = librosa.beat.beat_track(y=pcm, sr=16000)
+    bpm = float(np.atleast_1d(tempo)[0])
+    rms = float(np.sqrt(np.mean(pcm ** 2)))
+    energy = min(1.0, 0.5 * (min(bpm, 180)/180) + 0.5 * min(rms * 5, 1))
+    mood = "aggressive" if energy > 0.66 else "calm resolve"
+    source = "tempo and RMS heuristic"
+    if key:
+        data = gemini_json(key, "Infer musical mood from title and artist only. "
+                           "Return JSON with mood (aggressive, defiant, calm resolve, grief-to-strength). "
+                           f"Title/artist: {title[:250]}")
+        if isinstance(data, dict) and data.get("mood") in MOODS:
+            mood, source = data["mood"], "Gemini title/artist"
+    return {"bpm": round(bpm, 1), "energy": round(energy, 3), "mood": mood, "mood_source": source}
+
+
+def music_distance(speech, music):
+    similar = {"aggressive": "defiant", "defiant": "aggressive",
+               "calm resolve": "grief-to-strength", "grief-to-strength": "calm resolve"}
+    penalty = 0 if speech["mood"] == music["mood"] else 0.2 if similar[speech["mood"]] == music["mood"] else 0.65
+    return abs(speech["energy"] - music["energy"]) + penalty

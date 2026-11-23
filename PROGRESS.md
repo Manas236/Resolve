@@ -234,3 +234,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - F1 uses a separate library speech asset over training footage. The local dashboard accepts repeatable --speech flags. Acquisition architecture tests passed.
 
 - Speech captions now keep 3–5 words in view while the accent follows spoken words. Caption tests passed.
+
+- F1 scores songs using tempo, energy and Gemini mood when available. Review shows the selected passage and music reasoning. Mood-distance test passed.

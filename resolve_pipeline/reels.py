@@ -164,7 +164,7 @@ class LocalReelBuilder:
             ) if not ready), None),
         }
 
-    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None):
+    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None, select_music=None):
         from .captions import transcribe_local_words
         from .tts import synthesize
 
@@ -194,6 +194,11 @@ class LocalReelBuilder:
                     check=True, timeout=45,
                 )
                 voiceover = speech
+                if select_music:
+                    song, offset = select_music(mood | {"speech": str(speech_source),
+                                                       "start": passage.clip_start_ms / 1000,
+                                                       "end": passage.clip_end_ms / 1000})
+                    starts = (starts[0], offset, 0)
             if format_id == "F3":
                 synthesize(self.voice_script, speech, engine=self.voice, piper_model=self.piper_model,
                            kokoro_model=self.kokoro_model, kokoro_voices=self.kokoro_voices,

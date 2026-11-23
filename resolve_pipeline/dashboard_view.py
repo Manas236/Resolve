@@ -49,6 +49,7 @@ def asset_field(asset_id):
 def review(pipeline, form):
     editorial = pipeline.editorial()
     video_texts = pipeline.video_texts()
+    decisions = pipeline.music_decisions()
     cards = []
     for reel_id, state, error, source, format_id, song, production in pipeline.reel_details():
         field = asset_field(reel_id)
@@ -77,6 +78,15 @@ def review(pipeline, form):
                 "edit-video-text", field + f'<label>Hook<input name="hook" value="{hook}" required></label>'
                 + (f'<label>Lines (one per row)<textarea name="lines" required>{lines}</textarea></label>'
                    if format_id == "F2" else ""), "Save text and render for review") + '</details>'
+        if reel_id in decisions:
+            decision = decisions[reel_id]
+            music = decision["song_tags"]
+            edit += ('<details><summary>Speech and music match</summary>'
+                     f'<p>{escape(decision["mood"])} · {decision["start"]:.2f}–{decision["end"]:.2f}s'
+                     f' · {escape(decision["passage_reason"])}</p>'
+                     f'<p>{escape(decision["song"])} · {escape(music["mood"])} · {music["bpm"]} BPM'
+                     f' · energy {music["energy"]} · {escape(music["mood_source"])}</p>'
+                     f'<p>{escape(decision["reason"])} Match distance {decision["distance"]}.</p></details>')
         cards.append(
             f'<article class="card reel-card" tabindex="0" data-reel="{reel_id}" data-state="{state}">'
             f'{media}<div><span class="badge">{escape(format_id or "Local preview")}</span> '

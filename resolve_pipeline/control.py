@@ -19,6 +19,7 @@ from .dashboard_settings import DEFAULTS, validate_settings
 from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .bundles import schema
 from .reels import NoSpeech
+from .speech_edit import music_distance, song_tags
 from .reel_text import checked_text, choose_text, gemini_text, normalized
 from .framing import render_vertical
 from .performance import Performance
@@ -57,6 +58,7 @@ class Pipeline:
             db.execute("CREATE TABLE IF NOT EXISTS telegram_previews ("
                        "reel_id INTEGER PRIMARY KEY, status TEXT NOT NULL)")
             schema(db)
+            db.execute("CREATE TABLE IF NOT EXISTS song_moods(path TEXT PRIMARY KEY, fingerprint TEXT, tags TEXT)")
             existing = {row[1] for row in db.execute("PRAGMA table_info(reels)")}
             for name, definition in (
                 ("caption", "TEXT NOT NULL DEFAULT ''"),
@@ -67,6 +69,7 @@ class Pipeline:
                 ("production", "INTEGER NOT NULL DEFAULT 0"),
                 ("render_claim", "INTEGER"),
                 ("video_text", "TEXT"),
+                ("music_decision", "TEXT"),
             ):
                 if name not in existing:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
@@ -346,6 +349,46 @@ class Pipeline:
                 self._render(reel_id)
         return ids
 
+    def music_decisions(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return {key: json.loads(raw) for key, raw in db.execute(
+                "SELECT id,music_decision FROM reels WHERE music_decision IS NOT NULL")}
+
+    def _match_song(self, db, reel_id, speech, production):
+        rows = db.execute("""SELECT library.id,library.path,imported_media.metadata FROM library
+                             LEFT JOIN imported_media USING(path)
+                             WHERE library.kind='song' AND retired=0 AND (?=0 OR metadata IS NOT NULL)
+                             ORDER BY pinned DESC,id""", (int(production),)).fetchall()
+        matches = []
+        for asset_id, name, raw in rows:
+            path = Path(name)
+            metadata = json.loads(raw) if raw else {}
+            title = metadata.get("title") or path.stem
+            try:
+                stat = path.stat()
+                key = self.reel_builder.gemini_key
+                fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}:{title}:{bool(key)}"
+                cached = db.execute("SELECT tags FROM song_moods WHERE path=? AND fingerprint=?",
+                                    (name, fingerprint)).fetchone()
+                tags = json.loads(cached[0]) if cached else song_tags(path, title, key)
+                if not cached:
+                    with db:
+                        db.execute("INSERT OR REPLACE INTO song_moods VALUES(?,?,?)",
+                                   (name, fingerprint, json.dumps(tags)))
+            except (OSError, subprocess.SubprocessError, ValueError):
+                continue
+            matches.append((music_distance(speech, tags), asset_id, path, title, metadata, tags))
+        if not matches:
+            raise ValueError("No usable song could be matched to the speech.")
+        distance, asset_id, path, title, metadata, tags = min(matches, key=lambda row: row[0])
+        decision = speech | {"song": title, "song_tags": tags, "distance": round(distance, 3),
+                             "reason": "Lowest combined mood mismatch and speech/music energy distance."}
+        with db:
+            db.execute("UPDATE reels SET song_id=?, music_decision=? WHERE id=?",
+                       (asset_id, json.dumps(decision), reel_id))
+        offset = segment_starts([metadata])[0] if metadata else 0
+        return path, offset
+
     def _render(self, reel_id):
         with closing(sqlite3.connect(self.database)) as db:
             with db:
@@ -388,7 +431,12 @@ class Pipeline:
                         if not voice:
                             raise NoSpeech("F1 skipped: add a separate speech source.")
                         starts = segment_starts([imported[source], imported[song[0]]]) if production else (0, 0, 0)
-                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=starts, **styling)
+                        def select_music(mood):
+                            return self._match_song(db, reel_id, mood, production)
+
+                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=starts,
+                                          select_music=select_music, **styling)
+                        song_id = db.execute("SELECT song_id FROM reels WHERE id=?", (reel_id,)).fetchone()[0]
                     elif production:
                         self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]), **styling)
                     else:
