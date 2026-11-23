@@ -1,0 +1,61 @@
+{
+  "recorded": "2026-11-23",
+  "machine": "Office PC, Intel Core 5 210H (8 cores / 12 threads), Windows 11, CPU only",
+  "software": {
+    "python": "3.14.6",
+    "faster_whisper": "1.2.1",
+    "ctranslate2": "4.9.1",
+    "compute_type": "int8"
+  },
+  "command": "python -m tools.whisper_benchmark --model base.en <dir> --model small.en <dir> --model distil-large-v3 <dir> --clip <clip.wav> <reference.txt> --threads 4",
+  "model_sources": {
+    "base.en": "Systran/faster-whisper-base.en",
+    "small.en": "Systran/faster-whisper-small.en",
+    "distil-large-v3": "Systran/faster-distil-whisper-large-v3"
+  },
+  "clip": {
+    "source": "media/speech_full.mp4 (YouTube RC6sMFbL288, corpus speech entry)",
+    "window_seconds": [
+      97.5,
+      127.0
+    ],
+    "duration_seconds": 29.5,
+    "audio": "16 kHz mono WAV"
+  },
+  "reference": "YouTube automatic English captions (en-orig) for the same window, 76 words. Independent ASR, not human-verified; WER is relative to that transcript.",
+  "budget": "Model load plus transcription under 60 s per clip (harness rule).",
+  "cpu_threads": 4,
+  "models": {
+    "base.en": {
+      "load_seconds": 1.174,
+      "runs": [
+        {
+          "clip": "speech_full_97.5-127.0s.wav",
+          "seconds": 3.92,
+          "wer": 0.0854
+        }
+      ]
+    },
+    "small.en": {
+      "load_seconds": 2.329,
+      "runs": [
+        {
+          "clip": "speech_full_97.5-127.0s.wav",
+          "seconds": 10.095,
+          "wer": 0.0732
+        }
+      ]
+    },
+    "distil-large-v3": {
+      "load_seconds": 6.408,
+      "runs": [
+        {
+          "clip": "speech_full_97.5-127.0s.wav",
+          "seconds": 23.473,
+          "wer": 0.0122
+        }
+      ]
+    }
+  },
+  "winner": "distil-large-v3"
+}
