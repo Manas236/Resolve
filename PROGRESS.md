@@ -232,3 +232,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - F1 segment selection now transcribes the full source and bounds every candidate to complete sentences. The focused fixture test passed.
 
 - F1 uses a separate library speech asset over training footage. The local dashboard accepts repeatable --speech flags. Acquisition architecture tests passed.
+
+- Speech captions now keep 3–5 words in view while the accent follows spoken words. Caption tests passed.

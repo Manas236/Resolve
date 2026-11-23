@@ -74,21 +74,35 @@ def styled_ass(hook, lines, words, preset, end_ms, markers=()):
         header.append(f"Style: {name},{family},{size},&H00FFFFFF,&H00000000,&H78000000,0,1,7,5,5,105,105,0")
     header.extend(["[Events]", "Format: Layer,Start,End,Style,Text"])
 
-    def event(style, start, end, text, y, keyword=False):
+    def event(style, start, end, text, y, keyword=False, phrase=None):
         if start >= end or not text.strip():
             return
         width = 14 if preset == "montserrat" and style == "Hook" else 17
         payload = (_accented(text, width, accent) if keyword else
                    r"\N".join(wrap(_ass_text(text).upper(), width, break_long_words=False, break_on_hyphens=False)))
+        if phrase:
+            chunk, active = phrase
+            pieces = [_ass_text(word.text).upper() for word in chunk]
+            lengths = list(map(len, pieces))
+            pieces[active] = "{\\1c" + accent + "}" + pieces[active] + "{\\1c&H00FFFFFF&}"
+            cut = min(range(1, len(pieces)), key=lambda i: abs(sum(lengths[:i]) - sum(lengths[i:]))) if len(pieces) > 1 else 1
+            payload = " ".join(pieces)
+            if sum(lengths) + len(pieces) - 1 > width:
+                payload = r"\N".join((" ".join(pieces[:cut]), " ".join(pieces[cut:])))
         pop = r"\fscx86\fscy86\t(0,85,\fscx108\fscy108)\t(85,145,\fscx100\fscy100)"
-        word_color = "\\1c" + accent if style == "Word" else ""
+        if phrase and active:
+            pop = ""
         header.append(f"Dialogue: 0,{_ass_time(start // 10)},{_ass_time((end + 9) // 10)},{style},"
-                      f"{{\\pos(540,{y})\\blur0.6{pop}{word_color}}}{payload}")
+                      f"{{\\pos(540,{y})\\blur0.6{pop}}}{payload}")
 
     boundaries = line_boundaries(markers, len(lines), end_ms)
-    event("Hook", 0, boundaries[0] if boundaries else min(1500, end_ms), hook, 480)
+    event("Hook", 0, min(1500, end_ms) if not boundaries else boundaries[0], hook, 480)
     for index, text in enumerate(lines):
         event("Line", boundaries[index], boundaries[index + 1], text, 1210, keyword=True)
-    for word in words:
-        event("Word", max(0, word.start_ms), min(end_ms, word.end_ms), word.text, 1210)
+    slots = max(1, (len(words) + 4) // 5)
+    for start in range(slots):
+        chunk = words[len(words) * start // slots:len(words) * (start + 1) // slots]
+        for index, word in enumerate(chunk):
+            end = chunk[index + 1].start_ms if index + 1 < len(chunk) else word.end_ms
+            event("Word", max(0, word.start_ms), min(end_ms, end), word.text, 1210, phrase=(chunk, index))
     return "\n".join(header) + "\n"
