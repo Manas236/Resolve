@@ -50,6 +50,9 @@ def review(pipeline, form):
     editorial = pipeline.editorial()
     video_texts = pipeline.video_texts()
     decisions = pipeline.music_decisions()
+    overridden = getattr(pipeline.reel_builder, "hook", "") or getattr(pipeline.reel_builder, "quote", "")
+    warning = ('<p class="badge">On-screen text override enabled. The generator is bypassed for affected reels.</p>'
+               if isinstance(overridden, str) and overridden else '')
     cards = []
     for reel_id, state, error, source, format_id, song, production in pipeline.reel_details():
         field = asset_field(reel_id)
@@ -99,7 +102,7 @@ def review(pipeline, form):
             f'<p class="error">{escape(error or "")}</p>{edit}<div class="actions">{actions}</div></div></article>'
         )
     notice = '<p class="badge">Placeholder / test media never enters the posting queue.</p>'
-    return (notice + '<p class="muted">J / K Navigate · A Approve · R Reject · G Regenerate</p>'
+    return (warning + notice + '<p class="muted">J / K Navigate · A Approve · R Reject · G Regenerate</p>'
             '<div class="review-grid">' + ("".join(cards) or empty("Make a reel to start reviewing.")) + '</div>')
 
 

@@ -339,7 +339,7 @@ def main():
     parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
     parser.add_argument("--performance-fixture", type=Path)
     parser.add_argument("--hook")
-    parser.add_argument("--quote", default="")
+    parser.add_argument("--quote", default="", help="Override F2 lines separated by | or newlines")
     parser.add_argument("--voice-script", default="")
     parser.add_argument("--whisper-model", type=Path)
     parser.add_argument("--piper-model", type=Path)
@@ -349,7 +349,7 @@ def main():
         ZoneInfo(args.zone)
         auth = DashboardAuth(settings.get("RESOLVE_DASHBOARD_PASSWORD_HASH", ""))
         builder = configured_builder(
-            settings, hook=args.hook, quote=args.quote, voice_script=args.voice_script,
+            settings, hook=args.hook, quote=args.quote.replace("|", "\n"), voice_script=args.voice_script,
             whisper_model=args.whisper_model, piper_model=args.piper_model,
         )
     except (ValueError, ZoneInfoNotFoundError) as error:

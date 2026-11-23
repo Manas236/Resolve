@@ -240,11 +240,20 @@ class Pipeline:
 
     def _reserve_video_text(self, db, reel_id, format_id, context):
         key = self.reel_builder.gemini_key
+        hook = getattr(self.reel_builder, "hook", "")
+        quote = getattr(self.reel_builder, "quote", "")
+        hook = hook if isinstance(hook, str) else ""
+        quote = quote if isinstance(quote, str) and format_id == "F2" else ""
+        if quote and len(quote.splitlines()) == 1:
+            raise ValueError("--quote needs two to four short lines separated by newlines.")
         recent = self._recent_video_text(db, reel_id)
-        proposed = gemini_text(key, format_id, context, recent) if key else None
+        proposed = gemini_text(key, format_id, context, recent) if key and not (hook or quote) else None
         with db:
             db.execute("BEGIN IMMEDIATE")
             text = choose_text(format_id, self._recent_video_text(db, reel_id), proposed, context=context)
+            if hook or quote:
+                text = checked_text(hook or text["hook"], quote.splitlines() if quote else text["lines"],
+                                    format_id) | {"source": "override"}
             db.execute("UPDATE reels SET video_text=? WHERE id=?", (json.dumps(text), reel_id))
         return text
 

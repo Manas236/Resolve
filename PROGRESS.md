@@ -236,3 +236,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - Speech captions now keep 3–5 words in view while the accent follows spoken words. Caption tests passed.
 
 - F1 scores songs using tempo, energy and Gemini mood when available. Review shows the selected passage and music reasoning. Mood-distance test passed.
+
+- Explicit --hook and --quote override on-screen generation and trigger a Review warning. Caption tests passed.

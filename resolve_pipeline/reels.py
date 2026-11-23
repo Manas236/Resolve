@@ -216,10 +216,10 @@ def configured_builder(settings, *, hook=None, quote="", voice_script="", whispe
         value = argument or settings.get(name)
         return Path(value).expanduser() if value else None
 
-    hook = hook or settings.get("RESOLVE_REEL_HOOK", "")
+    hook = hook or ""
     return LocalReelBuilder(
         generate_captions=True, gemini_key=settings.get("GEMINI_API_KEY", ""),
-        hook=hook, quote=quote or settings.get("RESOLVE_REEL_QUOTE", ""),
+        hook=hook, quote=quote,
         voice_script=voice_script or settings.get("RESOLVE_VOICE_SCRIPT", ""),
         whisper_model=model_path(whisper_model, "RESOLVE_WHISPER_MODEL"),
         piper_model=model_path(piper_model, "RESOLVE_PIPER_MODEL"),
