@@ -37,6 +37,14 @@ def gemini_text(api_key, format_id, context, used):
            if format_id == "F2" else "Return an empty lines array. ")
         + f"Footage context: {context[:180]}. Avoid repeating: {', '.join(sorted(used))[:3500]}."
     )
+    data = gemini_json(api_key, prompt)
+    try:
+        return checked_text(data["hook"], data["lines"], format_id)
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def gemini_json(api_key, prompt):
     request = Request(
         f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
         data=json.dumps({"contents": [{"parts": [{"text": prompt}]}],
@@ -47,8 +55,7 @@ def gemini_text(api_key, format_id, context, used):
     try:
         with urlopen(request, timeout=12) as response:
             payload = json.load(response)
-        data = json.loads(payload["candidates"][0]["content"]["parts"][0]["text"])
-        return checked_text(data["hook"], data["lines"], format_id)
+        return json.loads(payload["candidates"][0]["content"]["parts"][0]["text"])
     except HTTPError as error:
         error.close()
         return None

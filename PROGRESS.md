@@ -228,3 +228,5 @@ F2 now generates a hook and 2–4 timed lines. F1 and F3 generate a hook alongsi
 Rendered and probed three matched 1080×1920, 22-second comparison MP4s in `research/caption_presets/`. They use a synthetic test pattern and bass pulse. [Preview ZIP](https://chatgpt.com/library?file_id=libfile_44ac215cfbe8819180ed26e8ae3def9e&account_id=personal). Live Gemini and Windows runtime checks remain pending on the owner's machines. No milestone was ticked.
 
 Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and staged whitespace checks passed.
+
+- F1 segment selection now transcribes the full source and bounds every candidate to complete sentences. The focused fixture test passed.

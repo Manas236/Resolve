@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
 from .captions import Cue, highlighted_ass
 from .caption_style import FONTS, music_markers, styled_ass
 from .framing import VERTICAL_FRAME
+from .speech_edit import decode_speech, relative_words, select_passage
 
 _SENTENCE_END = re.compile(r"""[.!?]["'’”)]*$""")
 
@@ -45,8 +46,8 @@ def render_reel(
         raise ValueError("Use format F1, F2 or F3")
     if not all(math.isfinite(value) and value >= 0 for value in (video_start, song_start, duration)):
         raise ValueError("Invalid render interval")
-    if not 20 <= duration <= 25:
-        raise ValueError("Standard reels must last 20–25 seconds")
+    if not 20 <= duration <= (35 if format_id == "F1" else 25):
+        raise ValueError("F1 reels must last 20–35 seconds; other formats last 20–25 seconds")
     if not hook.strip():
         raise ValueError("Hook text is required")
     if format_id == "F2" and not (quote.strip() or text_lines):
@@ -173,20 +174,24 @@ class LocalReelBuilder:
             speech = Path(directory) / "speech.wav"
             words, voiceover, duration = (), None, 22
             if format_id == "F1":
-                streams = subprocess.check_output(
-                    ["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-select_streams", "a",
-                     "-show_entries", "stream=index", "-of", "csv=p=0", str(speech_source or video)], timeout=20)
-                if not streams.strip():
-                    raise NoSpeech("F1 skipped: the selected source has no audio track.")
+                speech_source = speech_source or video
+                try:
+                    samples = decode_speech(speech_source)
+                except subprocess.SubprocessError as error:
+                    raise NoSpeech("F1 skipped: the speech source has no audio track.") from error
+                words = transcribe_local_words(speech_source, self.whisper_model, samples=samples)
+                try:
+                    passage, mood = select_passage(words, samples, self.gemini_key)
+                except ValueError as error:
+                    raise NoSpeech(str(error)) from error
+                duration = (passage.clip_end_ms - passage.clip_start_ms) / 1000
+                words = relative_words(passage)
                 subprocess.run(
                     ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
-                     "-ss", str(starts[2]), "-i", str(speech_source or video), "-t", "25", "-map", "0:a:0",
-                     "-ac", "1", "-ar", "16000", str(speech)], check=True, timeout=45,
+                     "-ss", str(passage.clip_start_ms / 1000), "-i", str(speech_source),
+                     "-t", str(duration), "-map", "0:a:0", "-ac", "1", "-ar", "16000", str(speech)],
+                    check=True, timeout=45,
                 )
-                words = transcribe_local_words(speech, self.whisper_model)
-                if not words:
-                    raise NoSpeech("F1 skipped: Whisper detected no speech in the selected source.")
-                duration = speech_duration(words)
                 voiceover = speech
             if format_id == "F3":
                 synthesize(self.voice_script, speech, engine=self.voice, piper_model=self.piper_model,

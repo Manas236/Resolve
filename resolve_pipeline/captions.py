@@ -91,7 +91,7 @@ def transcribe_words(clean_speech, model):
     ]
 
 
-def transcribe_local_words(clean_speech, model_directory):
+def transcribe_local_words(clean_speech, model_directory, *, samples=None):
     """Transcribe with a preinstalled local Whisper model on CPU."""
     from pathlib import Path
     import subprocess
@@ -106,13 +106,14 @@ def transcribe_local_words(clean_speech, model_directory):
 
     model = WhisperModel(str(model_directory), device="cpu", compute_type="int8",
                          local_files_only=True)
-    pcm = subprocess.check_output(
-        ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
-         "-i", str(Path(clean_speech).resolve()), "-map", "0:a:0",
-         "-ac", "1", "-ar", "16000", "-f", "f32le", "pipe:1"],
-        timeout=120,
-    )
-    segments, _ = model.transcribe(np.frombuffer(pcm, dtype="<f4"),
+    if samples is None:
+        pcm = subprocess.check_output(
+            ["ffmpeg", "-nostdin", "-v", "error", "-protocol_whitelist", "file",
+             "-i", str(Path(clean_speech).resolve()), "-map", "0:a:0",
+             "-ac", "1", "-ar", "16000", "-f", "f32le", "pipe:1"], timeout=120,
+        )
+        samples = np.frombuffer(pcm, dtype="<f4")
+    segments, _ = model.transcribe(samples,
                                     language="en", word_timestamps=True, vad_filter=True)
     return [
         Cue(round(word.start * 1000), round(word.end * 1000), word.word.strip())
