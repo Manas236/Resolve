@@ -53,3 +53,5 @@ For user-only work, document the exact machine and single-line non-interactive c
 
 - Generated on-screen text is separate from the social caption. Gemini 2.5 Flash is preferred, and 512 validated lines cover quota gaps without repeating in a 100-reel window. An edit creates a new preview ID so a stale Telegram approval cannot approve revised text.
 - Default caption treatment is Anton. Bebas Neue and Montserrat Black are selectable. FFmpeg burns the vendored OFL fonts, and librosa aligns F2 transitions within a bounded window near the intended pacing.
+
+- F1 uses a separate audio source, full-source transcription, and sentence-bounded 20–35 second passage selection. Mood compatibility and audio energy rank songs. F4 enters the rotation as an experiment with a conservative prior. F3 defaults to Kokoro am_michael for a deeper male read.

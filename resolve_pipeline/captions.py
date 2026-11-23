@@ -104,7 +104,7 @@ def transcribe_local_words(clean_speech, model_directory, *, samples=None):
     from faster_whisper import WhisperModel
     import numpy as np
 
-    model = WhisperModel(str(model_directory), device="cpu", compute_type="int8",
+    model = WhisperModel(str(model_directory), device="cpu", compute_type="int8", cpu_threads=4,
                          local_files_only=True)
     if samples is None:
         pcm = subprocess.check_output(

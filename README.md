@@ -116,3 +116,11 @@ Configure `GEMINI_API_KEY` in the dashboard and operator environment using the d
 **Review → On-screen text** edits the hook and F2 lines before approval. Saving renders a new review copy and retires the old preview, so approve the new copy. **Settings → Caption preset** changes future renders. **Generate preset previews** renders three matched videos in `research/caption_presets/`. F2 changes lines on detected beats or onsets near the intended pacing, with even timing on audio without usable markers. F1 and F3 keep speech-aligned word timestamps.
 
 The Windows acquisition venv installs the yt-dlp default extras. Install Deno 2.3+ separately as shown in NEEDS_MANAS.md. The acquisition CLI checks its version before starting.
+
+### Speech and experimental reels
+
+Add a separate local narration source with repeatable `--speech PATH` options on the dashboard. F1 transcribes the source and uses a complete 20–35 second passage over the selected training clip. Review displays the speech and music match. Use `--hook` or `--quote "Line one|Line two"` for deliberate overrides. Review displays a warning while an override is active.
+
+F4 is an experimental gym friction, turning point, and next-session action format. Set its weight to zero to pause it. F3 uses Kokoro with `RESOLVE_KOKORO_MODEL` and `RESOLVE_KOKORO_VOICES`; change the voice in dashboard Settings. Install `faster-whisper` and `kokoro-onnx` for speech formats.
+
+Use `python -m tools.whisper_benchmark --help` to compare local CPU Whisper models against reference transcripts. Use `python -m tools.render_format_samples --help` to render four local review samples into the supplied dashboard state directory.

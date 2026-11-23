@@ -242,3 +242,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - F4 uses friction, an 8-second training jump cut and a next-session action. A conservative bandit prior gives it a low initial share. Exploration test passed.
 
 - Configured F3 uses Kokoro and defaults to the deeper am_michael read. Settings exposes the voice ID. ONNX Runtime telemetry is disabled before local synthesis.
+
+- Added the local Whisper WER and CPU timing harness plus a Review sample command. Automated review blocked model execution after unexpected Microsoft telemetry egress, so model scores and the speech-format sample verification remain open.
