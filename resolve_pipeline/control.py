@@ -112,11 +112,17 @@ class Pipeline:
             return db.execute("SELECT time,action,outcome FROM dashboard_events ORDER BY id DESC LIMIT 50").fetchall()
 
     def add_song(self, path):
+        self._add_audio(path, "song")
+
+    def add_speech(self, path):
+        self._add_audio(path, "speech")
+
+    def _add_audio(self, path, kind):
         path = Path(path).resolve(strict=True)
         if not path.is_file():
-            raise ValueError("Song source must be a file")
+            raise ValueError("Audio source must be a file")
         with closing(sqlite3.connect(self.database)) as db, db:
-            db.execute("INSERT OR IGNORE INTO library(path,kind) VALUES (?, 'song')", (str(path),))
+            db.execute("INSERT OR IGNORE INTO library(path,kind) VALUES (?,?)", (str(path), kind))
 
     def library(self):
         with closing(sqlite3.connect(self.database)) as db:
@@ -259,7 +265,11 @@ class Pipeline:
 
     def format_requirements(self):
         if hasattr(self.reel_builder, "format_requirements"):
-            return self.reel_builder.format_requirements()
+            readiness = self.reel_builder.format_requirements()
+            result = {fmt: readiness.get(fmt, "Renderer does not support this format.") for fmt in FORMATS}
+            if result["F1"] is None and not any(row[2] == "speech" and not row[4] for row in self.library()):
+                result["F1"] = "Add a separate speech source."
+            return result
         return {item: None if self.reel_builder else "Configure the format renderer." for item in FORMATS}
 
     def enqueue(self, count, format_id="auto", *, production_only=False, production_day=None):
@@ -370,15 +380,15 @@ class Pipeline:
                         video_text = (json.loads(stored_text) if stored_text else
                                       self._reserve_video_text(db, reel_id, format_id, context))
                         styling = {"video_text": video_text, "caption_preset": self.settings()["caption_preset"]}
-                    if production and format_id == "F1":
-                        voice = db.execute("""SELECT library.path,metadata FROM library JOIN imported_media
-                            ON library.path=imported_media.path WHERE library.kind='speech' AND retired=0
-                            AND imported_media.kind='speech'
-                            ORDER BY pinned DESC,id LIMIT 1""").fetchone()
+                    if format_id == "F1":
+                        voice = db.execute("""SELECT library.path,metadata FROM library LEFT JOIN imported_media
+                            USING(path) WHERE library.kind='speech' AND retired=0 AND (?=0 OR metadata IS NOT NULL)
+                            ORDER BY metadata IS NOT NULL DESC,pinned DESC,id LIMIT 1""",
+                                           (int(production),)).fetchone()
                         if not voice:
-                            raise NoSpeech("F1 skipped: import a verified speech source first.")
-                        segments = [imported[source], imported[song[0]], json.loads(voice[1])]
-                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=segment_starts(segments), **styling)
+                            raise NoSpeech("F1 skipped: add a separate speech source.")
+                        starts = segment_starts([imported[source], imported[song[0]]]) if production else (0, 0, 0)
+                        self.reel_builder(*args, speech_source=Path(voice[0]), starts=starts, **styling)
                     elif production:
                         self.reel_builder(*args, starts=segment_starts([imported[source], imported[song[0]]]), **styling)
                     else:

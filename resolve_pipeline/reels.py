@@ -174,7 +174,8 @@ class LocalReelBuilder:
             speech = Path(directory) / "speech.wav"
             words, voiceover, duration = (), None, 22
             if format_id == "F1":
-                speech_source = speech_source or video
+                if speech_source is None:
+                    raise NoSpeech("F1 skipped: add a separate speech source.")
                 try:
                     samples = decode_speech(speech_source)
                 except subprocess.SubprocessError as error:

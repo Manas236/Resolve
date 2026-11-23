@@ -334,6 +334,7 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--state", type=Path, default=Path("state/dashboard"))
     parser.add_argument("--source", type=Path, action="append", default=[])
+    parser.add_argument("--speech", type=Path, action="append", default=[])
     parser.add_argument("--song", type=Path, action="append", default=[])
     parser.add_argument("--job-file", type=Path, default=Path("jobs/next_job.json"))
     parser.add_argument("--performance-fixture", type=Path)
@@ -356,6 +357,8 @@ def main():
     pipeline = Pipeline(args.state, args.source, reel_builder=builder)
     for song in args.song:
         pipeline.add_song(song)
+    for speech in args.speech:
+        pipeline.add_speech(speech)
     performance = None
     if args.performance_fixture is not None:
         try:

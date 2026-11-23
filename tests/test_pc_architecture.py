@@ -75,5 +75,5 @@ class FormatReadinessTests(unittest.TestCase):
                 "resolve_pipeline.reels.subprocess.check_output", return_value=b""):
             root = Path(folder)
             builder = LocalReelBuilder(hook="Hook", whisper_model=root)
-            with self.assertRaisesRegex(NoSpeech, "no audio track"):
+            with self.assertRaisesRegex(NoSpeech, "separate speech source"):
                 builder(root / "clip.mp4", root / "song.wav", root / "out.mp4", "F1")

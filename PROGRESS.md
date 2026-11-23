@@ -230,3 +230,5 @@ Rendered and probed three matched 1080×1920, 22-second comparison MP4s in `rese
 Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and staged whitespace checks passed.
 
 - F1 segment selection now transcribes the full source and bounds every candidate to complete sentences. The focused fixture test passed.
+
+- F1 uses a separate library speech asset over training footage. The local dashboard accepts repeatable --speech flags. Acquisition architecture tests passed.
