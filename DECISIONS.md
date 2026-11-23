@@ -55,3 +55,7 @@ For user-only work, document the exact machine and single-line non-interactive c
 - Default caption treatment is Anton. Bebas Neue and Montserrat Black are selectable. FFmpeg burns the vendored OFL fonts, and librosa aligns F2 transitions within a bounded window near the intended pacing.
 
 - F1 uses a separate audio source, full-source transcription, and sentence-bounded 20–35 second passage selection. Mood compatibility and audio energy rank songs. F4 enters the rotation as an experiment with a conservative prior. F3 defaults to Kokoro am_michael for a deeper male read.
+
+## Poetic editorial direction, 24 November 2026
+
+Manas retired F2 and F3 from Auto. Both retain weight zero and manual legacy tooling. Kokoro is optional. P holds one reflective paragraph, L one line, and F1 carries real speech over training footage. F4 tests a two-part paradox: the first observation invites a reading that the second quietly overturns at a musical transition. This isolates the effect of delayed resolution against L's immediate reading. Start F4 at a low weight. Use original sentence-case writing, quiet captions, text-led music and footage selection, and retain the selection reasoning in Review.

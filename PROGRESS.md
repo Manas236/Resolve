@@ -246,3 +246,7 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - Added the local Whisper WER and CPU timing harness plus a Review sample command. Automated review blocked model execution after unexpected Microsoft telemetry egress, so model scores and the speech-format sample verification remain open.
 
 - Local full suite: 87 passed, one browser test skipped. F2 and F4 rendered with Wikimedia sumo deadlift training footage and the existing Incompetech baseline track. Both are 1080×1920, 22 seconds, and in Review state in `state/format_review_text` (IDs 1 and 2). The office PC library was unavailable in this workspace. No publishing was attempted.
+
+## Poetic format transition
+
+First unit: added an original fallback manuscript for P/L and recorded the new format contract. Integration, selection tests and eight Review renders require separate evidence.
