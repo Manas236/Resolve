@@ -115,7 +115,7 @@ def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
         "WrapStyle: 0", "[V4+ Styles]",
         "Format: Name,Fontname,Fontsize,PrimaryColour,OutlineColour,BackColour,Bold,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV",
-        f"Style: Quiet,Resolve Montserrat Black,{size},&H00FFFFFF,&H60000000,&H88000000,0,1,1.5,2,5,88,88,0",
+        f"Style: Quiet,Poppins SemiBold,{size},&H00FFFFFF,&H60000000,&H88000000,0,1,1.5,2,5,88,88,0",
         "[Events]", "Format: Layer,Start,End,Style,Text",
     ]
 
