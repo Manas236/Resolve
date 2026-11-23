@@ -7,7 +7,7 @@ On the **Windows acquisition PC**, run from the Resolve clone in PowerShell on t
 ```powershell
 $env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main
 py -3.11 -m venv .venv
-.venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements.txt yt-dlp
+.venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements-pc.txt
 Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition probe --output research/m0_pc_results.json' -RedirectStandardError resolve-pc-probe.log -Wait
 ```
 
@@ -29,14 +29,14 @@ install -d -m 700 "$PWD/state/incoming" && realpath "$PWD/state/incoming"
 
 On the **Windows acquisition PC**, set local .env `RESOLVE_SSH_HOST` to the existing SSH login and hostname, `RESOLVE_SSH_KEY` to the existing Lightsail key path, and `RESOLVE_SSH_INBOX` to the same absolute path. Use the existing verified host key entry in the Windows OpenSSH known-hosts file. Keep the key and .env out of git.
 
-Create `state/acquisition_catalog.json` on the **Windows acquisition PC** using the catalog structure in README. For clips, review that the upload actually shows physical training. Then run a manual refresh and register the Sunday task. The task runs under your signed-in Windows account, and starts when available after a missed trigger.
+On **AnalyticsDashboard Lightsail**, start the updated operator using the same state directory as the dashboard and `RESOLVE_BUNDLE_INBOX` from above. It writes `inventory.json` to the inbox even when the library is empty. The Windows refresh reads that inventory over SSH before acquiring media. Set the reel hook, quote and optional speech model settings as documented in README. Telegram credentials have not been created. The operator can run without Telegram until you set up the bot under M8.
+
+On the **Windows acquisition PC**, run the first refresh and register the Sunday task. The first refresh with a candidate clip downloads the free CLIP weights (about 605 MB), then scores frames locally on CPU. The task runs under your signed-in Windows account and starts when available after a missed trigger. Your editorial review happens on finished reels.
 
 ```powershell
-Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition refresh --catalog state/acquisition_catalog.json --output state/pc_bundle.zip --send' -RedirectStandardError resolve-pc-refresh.log -Wait
-powershell.exe -NoProfile -NonInteractive -File tools\register_pc_refresh.ps1 -Catalog state\acquisition_catalog.json
+Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition refresh --output state/pc_bundle.zip --send' -RedirectStandardOutput resolve-pc-refresh.log -RedirectStandardError resolve-pc-refresh-errors.log -Wait
+powershell.exe -NoProfile -NonInteractive -File tools\register_pc_refresh.ps1
 ```
-
-On **AnalyticsDashboard Lightsail**, point the dashboard and operator at the same state directory. Set `RESOLVE_REEL_HOOK`, `RESOLVE_REEL_QUOTE`, and the speech model and script settings in .env as needed. Use the existing Telegram credentials when enabling alerts and approvals.
 
 ## M0 competitor evidence
 

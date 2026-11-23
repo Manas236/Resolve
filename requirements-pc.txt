@@ -1,0 +1,5 @@
+-r requirements.txt
+yt-dlp
+torch>=2.6,<3
+transformers>=4.49,<5
+pillow>=10

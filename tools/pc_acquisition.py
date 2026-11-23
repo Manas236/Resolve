@@ -5,6 +5,8 @@ if sys.version_info < (3, 11):
     sys.exit("Resolve PC acquisition requires Python 3.11 or newer.")
 
 import argparse
+from collections import Counter
+from importlib.util import find_spec
 from array import array
 from datetime import datetime, timezone
 import json
@@ -17,18 +19,17 @@ from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 from urllib.request import build_opener
 
-from resolve_pipeline.public_sources import article_watch_links, spotify_playlist_tracks
-
-from resolve_pipeline.bundles import sync_bundle, write_bundle
+from resolve_pipeline.bundles import fetch_inventory, sync_bundle, write_bundle
 from resolve_pipeline.config import read_env_file
 from resolve_pipeline.downloader import CONTAINERS, DownloadRequest, validate_media
+from tools import pc_discovery, pc_vision
 from tools.m0_probe import (blocked_text, chosen_timestamp, convert, mp7_convert, probe_energy,
                             probe_replay, read_corpus, write_report, preview_result, NoRedirect, run_sample)
 
 
 def acquire(url, kind, directory):
     fmt = "bestaudio/best" if kind != "clip" else "bestvideo[height>=720]+bestaudio/best[height>=720]"
-    command = ["yt-dlp", "--ignore-config", "--no-playlist", "--no-progress",
+    command = [sys.executable, "-m", "yt_dlp", "--ignore-config", "--no-playlist", "--no-progress",
                "--max-filesize", "500M", "--socket-timeout", "15", "--retries", "1",
                "--format", fmt, "--output", str(directory / "asset.%(ext)s")]
     command += ["--extract-audio", "--audio-format", "mp3"] if kind != "clip" else ["--merge-output-format", "mp4"]
@@ -225,99 +226,94 @@ def source_html(url):
     return html
 
 
-def discover(config, reviewed):
-    """Refresh metadata and priority using appearances in configured public sources.
-
-    The reviewed catalog maps specific Spotify recordings to watch IDs and
-    classifies training footage. New links remain candidates until reviewed.
-    """
-    tracks, links = {}, {}
-    for field, parse, matches in (("spotify_playlists", spotify_playlist_tracks, tracks),
-                                  ("articles", article_watch_links, links)):
-        for source in dict.fromkeys(config.get(field, [])):
-            try:
-                items = parse(source_html(source))
-            except (OSError, ValueError) as error:
-                print(f"Discovery source {source}: {type(error).__name__}")
-                continue
-            for item in items:
-                matches.setdefault(item, []).append(source)
-    by_track = {track.id: (track, pages) for track, pages in tracks.items()}
-    entries = []
-    for original in reviewed:
-        item = dict(original)
-        track, pages = by_track.get(item.get("spotify_id"), (None, []))
-        pages = list(dict.fromkeys(pages + links.get(item["source"], [])))
-        if track:
-            item.update(title=f"{track.title} — {track.artist}", duration=track.duration_seconds)
-        if pages:
-            item.update(source_pages=pages, source_appearances=len(pages),
-                        source_observed_at=datetime.now(timezone.utc).isoformat())
-        entries.append(item)
-    entries.sort(key=lambda item: (item.get("genre") not in {"phonk", "gym_edit"},
-                                   -item.get("source_appearances", 0)))
-    return entries, {"spotify_tracks": [
-        {"id": track.id, "title": track.title, "artist": track.artist,
-         "duration": track.duration_seconds, "source_pages": pages}
-        for track, pages in tracks.items()],
-        "watch_links": [{"source": url, "source_pages": pages} for url, pages in links.items()]}
-
-
-def refresh(catalog, output, env_file, send):
-    config = json.loads(catalog.read_text(encoding="utf-8"))
-    entries = config.get("entries", []) if isinstance(config, dict) else config
-    if not entries or not all(isinstance(item, dict) and item.get("kind") in {"song", "clip", "speech"}
-                              for item in entries):
-        raise ValueError("Supply a reviewed JSON catalog of songs, clips and speeches")
+def refresh(catalog, output, env_file, send, limits, threshold, sources):
+    settings = read_env_file(env_file) | dict(os.environ)
+    pins = []
+    if catalog:
+        config = json.loads(catalog.read_text(encoding="utf-8"))
+        pins = config.get("entries", []) if isinstance(config, dict) else config
+        if not isinstance(pins, list) or not all(isinstance(item, dict)
+                and item.get("kind") in {"song", "clip", "speech"} and item.get("source") for item in pins):
+            raise ValueError("Optional catalog must list pinned media records")
     output.parent.mkdir(parents=True, exist_ok=True)
-    if isinstance(config, dict):
-        entries, discovered = discover(config, entries)
-        write_report(output.with_suffix(".discovery.json"), discovered)
+    report_path = output.with_suffix(".discovery.json")
     with TemporaryDirectory() as staging:
+        root = Path(staging)
+        existing = fetch_inventory(settings, root / "inventory.json") if send else set()
+        entries = pc_discovery.discover(json.loads(sources.read_text(encoding="utf-8")),
+                                        pins, existing, source_html)
+        report = []
+        vision = None
+        counts, attempts = Counter(), Counter()
         batch = []
         for index, item in enumerate(entries):
-            if item["kind"] == "clip" and item.get("content") != "physical_training":
-                raise ValueError("Clip must be reviewed as physical training footage")
-            folder = Path(staging) / str(index)
+            kind = item["kind"]
+            if counts[kind] >= limits[kind] or attempts[kind] >= limits[kind] * 5:
+                continue
+            attempts[kind] += 1
+            folder = root / str(index)
             folder.mkdir()
             try:
                 path, metadata, replay = checked_asset(item, folder)
+                if kind == "clip":
+                    if vision is None:
+                        vision = pc_vision.TrainingVision(threshold)
+                    score = vision.screen(path, metadata["duration"], metadata["timestamp"], folder)
+                    report.append({"source": item["source"], "vision": score})
+                    if not score["accepted"]:
+                        continue
+                    metadata.update(content="physical_training", vision=score)
             except (ValueError, OSError, subprocess.SubprocessError) as error:
-                print(f"{item['source']}: {error if isinstance(error, ValueError) else type(error).__name__}")
-                if isinstance(error, ValueError) and str(error) == "provider_challenge":
+                report.append({"source": item["source"], "error": str(error)})
+                if str(error) == "provider_challenge":
                     break
                 continue
-            if item["kind"] == "song" and item.get("title") and item.get("duration"):
+            if kind == "song" and item.get("title") and item.get("duration"):
                 metadata["previews"] = catalog_previews(
                     {**item, "id": str(index), "reference_seconds": item["duration"]},
                     path, folder, replay)
             batch.append((path, metadata))
+            counts[kind] += 1
+        write_report(report_path, {"accepted": dict(counts), "candidates": report})
+        if not batch:
+            print(f"No new eligible media. See {report_path}.")
+            return
         write_bundle(output, batch)
     if send:
-        sync_bundle(output, read_env_file(env_file) | dict(os.environ))
+        sync_bundle(output, settings)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("probe", "refresh"))
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--catalog", type=Path)
+    parser.add_argument("--catalog", type=Path, help="Optional pins")
+    parser.add_argument("--sources", type=Path, default=pc_discovery.ROOT / "tools/pc_sources.json")
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     parser.add_argument("--send", action="store_true")
     args = parser.parse_args()
     if os.name != "nt":
         parser.error("Acquisition runs on the designated Windows PC.")
-    for binary in ("yt-dlp", "ffmpeg", "ffprobe"):
+    if find_spec("yt_dlp") is None:
+        parser.error("Install yt-dlp in the Windows acquisition virtual environment.")
+    for binary in ("ffmpeg", "ffprobe"):
         if not which(binary):
             parser.error(f"Install {binary} on the Windows acquisition PC and add it to PATH.")
     os.environ.setdefault("RESOLVE_PC_BROWSER_FALLBACK",
                           read_env_file(args.env_file).get("RESOLVE_PC_BROWSER_FALLBACK", "0"))
     if args.command == "probe":
         probe(args.output)
-    elif args.catalog is None:
-        parser.error("refresh requires --catalog")
     else:
-        refresh(args.catalog, args.output, args.env_file, args.send)
+        settings = read_env_file(args.env_file) | dict(os.environ)
+        try:
+            limits = {kind: int(settings.get(f"RESOLVE_PC_MAX_{kind.upper()}S", default))
+                      for kind, default in (("song", 10), ("clip", 10), ("speech", 3))}
+            threshold = float(settings.get("RESOLVE_PC_VISION_THRESHOLD", "0.65"))
+            if not all(0 <= value <= 50 for value in limits.values()) or not 0 < threshold <= 1:
+                raise ValueError
+        except ValueError:
+            parser.error("Acquisition limits must be 0–50 and the vision threshold must be in (0, 1].")
+        refresh(args.catalog, args.output, args.env_file, args.send, limits, threshold, args.sources)
 
 
 if __name__ == "__main__":

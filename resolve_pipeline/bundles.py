@@ -13,6 +13,7 @@ from tempfile import TemporaryDirectory
 from uuid import uuid4
 from zipfile import ZipFile
 
+from .acquisition_keys import asset_keys
 from .config import read_env_file
 from .downloader import DownloadRequest, validate_media
 
@@ -99,7 +100,12 @@ def import_bundle(pipeline, bundle):
             db.execute("BEGIN IMMEDIATE")
             if db.execute("SELECT 1 FROM imported_bundles WHERE digest=?", (digest,)).fetchone():
                 return False
+            existing = inventory_keys(db)
             for path, destination, row in staged:
+                keys = asset_keys(row)
+                if keys & existing:
+                    continue
+                existing.update(keys)
                 if not destination.exists():
                     path.replace(destination)
                 db.execute("""INSERT INTO imported_media VALUES(?,?,?)
@@ -113,8 +119,7 @@ def import_bundle(pipeline, bundle):
     return True
 
 
-def sync_bundle(bundle, settings):
-    """Publish a unique ready filename only after the upload completes."""
+def ssh_target(settings):
     host = settings["RESOLVE_SSH_HOST"]
     inbox = settings["RESOLVE_SSH_INBOX"].rstrip("/")
     key = str(Path(settings["RESOLVE_SSH_KEY"]).expanduser().resolve(strict=True))
@@ -122,8 +127,29 @@ def sync_bundle(bundle, settings):
         raise ValueError("Invalid SSH host")
     if not re.fullmatch(r"/[a-zA-Z0-9_/-]+", inbox) or ".." in inbox:
         raise ValueError("Invalid remote inbox")
-    name = "resolve-" + uuid4().hex
     options = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-i", key]
+    return host, inbox, options
+
+
+def fetch_inventory(settings, destination):
+    host, inbox, options = ssh_target(settings)
+    subprocess.run(["scp", *options, f"{host}:{inbox}/inventory.json", str(destination)],
+                   check=True, timeout=60)
+    entries = json.loads(destination.read_text(encoding="utf-8"))
+    if not isinstance(entries, list) or not all(isinstance(key, str) for key in entries):
+        raise ValueError("Invalid acquisition inventory")
+    return set(entries)
+
+
+def inventory_keys(db):
+    return {key for (metadata,) in db.execute("SELECT metadata FROM imported_media")
+            for key in asset_keys(json.loads(metadata))}
+
+
+def sync_bundle(bundle, settings):
+    """Publish a unique ready filename only after the upload completes."""
+    host, inbox, options = ssh_target(settings)
+    name = "resolve-" + uuid4().hex
     pending = f"{inbox}/{name}.part"
     subprocess.run(["scp", *options, str(bundle.resolve()), f"{host}:{pending}"],
                    check=True, timeout=3600)
@@ -145,6 +171,10 @@ def receive_bundles(pipeline, inbox, now, alert):
         else:
             bundle.unlink()
     with closing(sqlite3.connect(pipeline.database)) as db, db:
+        with TemporaryDirectory(dir=inbox) as folder:
+            inventory = Path(folder) / "inventory.json"
+            inventory.write_text(json.dumps(sorted(inventory_keys(db))), encoding="utf-8")
+            inventory.replace(inbox / "inventory.json")
         db.execute("INSERT OR IGNORE INTO bundle_monitor VALUES('started',?)", (now.isoformat(),))
         started = db.execute("SELECT value FROM bundle_monitor WHERE key='started'").fetchone()[0]
         arrived = db.execute("SELECT MAX(arrived) FROM imported_bundles").fetchone()[0] or started

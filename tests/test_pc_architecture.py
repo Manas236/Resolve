@@ -44,17 +44,6 @@ class AcquisitionTests(unittest.TestCase):
         self.assertIsNone(pc_acquisition.match_preview(full + full, reference))
         self.assertIsNone(pc_acquisition.match_preview(full, [0] * 110))
 
-    def test_discovery_reports_unreviewed_links_without_releasing_them(self):
-        watch = "https://www.youtube.com/watch?v=abcdefghijk"
-        with patch.object(pc_acquisition, "source_html", return_value=f'<a href="{watch}">Clip</a>'):
-            entries, discovered = pc_acquisition.discover(
-                {"articles": ["https://example.com/training"]},
-                [{"kind": "clip", "source": "https://www.youtube.com/watch?v=zyxwvutsrqp"}])
-        self.assertEqual(len(entries), 1)
-        self.assertNotEqual(entries[0]["source"], watch)
-        self.assertEqual(discovered["watch_links"], [
-            {"source": watch, "source_pages": ["https://example.com/training"]}])
-
     def test_challenge_never_triggers_converter_fallback(self):
         with patch.object(pc_acquisition, "probe_replay", return_value={"status": "challenge_detected"}), \
                 patch.object(pc_acquisition, "fallback") as fallback, \
