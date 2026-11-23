@@ -6,6 +6,8 @@ import re
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from . import poetry
+
 BANK = Path(__file__).with_name("caption_bank.txt")
 MODEL = "gemini-2.5-flash"
 
@@ -15,6 +17,11 @@ def normalized(line):
 
 
 def checked_text(hook, lines, format_id):
+    if format_id in {"P", "L", "F4"}:
+        if not isinstance(lines, list) or len(lines) != (1 if format_id == "F4" else 0):
+            raise ValueError("Unexpected number of text blocks.")
+        poetry.validate_piece(" ".join([hook, *lines]), format_id)
+        return {"hook": hook, "lines": lines}
     if not isinstance(hook, str) or not isinstance(lines, list) or any(not isinstance(line, str) for line in lines):
         raise ValueError("Invalid reel text")
     if not (2 <= len(lines) <= 4 if format_id in {"F2", "F4"} else not lines):
@@ -31,6 +38,8 @@ def checked_text(hook, lines, format_id):
 
 
 def gemini_text(api_key, format_id, context, used):
+    if format_id in {"P", "L", "F4"}:
+        return poetry.candidate(lambda prompt: gemini_json(api_key, prompt), format_id, context, used, normalized)
     prompt = (
         "Write original English on-screen text for a gym training reel. Direct coaching cues, "
         "2–6 words and at most 42 characters each. No hashtags, brands, profanity, cliché, or filler. "
@@ -69,6 +78,8 @@ def gemini_json(api_key, prompt):
 def choose_text(format_id, used, proposed=None, *, context=""):
     if proposed and not any(normalized(line) in used for line in [proposed["hook"], *proposed["lines"]]):
         return {**proposed, "source": "gemini"}
+    if format_id in {"P", "L", "F4"}:
+        return poetry.fallback(format_id, used, normalized)
     bank = BANK.read_text(encoding="utf-8").splitlines()
     choices = [line for line in bank if normalized(line) not in used]
     count = 4 if format_id in {"F2", "F4"} else 1
