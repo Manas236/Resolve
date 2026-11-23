@@ -129,5 +129,12 @@ def text_mood(text, key):
 def footage_distance(mood, tags):
     if not tags:
         return 2.0
-    intensity = tags["intensity"]
-    return abs(mood["energy"] - intensity)
+    distance = abs(mood["energy"] - tags["intensity"])
+    scores = tags.get("scores")
+    if not scores:
+        return distance
+    preferred = (("an intense sprint", "bright daytime training")
+                 if mood["mood"] in {"aggressive", "defiant"} else
+                 ("dark moody gym at night", "a lone runner at dusk", "slow-motion lifting"))
+    affinity = sum(scores.get(label, 0) for label in preferred)
+    return distance + .4 * (1 - min(1., affinity))

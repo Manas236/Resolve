@@ -27,6 +27,9 @@ class PoetryTests(unittest.TestCase):
         from resolve_pipeline.speech_edit import footage_distance, music_distance, text_mood
         mood = text_mood("He sat until the old clock grew quiet.", "")
         self.assertLess(footage_distance(mood, {"intensity": .25}), footage_distance(mood, {"intensity": .8}))
+        night = {"intensity": .32, "scores": {"a lone runner at dusk": .85}}
+        sprint = {"intensity": .32, "scores": {"an intense sprint": .85}}
+        self.assertLess(footage_distance(mood, night), footage_distance(mood, sprint))
         self.assertLess(music_distance(mood, {"mood": "calm resolve", "energy": .35}),
                         music_distance(mood, {"mood": "aggressive", "energy": .7}))
 

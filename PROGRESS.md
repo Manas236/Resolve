@@ -2,6 +2,8 @@
 
 ## Resume checkpoint
 
+24 November 2026: poetic rotation and the eight-sample Review batch are implemented. Local proof is in `research/poetic_review_samples.json`. Download [the eight MP4s and portable dashboard state](https://chatgpt.com/library?file_id=libfile_f7ba8566cd5c8191ae4a4a8c6718173e&account_id=personal). Next live checks are the Windows discovery refresh with actual CLIP predictions, a five-candidate response from the configured unbilled Gemini project, and the office-PC F1 preview with its selected Whisper model.
+
 Windows PC acquisition supersedes the Lightsail download gate. Run `tools.pc_acquisition probe` on the designated Windows PC and commit `research/m0_pc_results.json`. The old Lightsail diagnostic remains historical evidence. Use NEEDS_MANAS.md for the PC probe, SSH enrollment, voice selection and production configuration.
 
 ## Milestones
@@ -12,8 +14,8 @@ Windows PC acquisition supersedes the Lightsail download gate. Run `tools.pc_acq
 - [ ] **M3 Song library.** Source from public Spotify playlist pages and articles, dedupe and rank gym phonk and gym edits first, followed by frequency and recency, select and record cross-checked timestamps, download correct versions and cut. Prove 30+ songs with verified segments.
 - [ ] **M4 Video library.** Source, rank, select and record cross-checked timestamps, download and cut physical-training footage. Acquire speech, movie and podcast audio separately for F1. Prove 30+ video clips with verified training segments.
 - [ ] **M5 Refresh.** Run the Windows acquisition weekly and on demand, upload bundles over SSH, verify import and idempotence, and prove the server alerts after nine days without a verified bundle while continuing to use its library.
-- [ ] **M6 Captions and TTS.** Verify real word timestamps on clean speech, benchmark Kokoro plus medium/high Piper voices on the same script with at least three voices each. Retain the samples outside git, let Manas choose, and verify the configured voice.
-- [ ] **M7 Render.** Produce three finished 1080×1920 reels each for F1, F2, F3 and research-approved F4, if any. Use physical-training visuals and separately sourced F1 speech. Prove placeholder assets cannot be posted. Log paths and check each for sentence completion and caption sync where applicable. Standard duration is 20–25s, with longer outputs only when both segments justify it.
+- [ ] **M6 Captions.** Verify clean real-speech word timestamps and centered, sentence-case F1 phrase highlights. Legacy voice samples remain optional.
+- [ ] **M7 Render.** Verify two real-media Review previews each of P, L, F1 and F4 with text, duration, audio, footage match and readable caption placement. Preserve placeholder posting protection.
 - [ ] **M8 Telegram.** Verify preview and Approve, Reject, Regenerate and Muted actions with real Telegram evidence. Verify duplicate and unauthorised actions do not change state.
 - [ ] **M9 Posting.** Implement a dry-run and a new Meta app adapter for Instagram and Facebook, with a clean future YouTube adapter slot. Verify platform integration within explicit posting approval.
 - [ ] **M10 Runner.** Prove two reels/day by default, configurable slots, week-one approval mode, explicit auto mode, format A/B and performance-based choice, and restart recovery without duplicate posts.
@@ -250,3 +252,12 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 ## Poetic format transition
 
 First unit: added an original fallback manuscript for P/L and recorded the new format contract. Integration, selection tests and eight Review renders require separate evidence.
+
+### Poetic Review acceptance evidence
+
+- The validated manuscript contains 150 original one-liners and 20 original paragraphs. The five-candidate rubric, concurrent reservation and 200-reel exclusion window apply to active generated text. The earlier punchy bank is isolated to manually requested legacy formats.
+- In `state/poetic_review_verified`, IDs 1 and 4 are P, 2 and 5 are L, 3 and 6 are F4, and 7 and 8 are F1. All eight returned Review status, rendered portrait H.264/AAC, and stayed outside the posting queue. The downloadable archive carries the same videos and a separate relocatable Review state.
+- The sample pool contained two real tracks and one training montage. All eight matched Kevin MacLeod’s Meditation Impromptu 01. Footage had measured brightness and motion. The live weekly CLIP tagger and live Gemini were not run here. The F1 proof used published word-level acoustic alignments on two human LibriSpeech recordings. Whisper remains the production transcription path. Review includes both passages and their selection reasoning.
+- The visual audit caught animation in a Wikimedia exercise demo. It was discarded. The delivered montage uses verified live-action U.S. Army training shots, with close-up-only sequences removed. We inspected a rendered paragraph at phone scale and increased type size and shading. F4 reveals on a detected musical event when available, otherwise at midpoint.
+- Full unittest discovery ran 94 tests with 93 passing and one browser acceptance test skipped. Tests cover the scoring rubric, fallback lengths, exact history boundary, cross-format deduplication, caption timing, matching, legacy settings migration and exclusion of retired formats from Auto. M6/M7 remain open for office-PC and editorial confirmation.
+- Extracted the exported archive in a separate directory and opened it through the authenticated HTTP dashboard. Review returned all eight cards, every MP4 supported range playback, and all packaged source paths resolved.

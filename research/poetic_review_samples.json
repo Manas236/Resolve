@@ -1,0 +1,348 @@
+{
+  "state": "state/poetic_review_verified",
+  "footage": "Army Combat Fitness Test, Assistive Sumo Deadlift (public-domain US Army footage). Source https://commons.wikimedia.org/wiki/File:Free_Weight_Training_Assistive_Exercise-_Assistive_Sumo_Deadlift.webm. Windows 8–21, 27.5–33, 57.5–69.5 s. Montage cropped to portrait.",
+  "music": "Meditation Impromptu 01 and Strength of the Titans, Kevin MacLeod (incompetech.com), CC BY 4.0 https://creativecommons.org/licenses/by/4.0/. Rendered selections and mix reported per reel.",
+  "writing": "Original fallback manuscript. No Gemini key used in the sample run.",
+  "speech_timing": "F1 uses real LibriSpeech recordings and published Montreal Forced Aligner word boundaries from gilkeyio/librispeech-alignments (dev_clean rows 152 and 190). Editorial capitalization and punctuation restored. Full-source Whisper was not executed for these samples.",
+  "vision": "The local training clip used measured brightness and motion. PC CLIP was tested with fixture predictions; live inference on this footage is unverified.",
+  "capture": [
+    {
+      "id": 1,
+      "format": "P",
+      "status": "review",
+      "file": "1.mp4",
+      "sha256": "950c0def5d6c380bb4d865cae71b41697e006efd421d58cf097c04b0b8da921b",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "20.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "20.000000"
+        }
+      ],
+      "text": {
+        "hook": "The winter coat hung on a peg that was too high for the smallest boy to reach. Each morning he stretched onto his toes while his father watched from the doorway. One day his fingers closed around the collar, and it was his father who needed a moment before leaving.",
+        "lines": [],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 2,
+      "format": "L",
+      "status": "review",
+      "file": "2.mp4",
+      "sha256": "c40e107788c4ba4dfe9465642a29bb3ff262de5c661d823319d91092cd73dd33",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "10.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "10.000000"
+        }
+      ],
+      "text": {
+        "hook": "A single loose board had taught the whole family where to step softly.",
+        "lines": [],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 3,
+      "format": "F4",
+      "status": "review",
+      "file": "3.mp4",
+      "sha256": "594ea3080011c693c70b140630d8589882e761ef275d6f26630e21141dd1e99d",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "10.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "10.000000"
+        }
+      ],
+      "text": {
+        "hook": "He quit trying to outrun yesterday",
+        "lines": [
+          "when it started limping a few paces behind."
+        ],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 4,
+      "format": "P",
+      "status": "review",
+      "file": "4.mp4",
+      "sha256": "2a8cfc3d25da954e20c8c855d7cbe7712d38ccbb5cb5af45a080fdd095d90a31",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "20.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "20.000000"
+        }
+      ],
+      "text": {
+        "hook": "He had been timing the distance between the first lamp and the old post office since September. In March the council took the lamp down and he stood for a while beside the shallow hole. That evening he ran farther than the post office for the first time.",
+        "lines": [],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 5,
+      "format": "L",
+      "status": "review",
+      "file": "5.mp4",
+      "sha256": "c5392167087226604d13863a217fe39a199937403ef5c71cd6b450479933ae85",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "10.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "10.000000"
+        }
+      ],
+      "text": {
+        "hook": "He left the light burning for a visitor who turned out to be himself.",
+        "lines": [],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 6,
+      "format": "F4",
+      "status": "review",
+      "file": "6.mp4",
+      "sha256": "51753e3a18aedc63380c8f7d671e164a994c3584eac03a0b71117725ef09d89d",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "10.000000"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "10.000000"
+        }
+      ],
+      "text": {
+        "hook": "He feared the book would end",
+        "lines": [
+          "until he found his notes along its edges."
+        ],
+        "source": "bank"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.32,
+        "passage_reason": "Reflective prose with no strong defiance cue.",
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.32.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.197,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 7,
+      "format": "F1",
+      "status": "review",
+      "file": "7.mp4",
+      "sha256": "385a716000611edcf109ff86b345f2c5cbee9bb72b86eb21cb25e59cbf605d82",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "22.066667"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "22.050000"
+        }
+      ],
+      "text": {
+        "transcript": "In aristocracies every man has one sole object which he unceasingly pursues, but amongst democratic nations the existence of man is more complex. The same mind will almost always embrace several objects at the same time, and these objects are frequently wholly foreign to each other. As it cannot know them all well, the mind is readily satisfied with imperfect notions of each.",
+        "attribution": "Alexis de Tocqueville, Democracy in America"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.186,
+        "passage_reason": "Highest speech RMS among complete 20–35s passages.",
+        "speech": "1988-148538-0006.flac",
+        "transcript": "In aristocracies every man has one sole object which he unceasingly pursues, but amongst democratic nations the existence of man is more complex. The same mind will almost always embrace several objects at the same time, and these objects are frequently wholly foreign to each other. As it cannot know them all well, the mind is readily satisfied with imperfect notions of each.",
+        "start": 0.35,
+        "end": 22.4,
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.19.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.331,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    },
+    {
+      "id": 8,
+      "format": "F1",
+      "status": "review",
+      "file": "8.mp4",
+      "sha256": "d62493129aa91ac29af527724dba1131814a488e5d4e7138adc4171f295afb8d",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1080,
+          "height": 1920,
+          "duration": "27.133333"
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "duration": "27.140000"
+        }
+      ],
+      "text": {
+        "transcript": "With an education which ought to have ensured me an honourable standing in the world, with some intelligence, wit, good literary and scientific knowledge, and endowed with those accidental physical qualities which are such a good passport into society, I found myself at the age of twenty the mean follower of a sublime art, in which, if great talent is rightly admired, mediocrity is as rightly despised.",
+        "attribution": "Giacomo Casanova, Memoirs"
+      },
+      "match": {
+        "mood": "calm resolve",
+        "energy": 0.365,
+        "passage_reason": "Highest speech RMS among complete 20–35s passages.",
+        "speech": "3170-137482-0000.flac",
+        "transcript": "With an education which ought to have ensured me an honourable standing in the world, with some intelligence, wit, good literary and scientific knowledge, and endowed with those accidental physical qualities which are such a good passport into society, I found myself at the age of twenty the mean follower of a sublime art, in which, if great talent is rightly admired, mediocrity is as rightly despised.",
+        "start": 0.5,
+        "end": 27.64,
+        "footage_reason": "bright, restrained motion, visual intensity 0.27 versus text energy 0.36.",
+        "song": "Meditation Impromptu",
+        "song_tags": {
+          "bpm": 133.9,
+          "energy": 0.517,
+          "mood": "calm resolve",
+          "mood_source": "tempo and RMS heuristic"
+        },
+        "distance": 0.152,
+        "reason": "Closest available song by editorial mood and measured energy."
+      }
+    }
+  ]
+}
