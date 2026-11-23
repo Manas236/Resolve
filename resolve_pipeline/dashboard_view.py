@@ -173,6 +173,7 @@ def settings(pipeline, form, zone):
               f'<label>Daily volume<input type="number" min="1" name="volume" value="{escape(values["volume"])}" required></label>'
               f'<fieldset><legend>Publishing</legend><div class="segmented">{modes}</div></fieldset>'
               f'<label>Refresh cadence<select name="refresh_cadence">{cadence}</select></label>'
+              f'<label>Kokoro voice<input name="kokoro_voice" value="{escape(values["kokoro_voice"])}"></label>'
               f'<label>Caption preset<select name="caption_preset">{presets}</select></label>'
               f'<fieldset><legend>Format weights</legend>{weights}</fieldset><p class="inline-error" role="alert"></p>')
     return ('<div class="card settings">' + form("settings", fields, "Save settings")

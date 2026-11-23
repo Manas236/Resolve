@@ -240,3 +240,5 @@ Linux suite: 84 passed, 1 sandboxed browser acceptance skipped. Compileall and s
 - Explicit --hook and --quote override on-screen generation and trigger a Review warning. Caption tests passed.
 
 - F4 uses friction, an 8-second training jump cut and a next-session action. A conservative bandit prior gives it a low initial share. Exploration test passed.
+
+- Configured F3 uses Kokoro and defaults to the deeper am_michael read. Settings exposes the voice ID. ONNX Runtime telemetry is disabled before local synthesis.

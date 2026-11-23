@@ -435,6 +435,8 @@ class Pipeline:
                         video_text = (json.loads(stored_text) if stored_text else
                                       self._reserve_video_text(db, reel_id, format_id, context))
                         styling = {"video_text": video_text, "caption_preset": self.settings()["caption_preset"]}
+                    if format_id == "F3" and styling:
+                        styling["voice_id"] = self.settings()["kokoro_voice"]
                     if format_id == "F1":
                         voice = db.execute("""SELECT library.path,metadata FROM library LEFT JOIN imported_media
                             USING(path) WHERE library.kind='speech' AND retired=0 AND (?=0 OR metadata IS NOT NULL)

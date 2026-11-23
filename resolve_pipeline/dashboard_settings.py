@@ -10,6 +10,7 @@ DEFAULTS = {
     "mode": "approval",
     "refresh_cadence": "weekly",
     "format_weights": "1,1,1,1",
+    "kokoro_voice": "am_michael",
     "caption_preset": "anton",
 }
 
@@ -31,5 +32,7 @@ def validate_settings(values):
         weights.append(1)
     if len(weights) != 4 or not any(weights) or any(not 0 <= weight <= 100 for weight in weights):
         raise ValueError("Provide four format weights from 0 to 100 with at least one positive")
+    if not re.fullmatch(r"[a-z]{2}_[a-z0-9_]+", values.get("kokoro_voice", "am_michael")):
+        raise ValueError("Enter a Kokoro voice ID such as am_michael.")
     return {**values, "posting_slots": ",".join(sorted(slots)), "volume": str(volume),
             "format_weights": ",".join(map(str, weights))}

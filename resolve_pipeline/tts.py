@@ -38,6 +38,9 @@ def synthesize(script: str, output: Path, *, engine: str = "piper", piper_model:
         elif engine == "espeak-ng":
             args = ["-v", "en-us", "-w", audio_path.name, "--stdin"]
         elif engine == "kokoro":
+            import onnxruntime
+
+            onnxruntime.disable_telemetry_events()
             from kokoro_onnx import Kokoro
 
             if not kokoro_model or not kokoro_voices:

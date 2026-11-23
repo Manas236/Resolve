@@ -172,7 +172,7 @@ class LocalReelBuilder:
             ) if not ready), None),
         }
 
-    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None, select_music=None):
+    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None, select_music=None, voice_id=None):
         from .captions import transcribe_local_words
         from .tts import synthesize
 
@@ -210,7 +210,7 @@ class LocalReelBuilder:
             if format_id == "F3":
                 synthesize(self.voice_script, speech, engine=self.voice, piper_model=self.piper_model,
                            kokoro_model=self.kokoro_model, kokoro_voices=self.kokoro_voices,
-                           voice=self.voice_id)
+                           voice=voice_id or self.voice_id)
                 voiceover = speech
                 words = transcribe_local_words(speech, self.whisper_model)
                 if words:
@@ -233,8 +233,8 @@ def configured_builder(settings, *, hook=None, quote="", voice_script="", whispe
         voice_script=voice_script or settings.get("RESOLVE_VOICE_SCRIPT", ""),
         whisper_model=model_path(whisper_model, "RESOLVE_WHISPER_MODEL"),
         piper_model=model_path(piper_model, "RESOLVE_PIPER_MODEL"),
-        voice=settings.get("RESOLVE_TTS_ENGINE", "piper"),
+        voice="kokoro",
         kokoro_model=model_path(None, "RESOLVE_KOKORO_MODEL"),
         kokoro_voices=model_path(None, "RESOLVE_KOKORO_VOICES"),
-        voice_id=settings.get("RESOLVE_TTS_VOICE", "af_heart"),
+        voice_id=settings.get("RESOLVE_TTS_VOICE", "am_michael"),
     )
