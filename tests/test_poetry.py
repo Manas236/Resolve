@@ -29,6 +29,9 @@ class PoetryTests(unittest.TestCase):
         self.assertLess(footage_distance(mood, {"intensity": .25}), footage_distance(mood, {"intensity": .8}))
         night = {"intensity": .32, "scores": {"a lone runner at dusk": .85}}
         sprint = {"intensity": .32, "scores": {"an intense sprint": .85}}
+        melancholy = {"mood": "melancholic", "energy": .3}
+        self.assertLess(music_distance(melancholy, {"mood": "reflective", "energy": .3}),
+                        music_distance(melancholy, {"mood": "defiant", "energy": .3}))
         self.assertLess(footage_distance(mood, night), footage_distance(mood, sprint))
         self.assertLess(music_distance(mood, {"mood": "calm resolve", "energy": .35}),
                         music_distance(mood, {"mood": "aggressive", "energy": .7}))

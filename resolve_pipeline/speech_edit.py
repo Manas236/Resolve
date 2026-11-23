@@ -6,7 +6,8 @@ import subprocess
 
 from .reel_text import gemini_json
 
-MOODS = {"aggressive", "defiant", "calm resolve", "grief-to-strength"}
+QUIET_MOODS = {"calm resolve", "grief-to-strength", "melancholic", "reflective"}
+MOODS = QUIET_MOODS | {"aggressive", "defiant"}
 TERMINAL = re.compile(r"""[.!?]['"’”)]*$""")
 
 
@@ -57,7 +58,7 @@ def select_passage(words, samples, key="", sample_rate=16000):
     if key:
         supplied = "\n".join(f"{i}: {p.transcript}" for i, p in enumerate(shortlist))
         data = gemini_json(key, "Pick a self-contained gym motivational excerpt from these numbered sentence-bounded passages. "
-                           "Return JSON with integer index, mood (aggressive, defiant, calm resolve, grief-to-strength), "
+                           "Return JSON with integer index, mood (aggressive, defiant, calm resolve, reflective, melancholic, grief-to-strength), "
                            f"energy (number 0–1), and short reason.\n{supplied}")
         if isinstance(data, dict) and type(data.get("index")) is int and 0 <= data["index"] < len(shortlist):
             selected, reason = shortlist[data["index"]], str(data.get("reason", "Gemini selected passage."))[:300]
@@ -101,7 +102,7 @@ def song_tags(path, title, key=""):
         mood, source = "defiant", "Phonk title or playlist."
     if key:
         data = gemini_json(key, "Infer musical mood from title and artist only. "
-                           "Return JSON with mood (aggressive, defiant, calm resolve, grief-to-strength). "
+                           "Return JSON with mood (aggressive, defiant, calm resolve, reflective, melancholic, grief-to-strength). "
                            f"Title/artist: {title[:250]}")
         if isinstance(data, dict) and data.get("mood") in MOODS:
             mood, source = data["mood"], "Gemini title/artist"
@@ -109,15 +110,14 @@ def song_tags(path, title, key=""):
 
 
 def music_distance(speech, music):
-    similar = {"aggressive": "defiant", "defiant": "aggressive",
-               "calm resolve": "grief-to-strength", "grief-to-strength": "calm resolve"}
-    penalty = 0 if speech["mood"] == music["mood"] else 0.2 if similar[speech["mood"]] == music["mood"] else 0.65
+    same_family = (speech["mood"] in QUIET_MOODS) == (music["mood"] in QUIET_MOODS)
+    penalty = 0 if speech["mood"] == music["mood"] else .2 if same_family else .65
     return abs(speech["energy"] - music["energy"]) + penalty
 
 
 def text_mood(text, key):
     data = gemini_json(key, "Read this original reel text. Return JSON with mood (calm resolve, "
-                       "grief-to-strength, aggressive or defiant), energy from 0 to 1, and brief reason: "
+                       "reflective, melancholic, grief-to-strength, aggressive or defiant), energy from 0 to 1, and brief reason: "
                        + text[:1500]) if key else None
     if isinstance(data, dict) and data.get("mood") in MOODS and type(data.get("energy")) in (int, float) and 0 <= data["energy"] <= 1:
         return {"mood": data["mood"], "energy": data["energy"], "passage_reason": str(data.get("reason", ""))[:300]}

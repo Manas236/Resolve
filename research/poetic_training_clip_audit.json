@@ -1,0 +1,110 @@
+{
+  "model": "openai/clip-vit-base-patch32@3d74acf",
+  "threshold": 0.65,
+  "accepted": true,
+  "frames": [
+    {
+      "second": 1.25,
+      "training": 0.49239,
+      "best_label": "a photo of a person standing or posing without exercising",
+      "scores": {
+        "a photo of a person standing or posing without exercising": 0.50316,
+        "a photo of a person boxing or hitting a punching bag": 0.2592,
+        "a photo of a person lifting weights in a gym": 0.22387,
+        "a photo of people doing an athletic workout or sports training": 0.00582,
+        "a photo of a person running or sprinting as training": 0.0035,
+        "a screenshot of a cartoon or animated character": 0.00163,
+        "a photo of a talking head or podcast interview": 0.0012,
+        "a photo of scenery or unrelated footage": 0.00099,
+        "a screenshot of a video game": 0.00041,
+        "a screenshot of a text slide or title card": 0.00023
+      },
+      "passed": false
+    },
+    {
+      "second": 6.25,
+      "training": 0.87606,
+      "best_label": "a photo of a person lifting weights in a gym",
+      "scores": {
+        "a photo of a person lifting weights in a gym": 0.65547,
+        "a photo of a person standing or posing without exercising": 0.12379,
+        "a photo of a person boxing or hitting a punching bag": 0.10323,
+        "a photo of people doing an athletic workout or sports training": 0.10036,
+        "a photo of a person running or sprinting as training": 0.01701,
+        "a photo of scenery or unrelated footage": 7e-05,
+        "a screenshot of a text slide or title card": 3e-05,
+        "a screenshot of a cartoon or animated character": 2e-05,
+        "a screenshot of a video game": 2e-05,
+        "a photo of a talking head or podcast interview": 1e-05
+      },
+      "passed": true
+    },
+    {
+      "second": 11.25,
+      "training": 0.86113,
+      "best_label": "a photo of a person lifting weights in a gym",
+      "scores": {
+        "a photo of a person lifting weights in a gym": 0.72179,
+        "a photo of a person standing or posing without exercising": 0.13872,
+        "a photo of people doing an athletic workout or sports training": 0.12985,
+        "a photo of a person running or sprinting as training": 0.00866,
+        "a photo of a person boxing or hitting a punching bag": 0.00084,
+        "a photo of scenery or unrelated footage": 6e-05,
+        "a screenshot of a text slide or title card": 5e-05,
+        "a screenshot of a video game": 2e-05,
+        "a screenshot of a cartoon or animated character": 1e-05,
+        "a photo of a talking head or podcast interview": 1e-05
+      },
+      "passed": true
+    },
+    {
+      "second": 16.25,
+      "training": 0.94418,
+      "best_label": "a photo of a person lifting weights in a gym",
+      "scores": {
+        "a photo of a person lifting weights in a gym": 0.68776,
+        "a photo of people doing an athletic workout or sports training": 0.24346,
+        "a photo of a person standing or posing without exercising": 0.0556,
+        "a photo of a person running or sprinting as training": 0.01196,
+        "a photo of a person boxing or hitting a punching bag": 0.001,
+        "a screenshot of a text slide or title card": 8e-05,
+        "a photo of scenery or unrelated footage": 8e-05,
+        "a screenshot of a video game": 3e-05,
+        "a screenshot of a cartoon or animated character": 3e-05,
+        "a photo of a talking head or podcast interview": 1e-05
+      },
+      "passed": true
+    },
+    {
+      "second": 21.25,
+      "training": 0.88317,
+      "best_label": "a photo of a person lifting weights in a gym",
+      "scores": {
+        "a photo of a person lifting weights in a gym": 0.87291,
+        "a photo of a person standing or posing without exercising": 0.1168,
+        "a photo of people doing an athletic workout or sports training": 0.00977,
+        "a photo of a person running or sprinting as training": 0.00027,
+        "a photo of a person boxing or hitting a punching bag": 0.00022,
+        "a screenshot of a text slide or title card": 1e-05,
+        "a photo of scenery or unrelated footage": 1e-05,
+        "a screenshot of a cartoon or animated character": 0.0,
+        "a screenshot of a video game": 0.0,
+        "a photo of a talking head or podcast interview": 0.0
+      },
+      "passed": true
+    }
+  ],
+  "mood": {
+    "label": "slow-motion lifting",
+    "scores": {
+      "dark moody gym at night": 2.6739148347587618e-05,
+      "a lone runner at dusk": 4.548836221118792e-06,
+      "slow-motion lifting": 0.9865995168685914,
+      "an intense sprint": 0.0028186421550344676,
+      "bright daytime training": 0.010550556029193102
+    },
+    "brightness": 0.772,
+    "motion": 0.01,
+    "intensity": 0.171
+  }
+}
