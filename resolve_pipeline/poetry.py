@@ -23,6 +23,8 @@ def validate_piece(text, fmt):
         raise ValueError(f"Use {low}–{high} words of sentence-case English prose.")
     if not text[0].isupper() or re.search(r"\b[A-Z]{3,}\b", text) or text.isupper() or BAD.search(text) or text[-1] not in ".!?":
         raise ValueError("Use a complete, quiet observation without slogans.")
+    if fmt == "L" and len(SENTENCES.split(text)) != 1:
+        raise ValueError("A one-liner needs one sentence.")
     if fmt == "P" and not 3 <= len(SENTENCES.split(text)) <= 4:
         raise ValueError("A paragraph needs three or four sentences.")
     return text
@@ -48,7 +50,11 @@ P: 40–75 words in 3–4 sentences. L: 10–25 words. F4: 10–25 words, an app
 then a resolving clause separated by a comma. Quietly intense observations on discipline,
 becoming, solitude or acceptance. Third person or universal perspective. Use concrete detail
 and a turn at the end. No borrowed captions, quotes, lyrics, imperatives, gym slang, clichés,
-emojis, hashtags or shouting. Score each from 0 to 5 on {', '.join(RUBRIC)}. Return a JSON
+emojis, hashtags or shouting. Score each criterion from 0 to 5. Originality: a stock saying
+earns zero, a fresh observation five. Imagery: name something a reader can see or hear.
+Closing turn: the ending changes the meaning of the opening. No clichés: reward language
+free of slogans and familiar motivational formulas. Length: full marks only when the word
+and sentence limits are met without padding. Use these exact keys: {', '.join(RUBRIC)}. Return a JSON
 object with candidates, each containing text and scores keyed by those five rubric names."""
     response = request(prompt)
     rows = response.get("candidates") if isinstance(response, dict) else None

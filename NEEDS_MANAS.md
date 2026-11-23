@@ -90,8 +90,12 @@ The test writes all eight pages in both themes to `research/ui_screenshots/` on 
 
 ## M6 and M7 editorial review
 
-The sample links are in PROGRESS.md. Listen to the three identical-script WAVs and confirm or change the provisional Piper choice. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.
+The sample links are in PROGRESS.md. The legacy voice samples are optional. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.
 
-## M6 voice selection
+## Office PC speech preview
 
-Listen to [Resolve-Natural-TTS.zip](https://chatgpt.com/library?file_id=libfile_97e33c5bf8008191b1c9cd24f58aa625&account_id=personal) and reply with one filename. Kokoro uses `RESOLVE_TTS_ENGINE=kokoro`, a local ONNX model, a voice pack and `RESOLVE_TTS_VOICE`. Piper uses `RESOLVE_TTS_ENGINE=piper` and the selected ONNX model path, with its matching JSON alongside it. Verify the selected voice's license before deployment.
+Kokoro setup and voice selection are optional legacy F3 tasks. For two current F1 previews use the office PC's actual training footage, song, speech and local Whisper model. From the Resolve checkout on the **Windows office PC**, set the three local media paths in the environment and run the following PowerShell line. The command reads the Whisper model path and optional Gemini key from your existing .env.
+
+```powershell
+.venv\Scripts\python.exe -m tools.render_format_samples --state state/dashboard --video "$env:RESOLVE_SAMPLE_VIDEO" --song "$env:RESOLVE_SAMPLE_SONG" --speech "$env:RESOLVE_SAMPLE_SPEECH" --formats F1
+```

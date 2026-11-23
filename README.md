@@ -18,21 +18,21 @@ Copy `.env.example` to `.env` and use one literal `KEY=value` per line. Process 
 python3 -c 'from getpass import getpass; from secrets import token_bytes; from resolve_pipeline.dashboard_auth import password_hash; salt=token_bytes(16); print("RESOLVE_DASHBOARD_PASSWORD_HASH="+salt.hex()+"$"+password_hash(getpass(),salt))'
 ```
 
-Start the local-only dashboard with a clip and a song at least 22 seconds long for F2. Adjust paths to match your machine.
+Start the local-only dashboard with a clip and a song for a poetic Review sample. Adjust paths to match your machine.
 
 ```sh
-python3 -m resolve_pipeline.dashboard research/m0_server_results.json --source media/clip.mp4 --song media/song.mp3 --hook "Start with one rep" --quote "Earn the next rep."
+python3 -m resolve_pipeline.dashboard research/m0_server_results.json --source media/clip.mp4 --song media/song.mp3
 ```
 
 Open <http://127.0.0.1:8765/>. Use an SSH tunnel when the dashboard runs on AnalyticsDashboard. The app listens on loopback. Each login replaces the existing session, sessions expire after eight hours, and five login failures trigger a one-minute pause.
 
-For F1, provide `--whisper-model` pointing to a local faster-whisper model directory. F1 also needs speech in the source and a sentence boundary in the closing window. For F3, add `--voice-script` and `--piper-model` pointing to a local ONNX model with its adjacent JSON configuration. Install the optional `faster-whisper` and `piper-tts` packages in your runtime environment. Use concise scripts that fit the reel. Repeat `--source` or `--song` to seed more assets. Without a hook, Auto uses the local preview renderer.
+For F1, provide a separate real speech recording with `--speech` and a local faster-whisper directory with `--whisper-model`. P, L and F4 need no speech engine.
 
 ## Dashboard controls
 
 | Control | What happens |
 | --- | --- |
-| Make N reels now | Renders 1–20 reels immediately. Select Auto or F1–F3. Auto uses the operator weights and available format performance when the format renderer is configured. |
+| Make N reels now | Renders 1–20 reels immediately. Select Auto, F1, P, L, F4 or a manual legacy format. Auto uses the operator weights and available format performance when the format renderer is configured. |
 | Make reel from URL | Sends the URL to the configured downloader interface. The default installation reports that no adapter can download the source. |
 | Approve / Reject | Changes local review state. Live approval mode also requires the Telegram approval record. |
 | Regenerate / Delete | Creates a separate replacement with the original render inputs or removes an eligible reel from the review view. |
@@ -58,7 +58,7 @@ Routine control submissions update the pipeline section in place. The HTTP integ
 | Daily volume | `2` | Number of reserved posting slots per day, bounded by the slots provided. |
 | Approval mode | `approval` | Telegram approval is required in week one. An explicit `auto` switch can take effect after that. |
 | Refresh cadence | `weekly` | `weekly` or `monthly` for the library and site-health refresh jobs. |
-| Format weights | `1,1,1` | Relative F1, F2 and F3 preferences. Zero disables a format in Auto. |
+| Format weights | `3,0,0,1,4,4` | Relative F1, F2, F3, F4, P and L preferences. F2 and F3 are retired from Auto. Zero disables a format in Auto. |
 
 | Environment key | Purpose |
 | --- | --- |
@@ -106,21 +106,12 @@ An optional `--catalog` file pins specific YouTube watch URLs ahead of discovery
 
 The PC writes a ZIP with verified media and a SHA-256 manifest. SCP uploads to a temporary remote name, and SSH renames it to a ready bundle. The server operator checks the inbox while running and accepts only validated media. Set `RESOLVE_BUNDLE_INBOX` on AnalyticsDashboard and run the existing operator with `--telegram` for stale-bundle alerts. The operator generates a daily batch using the dashboard's configured volume and uses existing imported media during an acquisition outage.
 
-Set `RESOLVE_WHISPER_MODEL` and `RESOLVE_VOICE_SCRIPT` for speech formats. F2 needs no static hook or quote. Make shows which formats have their dependencies configured. F1 requires separately imported speech for production; a source without speech is skipped with an explanation. Local sources are labeled placeholder/test and cannot reserve a posting slot. Set `RESOLVE_TTS_ENGINE` to `kokoro` or `piper`; see `.env.example` for model and voice paths.
+## Current editorial specification
 
+P holds one original 40–75 word paragraph in three or four sentences. L holds one original 10–25 word line. Both appear in full after a 400 ms fade. Reading time is words divided by 3.3 plus four seconds, subject to format bounds. F4 opens with an apparent paradox and reveals the resolving clause at a musical transition near the midpoint. F1 uses real speech over training footage, sentence-bounded passages and softly highlighted phrase captions. All four use sentence case and the vendored OFL Poppins SemiBold face above center.
 
-## On-screen captions
+Use reflective language about discipline, sacrifice, solitude and self-respect. Each piece earns a turn at its close. Avoid directives, gym jargon, shouting, hashtags, emojis, other creators’ captions and lyrics. Gemini supplies five scored candidates. Review can edit generated text and render a fresh preview for approval. The local fallback manuscript and a 200-reel exclusion window apply when proposals are unavailable or invalid.
 
-Configure `GEMINI_API_KEY` in the dashboard and operator environment using the designated unbilled Gemini project. Resolve asks Gemini 2.5 Flash for an original hook on every formatted reel and 2–4 additional lines on F2. Invalid, duplicate, and unavailable responses fall back to the local bank. Generated lines are checked against the most recent 100 reels with generated text.
+Review shows how the text or transcript matched the music and training footage. New PC bundles carry CLIP mood labels plus measured frame brightness and motion. Earlier bundles remain usable. P and L favor longer-held text, and F4 enters the bandit at a low initial weight. F2 and F3 remain available for manual legacy work. Kokoro is optional.
 
-**Review → On-screen text** edits the hook and F2 lines before approval. Saving renders a new review copy and retires the old preview, so approve the new copy. **Settings → Caption preset** changes future renders. **Generate preset previews** renders three matched videos in `research/caption_presets/`. F2 changes lines on detected beats or onsets near the intended pacing, with even timing on audio without usable markers. F1 and F3 keep speech-aligned word timestamps.
-
-The Windows acquisition venv installs the yt-dlp default extras. Install Deno 2.3+ separately as shown in NEEDS_MANAS.md. The acquisition CLI checks its version before starting.
-
-### Speech and experimental reels
-
-Add a separate local narration source with repeatable `--speech PATH` options on the dashboard. F1 transcribes the source and uses a complete 20–35 second passage over the selected training clip. Review displays the speech and music match. Use `--hook` or `--quote "Line one|Line two"` for deliberate overrides. Review displays a warning while an override is active.
-
-F4 is an experimental gym friction, turning point, and next-session action format. Set its weight to zero to pause it. F3 uses Kokoro with `RESOLVE_KOKORO_MODEL` and `RESOLVE_KOKORO_VOICES`; change the voice in dashboard Settings. Install `faster-whisper` and `kokoro-onnx` for speech formats.
-
-Use `python -m tools.whisper_benchmark --help` to compare local CPU Whisper models against reference transcripts. Use `python -m tools.render_format_samples --help` to render four local review samples into the supplied dashboard state directory.
+Use `python -m tools.render_format_samples --help` for the two-per-format Review batch. Local samples stay outside the posting queue. Install Deno on the Windows acquisition PC as documented in NEEDS_MANAS.md.

@@ -110,7 +110,7 @@ def styled_ass(hook, lines, words, preset, end_ms, markers=(), *, experimental=F
 
 def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
     """Let libass balance a full block inside fixed safe margins."""
-    size = 52 if format_id == "P" else 66
+    size = 66 if format_id == "P" else 84
     ass = [
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
         "WrapStyle: 0", "[V4+ Styles]",

@@ -72,7 +72,7 @@ def render_reel(
         raise ValueError("Output must differ from the inputs")
     speech = {"F1": "2:a:0" if voiceover is not None else "0:a:0", "F3": "2:a:0"}.get(format_id)
     font_option = ":fontsdir=fonts" if caption_preset or quiet else ""
-    shade = ",eq=brightness=-0.085" if quiet else ""
+    shade = ",eq=brightness=-0.08,drawbox=color=black@0.13:t=fill" if quiet else ""
     filters = [f"[0:v:0]{VERTICAL_FRAME},fps=30{shade},ass=captions.ass{font_option}[outv]"]
     if speech is None:
         filters.append("[1:a:0]aresample=48000,volume=0.75[outa]")
@@ -179,11 +179,13 @@ class LocalReelBuilder:
             ) if not ready), None),
         }
 
-    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None, select_music=None, voice_id=None):
+    def __call__(self, video, song, destination, format_id, *, speech_source=None, starts=(0, 0, 0), video_text=None, caption_preset=None, select_music=None, voice_id=None, aligned_words=None):
         from .captions import transcribe_local_words
         from .tts import synthesize
 
-        if format_id in {"F1", "F3"} and self.whisper_model is None:
+        if aligned_words is not None and format_id != "F1":
+            raise ValueError("Pre-aligned source speech is only valid for F1.")
+        if format_id in {"F1", "F3"} and self.whisper_model is None and aligned_words is None:
             raise ValueError("Configure a local Whisper model for speech formats")
         with TemporaryDirectory(dir=destination.parent) as directory:
             speech = Path(directory) / "speech.wav"
@@ -195,7 +197,8 @@ class LocalReelBuilder:
                     samples = decode_speech(speech_source)
                 except subprocess.SubprocessError as error:
                     raise NoSpeech("F1 skipped: the speech source has no decodable audio.") from error
-                words = transcribe_local_words(speech_source, self.whisper_model, samples=samples)
+                words = (aligned_words if aligned_words is not None else
+                         transcribe_local_words(speech_source, self.whisper_model, samples=samples))
                 try:
                     passage, mood = select_passage(words, samples, self.gemini_key)
                 except ValueError as error:

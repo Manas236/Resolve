@@ -234,8 +234,8 @@ class Pipeline:
     @staticmethod
     def _recent_video_text(db, reel_id):
         used = set()
-        for (raw,) in db.execute("SELECT video_text FROM reels WHERE id!=? AND video_text IS NOT NULL "
-                                 "ORDER BY id DESC LIMIT 200", (reel_id,)):
+        for (raw,) in db.execute("SELECT video_text FROM (SELECT video_text FROM reels WHERE id!=? "
+                                 "ORDER BY id DESC LIMIT 200) WHERE video_text IS NOT NULL", (reel_id,)):
             text = json.loads(raw)
             blocks = [text["hook"], *text["lines"]]
             used.update(normalized(line) for line in [*blocks, " ".join(blocks)])
@@ -465,8 +465,11 @@ class Pipeline:
                     styling = {}
                     if getattr(self.reel_builder, "generate_captions", False) is True and format_id != "F1":
                         context = imported.get(source, {}).get("title") or "gym training"
-                        video_text = (json.loads(stored_text) if stored_text else
-                                      self._reserve_video_text(db, reel_id, format_id, context))
+                        video_text = json.loads(stored_text) if stored_text else None
+                        if format_id == "F4" and video_text and len(video_text.get("lines", [])) != 1:
+                            video_text = None
+                        if video_text is None:
+                            video_text = self._reserve_video_text(db, reel_id, format_id, context)
                         styling = {"video_text": video_text, "caption_preset": self.settings()["caption_preset"]}
                     if format_id == "F3" and styling:
                         styling["voice_id"] = self.settings()["kokoro_voice"]
