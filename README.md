@@ -90,7 +90,7 @@ The dry-run schedule creates independent Instagram and Facebook receipts without
 python3 -m resolve_pipeline.operator --once --source media/clip.mp4
 ```
 
-Omit `--once` to run the dispatcher continuously. `--zone` sets its posting timezone. The service is dry-run unless both `--live` and `META_DRY_RUN=false` are present. Live mode also requires an HTTPS `--media-base` and a configured Meta app. The separately enabled `--telegram` mode sends pending previews and handles callbacks. It uses the configured review chat and reviewer. Start only after the live integration steps in NEEDS_MANAS.md have been verified.
+Omit `--once` to run the dispatcher continuously. `--zone` sets its posting timezone. The service is dry-run unless both `--live` and `META_DRY_RUN=false` are present. With a configured Meta app, the operator uploads the local rendered MP4. Supplying an HTTPS `--media-base` selects the hosted URL workflow. The separately enabled `--telegram` mode sends pending previews and handles callbacks. It uses the configured review chat and reviewer. Start only after the live integration steps in NEEDS_MANAS.md have been verified.
 
 The next Lightsail diagnostic is already queued in `jobs/next_job.json`. See [NEEDS_MANAS.md](NEEDS_MANAS.md) for the dedicated runner, report handoff, competitor evidence, Telegram and Meta setup, channel name and deployment decisions. The current server measurements and tested routes are in [RESEARCH.md](RESEARCH.md). Milestone evidence and exact resume steps are in [PROGRESS.md](PROGRESS.md) and [DECISIONS.md](DECISIONS.md). Keep downloaded media, generated media, secrets and state outside Git.
 

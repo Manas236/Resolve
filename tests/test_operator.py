@@ -29,4 +29,4 @@ class OperatorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "requires --live"):
                 build_services(pipeline, {}, live=True)
             with self.assertRaisesRegex(ValueError, "HTTPS"):
-                build_services(pipeline, {"META_DRY_RUN": "false"}, live=True)
+                build_services(pipeline, {"META_DRY_RUN": "false"}, live=True, media_base="http://invalid")

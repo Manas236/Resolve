@@ -1,7 +1,10 @@
 """Instagram and Facebook reel publishers with a network-free dry run."""
 
 from dataclasses import dataclass
+from contextlib import ExitStack
 import json
+import os
+from pathlib import Path
 import re
 from time import sleep
 from typing import Protocol
@@ -17,7 +20,7 @@ _RATE_LIMIT_CODES = {4, 17, 32, 613, 80004}
 @dataclass(frozen=True)
 class Post:
     reel_id: str
-    video_url: str
+    video_url: str | Path
     caption: str
     authorized: bool = False
 
@@ -73,15 +76,24 @@ class MetaPublisher:
         fields = fields or {}
         headers = {"Authorization": f"{'OAuth' if upload else 'Bearer'} {self.token}"}
         data = None
-        if upload:
+        local_path = fields.get("local_path")
+        if upload and local_path is None:
             headers["file_url"] = fields["file_url"]
             data = b""
+        elif upload:
+            headers["Content-Type"] = "application/octet-stream"
         elif method == "POST":
             data = urlencode(fields).encode()
         elif fields:
             url += "?" + urlencode(fields)
         try:
-            with self.transport.open(Request(url, data=data, headers=headers, method=method), timeout=20) as response:
+            with ExitStack() as stack:
+                if upload and local_path is not None:
+                    data = stack.enter_context(local_path.open("rb"))
+                    size = str(os.fstat(data.fileno()).st_size)
+                    headers.update({"offset": "0", "file_size": size, "Content-Length": size})
+                response = stack.enter_context(self.transport.open(
+                    Request(url, data=data, headers=headers, method=method), timeout=180 if upload else 20))
                 payload = json.loads(response.read(1_000_000))
         except HTTPError as error:
             try:
@@ -145,28 +157,35 @@ class MetaPublisher:
 
     def _instagram(self, post):
         account = f"{self.graph}/{self.account_id}"
-        container = self._id(self._request("POST", account + "/media", {
-            "media_type": "REELS", "video_url": post.video_url, "caption": post.caption,
-            "share_to_feed": "true",
-        }), "id")
+        local = isinstance(post.video_url, Path)
+        media = {"upload_type": "resumable"} if local else {"video_url": post.video_url}
+        session = self._request("POST", account + "/media", {
+            "media_type": "REELS", "caption": post.caption, "share_to_feed": "true", **media,
+        })
+        container = self._id(session, "id")
+        if local:
+            self._upload(session.get("uri"), "/ig-api-upload/", post.video_url)
         self._poll(container, field="status_code")
         return self._id(self._request("POST", account + "/media_publish",
                                       {"creation_id": container}), "id")
+
+    def _upload(self, address, prefix, media):
+        if not isinstance(address, str):
+            raise PostingError("Meta did not provide an upload URL")
+        origin = urlsplit(address)
+        if ((origin.scheme, origin.netloc) != (self.upload_origin.scheme, self.upload_origin.netloc)
+                or not origin.path.startswith(prefix)):
+            raise PostingError("Meta upload URL did not match the configured upload origin")
+        fields = {"local_path": media} if isinstance(media, Path) else {"file_url": media}
+        uploaded = self._request("POST", address, fields, upload=True)
+        if uploaded.get("success") is not True:
+            raise PostingError("Meta did not accept the uploaded video")
 
     def _facebook(self, post):
         endpoint = f"{self.graph}/{self.account_id}/video_reels"
         session = self._request("POST", endpoint, {"upload_phase": "start"})
         video_id = self._id(session, "video_id")
-        address = session.get("upload_url")
-        if not isinstance(address, str):
-            raise PostingError("Meta did not provide an upload URL")
-        origin = urlsplit(address)
-        if ((origin.scheme, origin.netloc) != (self.upload_origin.scheme, self.upload_origin.netloc)
-                or not origin.path.startswith("/video-upload/")):
-            raise PostingError("Meta upload URL did not match the configured upload origin")
-        uploaded = self._request("POST", address, {"file_url": post.video_url}, upload=True)
-        if uploaded.get("success") is not True:
-            raise PostingError("Meta did not accept the uploaded video")
+        self._upload(session.get("upload_url"), "/video-upload/", post.video_url)
         self._poll(video_id, field="status")
         result = self._request("POST", endpoint, {
             "upload_phase": "finish", "video_id": video_id,
@@ -183,8 +202,12 @@ class MetaPublisher:
             return Receipt(self.platform, f"dry-run:{post.reel_id}", True)
         if post.authorized is not True:
             raise PostingError("Live posting requires a pipeline authorization")
-        media = urlsplit(post.video_url)
-        if media.scheme != "https" or not media.hostname or media.username or media.password:
-            raise ValueError("Live posting requires a public HTTPS video URL")
+        if isinstance(post.video_url, Path):
+            if not post.video_url.is_file() or not post.video_url.stat().st_size:
+                raise ValueError("A nonempty rendered reel is required")
+        else:
+            media = urlsplit(post.video_url)
+            if media.scheme != "https" or not media.hostname or media.username or media.password:
+                raise ValueError("Live posting requires a public HTTPS video URL")
         remote_id = self._instagram(post) if self.platform == "instagram" else self._facebook(post)
         return Receipt(self.platform, remote_id, False)

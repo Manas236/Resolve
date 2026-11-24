@@ -24,7 +24,7 @@ def build_services(pipeline, settings, *, telegram=False, live=False, media_base
         raise ValueError("META_DRY_RUN must be true or false")
     if live and configured_dry_run != "false":
         raise ValueError("Live mode requires --live and META_DRY_RUN=false")
-    if live:
+    if live and media_base:
         parsed = urlsplit(media_base)
         if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
                 or parsed.query or parsed.fragment):
@@ -51,6 +51,8 @@ def build_services(pipeline, settings, *, telegram=False, live=False, media_base
     }
 
     def media_url(reel_id):
+        if live and not media_base:
+            return pipeline.directory / f"{reel_id}.mp4"
         return f"{media_base.rstrip('/')}/{reel_id}.mp4" if live else ""
 
     return Scheduler(pipeline, publishers, media_url, zone=zone, alert=alert), bot

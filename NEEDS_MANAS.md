@@ -90,7 +90,7 @@ screen -S resolve-runner -X quit
 
 ## M9 live posting setup
 
-In Meta for Developers, create a dedicated Resolve app and add the Instagram API with Facebook Login. Connect the target Instagram professional account to the Facebook Page and grant the Resolve app access as a tester or developer during development. Configure Instagram content publishing and Page publishing permissions in the app and obtain a token for the connected assets. In the ignored AnalyticsDashboard .env, supply META_ACCESS_TOKEN, META_IG_USER_ID, META_PAGE_ID and the app's supported META_GRAPH_VERSION. Keep META_DRY_RUN=true during setup. Live upload needs a public HTTPS URL for each reel that Meta can fetch. The serving method and a first explicitly approved live test remain pending.
+In Meta for Developers, create a dedicated Resolve app and add the Instagram API with Facebook Login. Connect the target Instagram professional account to the Facebook Page and grant the Resolve app access as a tester or developer during development. Configure Instagram content publishing and Page publishing permissions in the app and obtain a token for the connected assets. In the ignored AnalyticsDashboard .env, supply META_ACCESS_TOKEN, META_IG_USER_ID, META_PAGE_ID and the app's supported META_GRAPH_VERSION. Keep META_DRY_RUN=true during setup. The default live route streams the rendered file directly to the upload session on both platforms. Direct upload was tested against a local fake Graph server. The first explicitly approved live account test remains pending.
 
 ## M13 AnalyticsDashboard profile and health check
 

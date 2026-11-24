@@ -1,5 +1,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from tempfile import TemporaryDirectory
+from pathlib import Path
 from threading import Thread
 import unittest
 from urllib.parse import parse_qs, urlsplit
@@ -37,6 +39,8 @@ class MetaPublisherTests(unittest.TestCase):
                 data = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
                 self.server.requests.append((self.command, address.path, parse_qs(data or address.query),
                                              self.headers.get("Authorization"), self.headers.get("file_url")))
+                if self.headers.get("file_size"):
+                    self.server.local_upload = (data, self.headers["file_size"], self.headers["offset"])
                 status, payload = self.server.scenarios.pop(0)
                 payload = payload(self.server.server_port) if callable(payload) else payload
                 body = json.dumps(payload).encode()
@@ -82,6 +86,24 @@ class MetaPublisherTests(unittest.TestCase):
                                  ["/v24.0/42/video_reels", "/video-upload/x", "/v24.0/30", "/v24.0/42/video_reels"])
                 self.assertEqual(server.requests[1][3:], ("OAuth fake", post.video_url))
                 self.assertEqual(server.requests[-1][2]["upload_phase"], ["finish"])
+
+        with TemporaryDirectory() as folder:
+            source = Path(folder) / "local reel.mp4"
+            source.write_bytes(b"video bytes")
+            local = Post("1", source, "Caption", authorized=True)
+            for platform, key, prefix in (("instagram", "uri", "ig-api-upload"), ("facebook", "upload_url", "video-upload")):
+                status = ({"status_code": "FINISHED"} if platform == "instagram"
+                          else {"status": {"uploading_phase": {"status": "complete"}}})
+                identifier = "id" if platform == "instagram" else "video_id"
+                for server, base in serve([
+                    (200, lambda port: {identifier: "30", key: f"http://127.0.0.1:{port}/{prefix}/30"}),
+                    (200, {"success": True}), (200, status), (200, {"success": True, "id": "30"}),
+                ]):
+                    self.assertEqual(publisher(platform, base).publish(local).remote_id, "30")
+                    self.assertEqual(server.local_upload, ("video bytes", "11", "0"))
+                    if platform == "instagram":
+                        self.assertEqual(server.requests[0][2]["upload_type"], ["resumable"])
+                        self.assertNotIn("video_url", server.requests[0][2])
 
         for scenarios, exception, count in (
             ([(429, {})], RateLimited, 1),
