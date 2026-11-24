@@ -189,7 +189,17 @@ def catalog_previews(item, audio_path, directory, replay):
 def probe(output):
     rows = []
     blocked = False
-    for item in read_corpus():
+    corpus = read_corpus()
+    targets = Counter(item["kind"] for item in corpus)
+
+    def checkpoint(complete):
+        verified = Counter(row["kind"] for row in rows if row["status"] == "verified")
+        summary = {kind: {"verified": verified[kind], "target": count}
+                   for kind, count in targets.items()}
+        write_report(output, {"complete": complete, "summary": summary, "results": rows})
+
+    checkpoint(False)
+    for item in corpus:
         row = {"id": item["id"], "kind": item["kind"]}
         if blocked:
             rows.append({**row, "status": "skipped_after_provider_challenge"})
@@ -209,8 +219,8 @@ def probe(output):
                             if item["kind"] == "audio" else {})
                 rows.append({**row, "status": "verified", "metadata": metadata, "replay": replay,
                              "previews": previews})
-        write_report(output, {"complete": False, "results": rows})
-    write_report(output, {"complete": True, "results": rows})
+        checkpoint(False)
+    checkpoint(True)
 
 
 def source_html(url):

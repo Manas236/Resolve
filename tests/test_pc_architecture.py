@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import json
 import random
 import unittest
 from unittest.mock import patch
@@ -35,6 +36,19 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(len(alerts), 1)
             self.assertEqual(pipeline.library(), [])
             self.assertTrue((inbox / "resolve-bad.rejected").is_file())
+
+    def test_completed_challenged_probe_keeps_full_denominators(self):
+        with TemporaryDirectory() as folder:
+            report = Path(folder) / "probe.json"
+            with patch.object(pc_acquisition, "checked_asset", side_effect=ValueError("provider_challenge")) as acquire:
+                pc_acquisition.probe(report)
+            result = json.loads(report.read_text())
+            acquire.assert_called_once()
+            self.assertTrue(result["complete"])
+            self.assertEqual(result["summary"], {kind: {"verified": 0, "target": 10}
+                                                 for kind in ("audio", "video")})
+            self.assertEqual(len(result["results"]), 20)
+            self.assertEqual(result["results"][-1]["status"], "skipped_after_provider_challenge")
 
     def test_preview_alignment_requires_unique_match(self):
         rng = random.Random(17)
