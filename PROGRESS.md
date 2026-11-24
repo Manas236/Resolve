@@ -4,6 +4,8 @@
 
 Continue these units before the earlier machine gates. First replace the entire vignette manuscript with at least 200 distinct one-liners and 100 paragraphs about discipline, effort, sacrifice, becoming, solitude, self-respect, irony and paradox. Use one-read declarative copy and a closing turn. Provide plenty of split reveals. Fit a 75-word paragraph into eight readable lines at roughly 85% width. Render two P, L and F4 each and record the exact text here.
 
+First editorial batch replaced 40 one-liners; each passed the length and sentence validator. Remaining manuscript rewrite is open.
+
 Independent Gemini judging and least-recently-used exhaustion recovery implemented. Seven focused poetry tests passed, including a mock two-call judge with a theme-fit threshold of four and oldest-paragraph reuse with a warning. Real Gemini evidence is pending.
 
 Then audit all modules, run a README-only fresh Linux install, full suite and static checks, check Windows UTF-8, handles, paths and timezone data, skip the vision fixture without Pillow, exercise every dashboard control and verify Auto eligibility. Record bugs, fixes and tests here. Put single-line noninteractive office commands for pull, install, dashboard and two of each active format at the top of NEEDS_MANAS.md and test Linux equivalents.
