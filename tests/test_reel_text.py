@@ -94,6 +94,15 @@ class CaptionStyleTests(unittest.TestCase):
         self.assertIn("BALANCE{", style)
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required")
+    def test_sustained_tone_marker_detection_survives_full_reveal(self):
+        with TemporaryDirectory() as folder:
+            track = Path(folder) / "fixture track.wav"
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+                            "sine=d=40", str(track)], check=True)
+            markers = music_markers(track, 0, 15)
+            self.assertTrue(all(0 <= when <= 15000 for when, _ in markers))
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required")
     def test_detects_markers_from_fixture_audio(self):
         with TemporaryDirectory() as folder:
             track = Path(folder) / "pulse.wav"

@@ -16,6 +16,7 @@ PRESETS = {
 
 def music_markers(song, offset, duration):
     import librosa
+    from scipy.signal import find_peaks
     import numpy as np
 
     pcm = subprocess.check_output([
@@ -29,8 +30,8 @@ def music_markers(song, offset, duration):
     rate = 22050
     envelope = librosa.onset.onset_strength(y=samples, sr=rate)
     _, beats = librosa.beat.beat_track(onset_envelope=envelope, sr=rate)
-    onsets = librosa.onset.onset_detect(onset_envelope=envelope, sr=rate)
     strength = float(np.max(envelope))
+    onsets, _ = find_peaks(envelope, prominence=max(1e-6, strength * 0.07), distance=3)
     scored = {int(frame): 1.0 for frame in beats}
     for frame in onsets:
         scored[int(frame)] = max(scored.get(int(frame), 0), 1 + float(envelope[frame]) / (strength or 1))
