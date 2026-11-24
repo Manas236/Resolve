@@ -1,4 +1,4 @@
-"""Render F1–F4 from local media into the dashboard Review queue."""
+"""Render P, L, F1 and F4 from local media into the dashboard Review queue."""
 import argparse
 import json
 from pathlib import Path
@@ -6,7 +6,6 @@ from pathlib import Path
 from resolve_pipeline.config import read_env_file
 from resolve_pipeline.control import Pipeline
 from resolve_pipeline.reels import configured_builder
-from resolve_pipeline.scheduler import FORMATS
 
 
 def main():
