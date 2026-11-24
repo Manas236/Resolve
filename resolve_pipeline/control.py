@@ -233,12 +233,14 @@ class Pipeline:
 
     @staticmethod
     def _recent_video_text(db, reel_id):
-        used = set()
-        for (raw,) in db.execute("SELECT video_text FROM (SELECT video_text FROM reels WHERE id!=? "
+        used = {}
+        for identifier, raw in db.execute("SELECT id, video_text FROM (SELECT id, video_text FROM reels WHERE id!=? "
                                  "ORDER BY id DESC LIMIT 200) WHERE video_text IS NOT NULL", (reel_id,)):
             text = json.loads(raw)
             blocks = [text["hook"], *text["lines"]]
-            used.update(normalized(line) for line in [*blocks, " ".join(blocks)])
+            for line in [*blocks, " ".join(blocks)]:
+                key = normalized(line)
+                used[key] = max(identifier, used.get(key, 0))
         return used
 
     def _reserve_video_text(self, db, reel_id, format_id, context):

@@ -1,5 +1,15 @@
 # Resolve progress
 
+## Overnight priority from Manas
+
+Continue these units before the earlier machine gates. First replace the entire vignette manuscript with at least 200 distinct one-liners and 100 paragraphs about discipline, effort, sacrifice, becoming, solitude, self-respect, irony and paradox. Use one-read declarative copy and a closing turn. Provide plenty of split reveals. Fit a 75-word paragraph into eight readable lines at roughly 85% width. Render two P, L and F4 each and record the exact text here.
+
+Independent Gemini judging and least-recently-used exhaustion recovery implemented. Seven focused poetry tests passed, including a mock two-call judge with a theme-fit threshold of four and oldest-paragraph reuse with a warning. Real Gemini evidence is pending.
+
+Then audit all modules, run a README-only fresh Linux install, full suite and static checks, check Windows UTF-8, handles, paths and timezone data, skip the vision fixture without Pillow, exercise every dashboard control and verify Auto eligibility. Record bugs, fixes and tests here. Put single-line noninteractive office commands for pull, install, dashboard and two of each active format at the top of NEEDS_MANAS.md and test Linux equivalents.
+
+Check main for research/m0_pc_results.json without editing it. If present do Stage B and propagate proven routes. Otherwise implement dry-run-gated Instagram resumable and direct Facebook Page file uploads with mocks, verify the one-command health check and draft the evidence-linked M14 handoff. Continue remaining machine-independent work.
+
 ## Resume checkpoint
 
 First missing input is `research/m0_pc_results.json` from the Windows residential connection. Once committed, analyze the per-target results in RESEARCH.md. The updated probe records fixed denominators on each checkpoint. A regression using the real 20-item corpus and a simulated first-target challenge verified one acquisition call, 19 skipped targets and zero verified out of ten for each kind. This is report evidence only. The Linux suite ran 95 tests with 94 passing, including bundle import through approved dry-run delivery. The opt-in browser test was also attempted separately and Chromium failed before navigation because the executor denied a socket. AnalyticsDashboard acceptance stays open.

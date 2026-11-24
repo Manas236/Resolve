@@ -7,7 +7,7 @@ from resolve_pipeline.reel_text import normalized
 
 class PoetryTests(unittest.TestCase):
     def test_valid_manuscript_and_reading_time(self):
-        pieces = poetry.BANK.read_text().splitlines()
+        pieces = poetry.BANK.read_text(encoding="utf-8").splitlines()
         self.assertGreaterEqual(len(set(pieces)), 150)
         for text in pieces:
             fmt = "P" if len(text.split()) >= 40 else "L"
@@ -18,10 +18,19 @@ class PoetryTests(unittest.TestCase):
             self.assertEqual(quiet_ass(fmt, text, [], [], 20000).count("Dialogue:"), 1)
 
     def test_best_valid_unused_candidate_wins(self):
-        pieces = poetry.BANK.read_text().splitlines()[:5]
+        pieces = poetry.BANK.read_text(encoding="utf-8").splitlines()[:5]
         rows = [{"text": text, "scores": dict.fromkeys(poetry.RUBRIC, i)} for i, text in enumerate(pieces)]
-        result = poetry.candidate(lambda _: {"candidates": rows}, "L", "", {normalized(pieces[4])}, normalized)
+        grades = [dict.fromkeys(poetry.RUBRIC, i) | {"theme_fit": 4} for i in range(5)]
+        grades[2] = dict.fromkeys(poetry.RUBRIC, 5) | {"theme_fit": 3}
+        responses = iter([{"candidates": rows}, {"scores": grades}])
+        result = poetry.candidate(lambda _: next(responses), "L", "", {normalized(pieces[4])}, normalized)
         self.assertEqual(result["hook"], pieces[3])
+
+    def test_exhaustion_reuses_oldest_paragraph(self):
+        paragraphs = [s for s in poetry.BANK.read_text(encoding="utf-8").splitlines() if len(s.split()) >= 40]
+        used = {normalized(s): i for i, s in enumerate(reversed(paragraphs), 1)}
+        with self.assertLogs(poetry.__name__, level="WARNING"):
+            self.assertEqual(poetry.fallback("P", used, normalized)["hook"], paragraphs[-1])
 
     def test_mood_prefers_compatible_footage_and_music(self):
         from resolve_pipeline.speech_edit import footage_distance, music_distance, text_mood
