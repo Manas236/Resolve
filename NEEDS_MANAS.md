@@ -1,5 +1,32 @@
 # Needs Manas
 
+## Office PC morning Review run
+
+Use PowerShell from the Resolve clone on the **Windows office PC**. These commands assume Python 3.11, FFmpeg and ffprobe are on PATH. The video, song, separate speech recording and unpacked faster-whisper model must exist locally. Set the paths in the two assignment lines to your actual files. All output goes to the local Review dashboard.
+
+```powershell
+$env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main; if ($LASTEXITCODE) { throw 'Pull failed' }
+py -3.11 -m venv .venv
+.venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements-pc.txt faster-whisper
+$video='C:\ResolveMedia\training.mp4'; $song='C:\ResolveMedia\song.mp3'
+$speech='C:\ResolveMedia\speech.mp4'; $model='C:\ResolveMedia\models\distil-large-v3'
+foreach ($file in @($video,$song,$speech)) { if (!(Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing media: $file" } }
+if (!(Test-Path -LiteralPath (Join-Path $model 'model.bin') -PathType Leaf)) { throw "Missing Whisper model: $model" }
+$env:META_DRY_RUN='true'; .venv\Scripts\python.exe -m resolve_pipeline
+.venv\Scripts\python.exe -m tools.render_format_samples --state state/dashboard --video "$video" --song "$song" --speech "$speech" --whisper-model "$model" --formats P L F4 F1
+```
+
+The batch prints each reel ID, state and error. Expect eight `review` rows, two per format. To review the six text reels before speech assets are available, omit the speech/model options and use `--formats P L F4`.
+
+Start the dashboard in the same PowerShell window. If you already have a dashboard password hash in .env, skip the next line. Otherwise it creates a password for this session and displays it locally once.
+
+```powershell
+$login = .venv\Scripts\python.exe -c "import secrets; from resolve_pipeline.dashboard_auth import password_hash; p=secrets.token_urlsafe(20); s=secrets.token_bytes(16); print(p); print(s.hex()+chr(36)+password_hash(p,s))"; $env:RESOLVE_DASHBOARD_PASSWORD_HASH=$login[1]; Write-Host "Local dashboard password: $($login[0])"
+.venv\Scripts\python.exe -m resolve_pipeline.dashboard research/m0_server_results.json --zone Asia/Kolkata --state state/dashboard --source "$video" --song "$song" --speech "$speech" --whisper-model "$model"
+```
+
+Open http://127.0.0.1:8765/review on the office PC and sign in. Leave the dashboard terminal open while using it.
+
 ## M0 one-pass audio and video probe
 
 On the **Windows acquisition PC**, run from the Resolve clone in PowerShell on the residential connection. Use Python 3.11+, FFmpeg and ffprobe, Git, Windows OpenSSH Client, and Deno 2.3 or newer. Install these with your existing local tooling and make them available on PATH.
