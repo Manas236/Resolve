@@ -4,7 +4,7 @@
 
 Continue these units before the earlier machine gates. First replace the entire vignette manuscript with at least 200 distinct one-liners and 100 paragraphs about discipline, effort, sacrifice, becoming, solitude, self-respect, irony and paradox. Use one-read declarative copy and a closing turn. Provide plenty of split reveals. Fit a 75-word paragraph into eight readable lines at roughly 85% width. Render two P, L and F4 each and record the exact text here.
 
-First editorial batch replaced 40 one-liners; each passed the length and sentence validator. Remaining manuscript rewrite is open.
+First editorial batch replaced 40 one-liners; each passed the length and sentence validator. Commit a350880 also replaced all 20 old paragraphs. All 20 new paragraphs passed validate_piece and all seven poetry tests passed. Expand the on-theme paragraph pool from 20 to 100+ and finish rewriting and expanding the one-liners.
 
 Independent Gemini judging and least-recently-used exhaustion recovery implemented. Seven focused poetry tests passed, including a mock two-call judge with a theme-fit threshold of four and oldest-paragraph reuse with a warning. Real Gemini evidence is pending.
 
