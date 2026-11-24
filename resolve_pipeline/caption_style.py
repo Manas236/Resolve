@@ -108,9 +108,50 @@ def styled_ass(hook, lines, words, preset, end_ms, markers=(), *, experimental=F
     return "\n".join(header) + "\n"
 
 
+# Horizontal advances from the bundled Poppins SemiBold. Libass scales by
+# its 1400-unit ascender-to-descender height at the script resolution.
+_POPPINS_ADVANCES = {
+    'a': 678, 'b': 678, 'c': 602, 'd': 678, 'e': 617, 'f': 345, 'g': 678,
+    'h': 661, 'i': 278, 'j': 278, 'k': 584, 'l': 278, 'm': 1048, 'n': 661,
+    'o': 638, 'p': 678, 'q': 678, 'r': 404, 's': 545, 't': 388, 'u': 661,
+    'v': 599, 'w': 844, 'x': 540, 'y': 605, 'z': 483, 'A': 716, 'B': 643,
+    'C': 768, 'D': 717, 'E': 532, 'F': 530, 'G': 768, 'H': 717, 'I': 278,
+    'J': 570, 'K': 663, 'L': 459, 'M': 899, 'N': 735, 'O': 785, 'P': 608,
+    'Q': 787, 'R': 641, 'S': 609, 'T': 577, 'U': 697, 'V': 711, 'W': 1024,
+    'X': 686, 'Y': 636, 'Z': 576, '0': 646, '1': 362, '2': 574, '3': 599,
+    '4': 661, '5': 644, '6': 640, '7': 548, '8': 643, '9': 626, ' ': 238,
+    '.': 260, ',': 254, '!': 354, '?': 538, '—': 927, '–': 702, ':': 263,
+    ';': 324, '-': 583, "'": 195, '’': 275,
+}
+
+
+def paragraph_layout(text):
+    words = text.split()
+    widths = [sum(_POPPINS_ADVANCES.get(c, 1000) for c in word) for word in words]
+    for size in range(78, 0, -1):
+        limit = 910 * 1400 / size
+        lines = []
+        width = 0
+        for word, advance in zip(words, widths):
+            if advance > limit:
+                break
+            if not lines or width + _POPPINS_ADVANCES[" "] + advance > limit:
+                lines.append(word)
+                width = advance
+            else:
+                lines[-1] += " " + word
+                width += _POPPINS_ADVANCES[" "] + advance
+        else:
+            if len(lines) <= 8:
+                return size, lines
+    raise ValueError("Paragraph exceeds the frame width.")
+
+
 def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
     """Let libass balance a full block inside fixed safe margins."""
-    size = 66 if format_id == "P" else 84
+    size = 84
+    if format_id == "P":
+        size, paragraph = paragraph_layout(text)
     ass = [
         "[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920",
         "WrapStyle: 0", "[V4+ Styles]",
@@ -133,6 +174,8 @@ def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
                 body[j] = r"{\1c&H00DDDDDD&\u1}" + body[j] + r"{\rQuiet}"
                 block(word.start_ms, min(end_ms, chunk[j+1].start_ms if j+1 < len(chunk) else word.end_ms),
                       " ".join(body), False)
+    elif format_id == "P":
+        block(0, end_ms, r"{\q2\fscx125\fscy125}" + r"\N".join(_ass_text(line) for line in paragraph))
     elif format_id == "F4":
         eligible = [(weight, when) for when, weight in markers if end_ms*.38 <= when <= end_ms*.66]
         turn = max(eligible)[1] if eligible else end_ms//2
