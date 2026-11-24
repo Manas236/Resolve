@@ -1,4 +1,5 @@
 import json
+from importlib.util import find_spec
 from pathlib import Path
 import shutil
 import sqlite3
@@ -64,6 +65,7 @@ class DiscoveryTests(unittest.TestCase):
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required")
+@unittest.skipUnless(find_spec("PIL"), "Pillow required for vision fixture")
 class VisionTests(unittest.TestCase):
     def test_extracts_fixture_frames_and_filters_by_majority_and_threshold(self):
         with TemporaryDirectory() as tmp:
