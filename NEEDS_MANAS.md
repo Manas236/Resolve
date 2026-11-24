@@ -9,14 +9,15 @@ winget install --id DenoLand.Deno -e --accept-source-agreements --accept-package
 $env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main
 py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip --disable-pip-version-check --no-input install -r requirements-pc.txt
-Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition probe --output research/m0_pc_results.json' -RedirectStandardError resolve-pc-probe.log -Wait
+$probe = Start-Process -PassThru -FilePath .venv\Scripts\python.exe -ArgumentList '-m tools.pc_acquisition probe --output research/m0_pc_results.json' -RedirectStandardError resolve-pc-probe.log -Wait
+if ($probe.ExitCode -ne 0) { throw "Probe failed. Check resolve-pc-probe.log before using the report." }
 ```
 
 Open a new PowerShell window after installing Deno and verify `deno --version` works before the probe. The scheduled task needs the same account PATH.
 
 For optional browser fallbacks on the **Windows acquisition PC**, install Playwright with `.venv\Scripts\python.exe -m pip --no-input install playwright`, install Chromium with `.venv\Scripts\python.exe -m playwright install chromium`, and set `RESOLVE_PC_BROWSER_FALLBACK=1` in .env.
 
-The Windows probe is a local process. The Linux `screen` wrapper applies to long-running Lightsail commands. Verify the JSON says `"complete": true`, then commit and push only the JSON from the **Windows acquisition PC**.
+The Windows probe is a local process. The Linux `screen` wrapper applies to long-running Lightsail commands. Check that the current JSON says `"complete": true` and contains 20 results. Read the separate audio and video verified counts in `summary`. A completed run can have zero verified files. Then commit and push only the JSON from the **Windows acquisition PC**.
 
 ```powershell
 $env:GIT_TERMINAL_PROMPT='0'; git add -- research/m0_pc_results.json; if ($LASTEXITCODE -eq 0) { git commit -m 'Record Windows residential acquisition probe' }; if ($LASTEXITCODE -eq 0) { git push origin main }
@@ -90,7 +91,9 @@ The test writes all eight pages in both themes to `research/ui_screenshots/` on 
 
 ## M6 and M7 editorial review
 
-The sample links are in PROGRESS.md. The legacy voice samples are optional. For the publisher reels, review the six speech examples for actual speaking cadence, word highlighting and sentence-complete endings. The existing checks establish timing and streams. They leave editorial judgement open.
+Open the eight poetic previews linked at the top of PROGRESS.md on a phone. IDs 1 and 4 are P, 2 and 5 are L, 3 and 6 are F4, and 7 and 8 are F1. For each pair, record accept or revise and the reel ID and timestamp of any issue. Check paragraph reading time, F4 reveal timing, music and footage fit, and F1 highlighting and sentence endings. The two F1 previews use published word alignments. Use the office-PC run below for production Whisper evidence.
+
+With the configured unbilled Gemini project, verify a real five-candidate response and the selected text in Review. Record the reel ID and whether generation used Gemini or the local manuscript. Keep the API key in the ignored environment file.
 
 ## Office PC speech preview
 

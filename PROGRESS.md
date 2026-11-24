@@ -2,6 +2,8 @@
 
 ## Resume checkpoint
 
+First missing input is `research/m0_pc_results.json` from the Windows residential connection. Once committed, analyze the per-target results in RESEARCH.md. The updated probe records fixed denominators on each checkpoint. A regression using the real 20-item corpus and a simulated first-target challenge verified one acquisition call, 19 skipped targets and zero verified out of ten for each kind. This is report evidence only. The Linux suite ran 95 tests with 94 passing, including bundle import through approved dry-run delivery. The opt-in browser test was also attempted separately and Chromium failed before navigation because the executor denied a socket. AnalyticsDashboard acceptance stays open.
+
 24 November 2026: poetic rotation and the eight-sample Review batch are implemented. Local proof is in `research/poetic_review_samples.json`. Download [the eight MP4s and portable dashboard state](https://chatgpt.com/library?file_id=libfile_f7ba8566cd5c8191ae4a4a8c6718173e&account_id=personal). Next live checks are the Windows discovery refresh with actual CLIP predictions, a five-candidate response from the configured unbilled Gemini project, and the office-PC F1 preview with its selected Whisper model.
 
 Windows PC acquisition supersedes the Lightsail download gate. Run `tools.pc_acquisition probe` on the designated Windows PC and commit `research/m0_pc_results.json`. The old Lightsail diagnostic remains historical evidence. Use NEEDS_MANAS.md for the PC probe, SSH enrollment and production configuration.
