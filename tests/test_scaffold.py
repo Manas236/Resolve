@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from resolve_pipeline.config import Config
 
@@ -14,6 +15,19 @@ class ScaffoldTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
         self.env_file = self.root / ".env"
+
+    def test_sample_cli_uses_process_settings_over_env_file(self):
+        from tools import render_format_samples as samples
+        self.env_file.write_text("RESOLVE_WHISPER_MODEL=file-model", encoding="utf-8")
+        args = ["samples", "--env-file", str(self.env_file), "--state", str(self.root),
+                "--video", "video.mp4", "--song", "song.mp3", "--formats", "P"]
+        with patch.object(sys, "argv", args), patch.dict(os.environ, {"RESOLVE_WHISPER_MODEL": "pc-model"}), \
+                patch.object(samples, "configured_builder") as builder, patch.object(samples, "Pipeline") as factory:
+            pipeline = factory.return_value
+            pipeline.make_now.return_value = [1]
+            pipeline.list_reels.return_value = [(1, "review", None)]
+            self.assertEqual(samples.main(), 0)
+            self.assertEqual(builder.call_args.args[0]["RESOLVE_WHISPER_MODEL"], "pc-model")
 
     def run_cli(self, **values):
         env = {key: value for key, value in os.environ.items() if not key.startswith("RESOLVE_")}

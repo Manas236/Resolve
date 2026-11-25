@@ -1,6 +1,7 @@
 """Render P, L, F1 and F4 from local media into the dashboard Review queue."""
 import argparse
 import json
+import os
 from pathlib import Path
 
 from resolve_pipeline.config import read_env_file
@@ -18,7 +19,7 @@ def main():
     parser.add_argument("--voice-script", default="")
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     args = parser.parse_args()
-    builder = configured_builder(read_env_file(args.env_file), whisper_model=args.whisper_model,
+    builder = configured_builder(read_env_file(args.env_file) | dict(os.environ), whisper_model=args.whisper_model,
                                  voice_script=args.voice_script)
     pipeline = Pipeline(args.state, [args.video], reel_builder=builder)
     pipeline.add_song(args.song)
