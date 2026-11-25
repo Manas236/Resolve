@@ -1,5 +1,10 @@
 # Resolve decisions
 
+## Published quotations, 25 November 2026
+
+Manas requires published, attributable wording for P, L and F4. Gemini may classify mood. The generated manuscript and model writer are archival. Store the speaker, exact wording, work and source URL. Exclude disputed, misattributed and unsourced material. Prefer observed Goodreads likes and independently verified coverage, then theme fit. Preserve unknown popularity as unknown. Use a 200-reel quote window and five-reel speaker window. Show the speaker below the quote and reserve the largest type for one-liners.
+
+
 - Repo is the sole build handoff. No reuse of other project code. Push completed, tested units to main.
 - Keep working in the same turn across completed units. Test, update PROGRESS.md, commit, push and begin the next unblocked unit. End only at the usage limit, when all remaining work is blocked on NEEDS_MANAS.md, or when the build is done.
 - On 24 November 2026 the hourly **Continue the Resolve build** follow-up was enabled in the current build conversation. First scheduled follow-up is 10:37 IST. The previous conversation’s schedule is paused. Prompt: “Continue the Resolve build. Read PROGRESS.md, pick the first unblocked open item and keep working. Do not end your turn while unblocked work exists and usage remains. No partial-status replies.” Manage it in ChatGPT Scheduled.
