@@ -76,10 +76,11 @@ def gemini_json(api_key, prompt):
 
 
 def choose_text(format_id, used, proposed=None, *, context=""):
+    if format_id in {"P", "L", "F4"}:
+        from .quotes import select
+        return select(format_id, used)
     if proposed and poetry.unused(proposed, used, normalized):
         return {**proposed, "source": "gemini"}
-    if format_id in {"P", "L", "F4"}:
-        return poetry.fallback(format_id, used, normalized)
     bank = BANK.read_text(encoding="utf-8").splitlines()
     choices = [line for line in bank if normalized(line) not in used]
     count = 4 if format_id in {"F2", "F4"} else 1

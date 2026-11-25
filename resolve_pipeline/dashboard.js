@@ -149,7 +149,7 @@ document.addEventListener("keydown", event => {
 document.addEventListener("submit", async event => {
     const form = event.target;
     const action = new URL(form.action).pathname;
-    if (!main() || action === "/logout") return;
+    if (!main() || form.method === "get" || action === "/logout") return;
     event.preventDefault();
     if (pending) return;
     if (action === "/settings") {

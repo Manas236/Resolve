@@ -34,6 +34,7 @@ def render_reel(
     *,
     format_id: str,
     hook: str,
+    speaker: str = "",
     quote: str = "",
     words: Sequence[Cue] = (),
     voiceover: Path | None = None,
@@ -90,7 +91,7 @@ def render_reel(
 
             copytree(FONTS, staging / "fonts")
             markers = music_markers(song, song_start, duration) if text_lines and format_id in {"F2", "F4"} else ()
-            ass = quiet_ass(format_id, hook, text_lines, words, end_ms, markers) if quiet else styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers, experimental=format_id == "F4")
+            ass = quiet_ass(format_id, hook, text_lines, words, end_ms, markers, speaker=speaker) if quiet else styled_ass(hook, text_lines, words if speech else (), caption_preset, end_ms, markers, experimental=format_id == "F4")
         else:
             ass = highlighted_ass(words if speech else (), start_ms=0, end_ms=end_ms, hook=hook,
                                   quote=quote if speech is None else "")
@@ -227,7 +228,7 @@ class LocalReelBuilder:
                 if words:
                     duration = min(25, max(22, words[-1].end_ms / 1000 + 0.1))
             render_reel(video, song, destination, format_id=format_id, hook=video_text["hook"] if video_text else self.hook,
-                        quote=self.quote, words=words, voiceover=voiceover, duration=duration,
+                        speaker=(video_text or {}).get("speaker", ""), quote=self.quote, words=words, voiceover=voiceover, duration=duration,
                         video_start=starts[0], song_start=starts[1],
                         text_lines=video_text["lines"] if video_text else (), caption_preset=caption_preset)
 

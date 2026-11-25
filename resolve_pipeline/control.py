@@ -20,7 +20,8 @@ from .downloader import DownloadExhausted, DownloadRequest, Downloader, Registry
 from .bundles import schema
 from .reels import NoSpeech
 from .speech_edit import music_distance, song_tags
-from .reel_text import checked_text, choose_text, gemini_text, normalized
+from .reel_text import checked_text, choose_text, normalized
+from . import quotes
 from .framing import render_vertical
 from .performance import Performance
 from .scheduler import FORMATS, choose_format
@@ -57,6 +58,7 @@ class Pipeline:
                        "reel_id INTEGER NOT NULL, action TEXT NOT NULL, UNIQUE(reel_id,action))")
             db.execute("CREATE TABLE IF NOT EXISTS telegram_previews ("
                        "reel_id INTEGER PRIMARY KEY, status TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS quote_state (id TEXT PRIMARY KEY, state TEXT NOT NULL)")
             schema(db)
             db.execute("CREATE TABLE IF NOT EXISTS clip_moods(path TEXT PRIMARY KEY, fingerprint TEXT, tags TEXT)")
             db.execute("CREATE TABLE IF NOT EXISTS song_moods(path TEXT PRIMARY KEY, fingerprint TEXT, tags TEXT)")
@@ -76,6 +78,16 @@ class Pipeline:
                     db.execute(f"ALTER TABLE reels ADD COLUMN {name} {definition}")
 
         self.performance = Performance(self.database)
+
+    def quote_states(self):
+        with closing(sqlite3.connect(self.database)) as db:
+            return dict(db.execute("SELECT id,state FROM quote_state"))
+
+    def set_quote_state(self, identifier, state):
+        if identifier not in quotes.catalog() or state not in {"pinned", "retired", "active"}:
+            raise ValueError("Unknown quote or state.")
+        with self.render_lock, closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("INSERT OR REPLACE INTO quote_state VALUES (?,?)", (identifier, state))
 
     def sites(self):
         configured = {provider.name: provider.enabled for provider in self.downloader.registry.providers}
@@ -223,6 +235,8 @@ class Pipeline:
                                  (reel_id,)).fetchone()
                 if row is None:
                     raise ValueError("Only reels awaiting review can have their video text changed.")
+                if row[1] in {"P", "L", "F4"}:
+                    raise ValueError("Published quotations cannot be edited.")
                 text = checked_text(hook, lines, row[1]) | {"source": "edited"}
                 db.execute("UPDATE reels SET status='rejected' WHERE id=?", (reel_id,))
                 replacement = db.execute(
@@ -244,7 +258,16 @@ class Pipeline:
         return used
 
     def _reserve_video_text(self, db, reel_id, format_id, context):
-        key = self.reel_builder.gemini_key
+        if format_id in {"P", "L", "F4"}:
+            with db:
+                db.execute("BEGIN IMMEDIATE")
+                history = [json.loads(raw or "{}") for raw, in db.execute(
+                    "SELECT video_text FROM reels WHERE id!=? ORDER BY id DESC LIMIT 200", (reel_id,))]
+                text = quotes.select(format_id, {q.get("id") for q in history},
+                                     {q.get("speaker") for q in history[:5]},
+                                     dict(db.execute("SELECT id,state FROM quote_state")))
+                db.execute("UPDATE reels SET video_text=? WHERE id=?", (json.dumps(text), reel_id))
+            return text
         hook = getattr(self.reel_builder, "hook", "")
         quote = getattr(self.reel_builder, "quote", "")
         hook = hook if isinstance(hook, str) else ""
@@ -253,11 +276,9 @@ class Pipeline:
             hook = quote = ""
         if quote and len(quote.splitlines()) == 1:
             raise ValueError("--quote needs two to four short lines separated by newlines.")
-        recent = self._recent_video_text(db, reel_id)
-        proposed = gemini_text(key, format_id, context, recent) if key and not (hook or quote) else None
         with db:
             db.execute("BEGIN IMMEDIATE")
-            text = choose_text(format_id, self._recent_video_text(db, reel_id), proposed, context=context)
+            text = choose_text(format_id, self._recent_video_text(db, reel_id), context=context)
             if hook or quote:
                 text = checked_text(hook or text["hook"], quote.splitlines() if quote else text["lines"],
                                     format_id) | {"source": "override"}
@@ -468,7 +489,7 @@ class Pipeline:
                     if getattr(self.reel_builder, "generate_captions", False) is True and format_id != "F1":
                         context = imported.get(source, {}).get("title") or "gym training"
                         video_text = json.loads(stored_text) if stored_text else None
-                        if format_id == "F4" and video_text and len(video_text.get("lines", [])) != 1:
+                        if format_id in {"L", "P", "F4"}:
                             video_text = None
                         if video_text is None:
                             video_text = self._reserve_video_text(db, reel_id, format_id, context)
@@ -496,8 +517,8 @@ class Pipeline:
                                           select_music=select_music, **styling)
                         song_id = db.execute("SELECT song_id FROM reels WHERE id=?", (reel_id,)).fetchone()[0]
                     elif format_id in {"P", "L", "F4"} and styling:
-                        from .speech_edit import text_mood
-                        mood = text_mood(" ".join([video_text["hook"], *video_text["lines"]]), self.reel_builder.gemini_key)
+                        mood = {"mood": video_text["mood"], "energy": video_text["energy"],
+                                "passage_reason": video_text["theme"]}
                         clip_id, video, start, reason = self._match_footage(db, mood, production, source)
                         clip = (clip_id,)
                         path, offset = self._match_song(db, reel_id, mood | {"footage_reason": reason}, production)

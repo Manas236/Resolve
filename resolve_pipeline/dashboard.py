@@ -203,12 +203,14 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                 else:
                     self.media(path, mime)
                 return
-            page = pages.get(self.path)
+            page = pages.get(self.path.partition("?")[0])
             if page is None:
                 self.send_error(404)
                 return
             if page == "Review":
                 content = view.review(pipeline, form)
+            elif page == "Quotes":
+                content = view.quotes_page(pipeline, form, parse_qs(self.path.partition("?")[2]))
             elif page == "Make":
                 requirements = pipeline.format_requirements()
                 availability = "".join(f"<li>{key} · {escape(reason or 'Available')}</li>"
@@ -283,6 +285,8 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                     pipeline.review(int(fields["id"][0]), "approved" if self.path == "/approve" else "rejected")
                 elif self.path in ("/library-pin", "/library-retire", "/library-timestamp"):
                     pipeline.library_action(int(fields["id"][0]), self.path.removeprefix("/library-"))
+                elif self.path == "/quote-state":
+                    pipeline.set_quote_state(fields["id"][0], fields["state"][0])
                 elif self.path == "/site-toggle":
                     pipeline.toggle_site(fields["site"][0])
                 elif self.path == "/site-retest" and job_file is not None:

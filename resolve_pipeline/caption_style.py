@@ -148,9 +148,9 @@ def paragraph_layout(text):
     raise ValueError("Paragraph exceeds the frame width.")
 
 
-def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
+def quiet_ass(format_id, text, lines, words, end_ms, markers=(), *, speaker=""):
     """Let libass balance a full block inside fixed safe margins."""
-    size = 84
+    size = 108 if format_id in {"L", "F4"} else 84
     if format_id == "P":
         size, paragraph = paragraph_layout(text)
     ass = [
@@ -164,6 +164,8 @@ def quiet_ass(format_id, text, lines, words, end_ms, markers=()):
     def block(start, end, body, fade=True):
         if start < end:
             effects = r"{\an5\pos(540,855)\blur0.4" + (r"\fad(400,0)" if fade else "") + "}"
+            if speaker:
+                body += r"\N{\fs42\fscx100\fscy100}" + _ass_text(speaker)
             ass.append(f"Dialogue: 0,{_ass_time(start // 10)},{_ass_time(end // 10)},Quiet,{effects}{body}")
 
     if format_id == "F1":

@@ -3,7 +3,7 @@ from html import escape
 from pathlib import Path
 
 
-PAGES = ("Review", "Make", "Queue", "Libraries", "Sources", "Settings", "Performance", "Logs")
+PAGES = ("Review", "Make", "Queue", "Libraries", "Quotes", "Sources", "Settings", "Performance", "Logs")
 
 
 def document(body):
@@ -73,7 +73,12 @@ def review(pipeline, form):
                 "edit", field + f'<label>Caption<textarea name="caption">{escape(caption)}</textarea></label>'
                 f'<label>Hashtags<input name="hashtags" value="{escape(tags)}"></label>',
                 "Save caption and hashtags") + '</details>'
-        if reel_id in video_texts:
+        if reel_id in video_texts and format_id in {"L", "P", "F4"}:
+            text = video_texts[reel_id]
+            edit += f"<blockquote>{escape(' '.join([text['hook'], *text['lines']]))}</blockquote>"
+            if text.get("speaker"):
+                edit += f'<a href="{escape(text["url"])}">{escape(text["speaker"])}</a>'
+        elif reel_id in video_texts:
             text = video_texts[reel_id]
             hook = escape(text["hook"])
             lines = escape("\n".join(text["lines"]))
@@ -213,3 +218,26 @@ def logs(pipeline):
             '<div class="table-wrap"><table><thead><tr><th>Time (UTC)</th><th>Action</th><th>Result</th></tr>'
             f'</thead><tbody id="log-rows">{content}</tbody></table></div>'
             + (empty("Dashboard actions and render failures will appear here.") if not rows else ""))
+
+def quotes_page(pipeline, form, fields):
+    from .quotes import catalog
+    states = pipeline.quote_states()
+    filters = {key: fields.get(key, [""])[0].strip() for key in ("text", "speaker", "theme", "format")}
+    controls = "".join(f'<label>{key.title()} <input name="{key}" value="{escape(value)}"></label>'
+                       for key, value in filters.items())
+    items = [f'<form method="get" action="/quotes">{controls}<button>Search</button></form>']
+    for q in catalog().values():
+        if any(value.casefold() not in q[key].casefold() for key, value in filters.items() if key != "format"):
+            continue
+        if filters["format"] and filters["format"].upper() not in q["formats"]:
+            continue
+        state = states.get(q["id"], "active")
+        field = f'<input type="hidden" name="id" value="{q["id"]}">'
+        items.append(f'<article><p>{escape(q["text"])}</p><a href="{escape(q["url"])}">'
+                     f'{escape(q["speaker"])} · {escape(q["source"])}</a> · {state}')
+        for target in ("pinned", "retired", "active"):
+            if target != state:
+                items.append(form("quote-state", field + f'<input type="hidden" name="state" value="{target}">',
+                                  {"pinned":"Pin","retired":"Retire","active":"Restore"}[target]))
+        items.append("</article>")
+    return "".join(items)
