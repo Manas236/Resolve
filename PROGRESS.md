@@ -29,7 +29,7 @@ The [six copy previews](https://chatgpt.com/library?file_id=libfile_65040081fdd8
 
 **Windows text portability audit.** Added explicit UTF-8 to 14 fixture read/write calls across seven test modules. The shell probe runner also reads both JSON inputs as UTF-8 and closes the result file before moving it. Python compileall, shell syntax, 7 scaffold tests and 20 probe tests passed.
 
-**Bundle retry fix.** The inbox receiver classified a temporary file access failure as a rejected media bundle. It now keeps the file for the next scan and continues with other ready bundles. Seven acquisition architecture tests passed, including a simulated sharing violation followed by successful retry and the existing corrupt-checksum rejection test.
+**Latest Linux verification.** A fresh venv with only the README server requirements ran the full suite at ecfb8cd. Of 100 tests, 98 passed and two skipped (Pillow vision fixture and sandboxed Chromium acceptance). The Windows probe report was absent from main.\n\n**Bundle retry fix.** The inbox receiver classified a temporary file access failure as a rejected media bundle. It now keeps the file for the next scan and continues with other ready bundles. Seven acquisition architecture tests passed, including a simulated sharing violation followed by successful retry and the existing corrupt-checksum rejection test.
 
 **Operator checks.** The fresh README server install started successfully. Login and all eight authenticated dashboard pages returned success. The HTTP controls and format readiness tests passed. The browser attempt failed before navigation because the host denied Chromium a socket. After local upload integration, Linux discovery ran 97 tests with 95 passing and the optional vision and browser checks skipped.
 
