@@ -4,13 +4,30 @@
 
 Continue these units before the earlier machine gates. First replace the entire vignette manuscript with at least 200 distinct one-liners and 100 paragraphs about discipline, effort, sacrifice, becoming, solitude, self-respect, irony and paradox. Use one-read declarative copy and a closing turn. Provide plenty of split reveals. Fit a 75-word paragraph into eight readable lines at roughly 85% width. Render two P, L and F4 each and record the exact text here.
 
-First editorial batch replaced 40 one-liners; each passed the length and sentence validator. Commit a350880 also replaced all 20 old paragraphs. All 20 new paragraphs passed validate_piece and all seven poetry tests passed. Commit 73fe06d finishes the one-liner rewrite. All 201 distinct lines passed validate_piece and 86 passed the F4 split check. Seven poetry tests passed. Commit 86ccf3c completes 101 original paragraphs. All 302 entries are distinct, every entry passed the production validator and seven focused tests passed. Commit 0891b2b fits P using bundled font advances. Rendered a 75-word stress paragraph with FFmpeg/libass at 1080x1920: eight visible rows, 900 pixels wide (83.3%), vertical bounds 594–1116. Seven poetry tests passed. Next render two P, L and F4 each and record the six texts.
+First editorial batch replaced 40 one-liners; each passed the length and sentence validator. Commit a350880 also replaced all 20 old paragraphs. All 20 new paragraphs passed validate_piece and all seven poetry tests passed. Commit 73fe06d finishes the one-liner rewrite. All 201 distinct lines passed validate_piece and 86 passed the F4 split check. Seven poetry tests passed. Commit 86ccf3c completes 101 original paragraphs. All 302 entries are distinct, every entry passed the production validator and seven focused tests passed. Commit 0891b2b fits P using bundled font advances. Rendered a 75-word stress paragraph with FFmpeg/libass at 1080x1920: eight visible rows, 900 pixels wide (83.3%), vertical bounds 594–1116. Seven poetry tests passed. The six rendered texts and office handoff are below.
 
 Independent Gemini judging and least-recently-used exhaustion recovery implemented. Seven focused poetry tests passed, including a mock two-call judge with a theme-fit threshold of four and oldest-paragraph reuse with a warning. Real Gemini evidence is pending.
 
 Then audit all modules, run a README-only fresh Linux install, full suite and static checks, check Windows UTF-8, handles, paths and timezone data, skip the vision fixture without Pillow, exercise every dashboard control and verify Auto eligibility. Record bugs, fixes and tests here. Put single-line noninteractive office commands for pull, install, dashboard and two of each active format at the top of NEEDS_MANAS.md and test Linux equivalents.
 
 Check main for research/m0_pc_results.json without editing it. If present do Stage B and propagate proven routes. Otherwise implement dry-run-gated Instagram resumable and direct Facebook Page file uploads with mocks, verify the one-command health check and draft the evidence-linked M14 handoff. Continue remaining machine-independent work.
+
+## Office handoff draft, 25 November
+
+The [six copy previews](https://chatgpt.com/library?file_id=libfile_65040081fdd88191bcf7ddd35513196c&account_id=personal) were rendered by the sample CLI with synthetic footage and audio to isolate the writing. All six reached Review, and ffprobe identified 1080×1920 H.264 video and AAC audio. A slash marks the F4 reveal.
+
+- **P-1, 20 seconds.** I had a good explanation for every commitment I missed. Most people even accepted the explanations because they knew how much I had going on. It took a friend making fewer plans with me to teach me that being understood was different from being trusted.
+- **L-2, 10 seconds.** Discipline is easier to keep when a bad day has its own smaller plan.
+- **F4-3, 10 seconds.** I thought saying yes proved my hunger / but eventually a serious goal required a serious refusal.
+- **P-4, 20 seconds.** My plans used to assign the hardest work to a future version of me with unlimited energy. I was kinder to myself today than I ever was to the person waking up tomorrow. Growing up meant giving both of us a fair share of the difficult part.
+- **L-5, 10 seconds.** Discipline gave me fewer decisions and somehow more of my life back.
+- **F4-6, 10 seconds.** I learned to trust good advice / when I could finally explain why it hurt.
+
+**Fixes and evidence.** A 40-second sustained tone crashed the interpreter during F4 onset detection on two attempts. Commit c51c753 replaced the native peak selector. The steady-tone regression and six renders passed. Commit 293a095 isolates the Pillow-dependent vision test on server installs. All five discovery tests passed with Pillow installed. Pyflakes found one unused import, removed in 0b92152, then passed on tools, tests and production modules.
+
+**Operator checks.** The fresh README server install started successfully. Login and all eight authenticated dashboard pages returned success. The HTTP controls and format readiness tests passed. The browser attempt failed before navigation because the host denied Chromium a socket. After local upload integration, Linux discovery ran 97 tests with 95 passing and the optional vision and browser checks skipped.
+
+**Go-live sequence.** Start with the office commands in NEEDS_MANAS.md (b069199). Check the office Whisper previews and approve the writing. Run the Windows residential probe and verify the first library transfer. Run the health check and sandboxed dashboard acceptance on AnalyticsDashboard. The health CLI reported FFmpeg and ffprobe usable on Linux and explained both missing provider evidence and the unavailable browser; 184f980 adds exit-status coverage. Enroll the dedicated Telegram bot and Meta accounts, then explicitly approve a first live test. Commit 42e4a75 tested direct local MP4 uploads for Instagram and Facebook against a fake Graph server. Hosted URLs remain optional. Machine and account checks remain open.
 
 ## Resume checkpoint
 
