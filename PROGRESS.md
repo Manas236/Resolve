@@ -1,6 +1,10 @@
 # Resolve progress
 
-## Overnight priority from Manas
+## Current priority
+
+Build the sourced quotation library and Quotes dashboard under the 25 November published-quotation decision. Verify 1,000+ distinct entries, format and speaker counts, attribution rejection counts and six new Review renders. Prior generated-copy evidence is historical.
+
+## Previous overnight priority
 
 Continue these units before the earlier machine gates. First replace the entire vignette manuscript with at least 200 distinct one-liners and 100 paragraphs about discipline, effort, sacrifice, becoming, solitude, self-respect, irony and paradox. Use one-read declarative copy and a closing turn. Provide plenty of split reveals. Fit a 75-word paragraph into eight readable lines at roughly 85% width. Render two P, L and F4 each and record the exact text here.
 
