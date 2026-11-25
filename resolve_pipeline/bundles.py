@@ -165,9 +165,12 @@ def receive_bundles(pipeline, inbox, now, alert):
     for bundle in sorted(inbox.glob("resolve-*.zip")):
         try:
             import_bundle(pipeline, bundle)
-        except (BadZipFile, ValueError, KeyError, TypeError, OSError) as error:
+        except (BadZipFile, ValueError, KeyError, TypeError) as error:
             pipeline.log_action("bundle", f"{bundle.name}: {type(error).__name__}")
             bundle.rename(bundle.with_suffix(".rejected"))
+        except OSError as error:
+            # A temporary read, disk or sharing failure does not invalidate the bundle.
+            pipeline.log_action("bundle", f"{bundle.name}: retry after {type(error).__name__}")
         else:
             bundle.unlink()
     with closing(sqlite3.connect(pipeline.database)) as db, db:

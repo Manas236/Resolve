@@ -50,6 +50,26 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(len(result["results"]), 20)
             self.assertEqual(result["results"][-1]["status"], "skipped_after_provider_challenge")
 
+    def test_receive_retries_locked_bundle_and_processes_other_ready_files(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            pipeline = Pipeline(root / "state", [])
+            inbox = root / "inbox"
+            inbox.mkdir()
+            locked, ready = (inbox / f"resolve-{name}.zip" for name in ("a", "b"))
+            for path in (locked, ready):
+                path.write_bytes(b"pending")
+            now = datetime.now(timezone.utc)
+            with patch("resolve_pipeline.bundles.import_bundle",
+                       side_effect=[PermissionError("sharing violation"), True, True]) as importer:
+                receive_bundles(pipeline, inbox, now, None)
+                self.assertTrue(locked.is_file())
+                self.assertFalse(locked.with_suffix(".rejected").exists())
+                self.assertFalse(ready.exists())
+                receive_bundles(pipeline, inbox, now, None)
+                self.assertFalse(locked.exists())
+                self.assertEqual([call.args[1] for call in importer.call_args_list], [locked, ready, locked])
+
     def test_preview_alignment_requires_unique_match(self):
         rng = random.Random(17)
         full = [rng.random() for _ in range(500)]
