@@ -35,7 +35,7 @@ class DownloaderTests(unittest.TestCase):
                         '{"name": "site", "adapter": "http", "kinds": [null]}'):
                 with self.subTest(row=row):
                     path.write_text('[{"name":"valid","adapter":"http","kinds":["video"]},'
-                                    + row + ']')
+                                    + row + ']', encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, "registry entry 2"):
                         Registry.from_json(path)
 

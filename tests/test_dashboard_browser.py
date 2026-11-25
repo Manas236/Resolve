@@ -43,7 +43,7 @@ class BrowserControlsTests(unittest.TestCase):
             auth = DashboardAuth(salt.hex() + "$" + password_hash("resolve-test", salt))
             job = root / "jobs/next_job.json"
             report = root / "report.json"
-            report.write_text('{"provider_summary":{"mp7":{"audio":{"verified":0,"target":10}}}}')
+            report.write_text('{"provider_summary":{"mp7":{"audio":{"verified":0,"target":10}}}}', encoding="utf-8")
             with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(
                 pipeline, report, auth=auth, job_file=job,
                 performance={"reel": {"1": 50}, "song": {"a": 50}, "clip": {"b": 50}, "format": {"F1": 50}},

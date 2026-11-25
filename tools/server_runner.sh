@@ -29,7 +29,7 @@ import re
 import sys
 from pathlib import Path
 
-with Path(sys.argv[1]).open() as stream:
+with Path(sys.argv[1]).open(encoding="utf-8") as stream:
     job = json.loads(stream.read(4096))
 required = {"id", "limit", "no_browser"}
 if not isinstance(job, dict) or not required <= set(job) <= required | {"providers"}:
@@ -76,7 +76,7 @@ PY
         (cd "$probe"
          env -u RESOLVE_TOKEN_FILE -u GEMINI_API_KEY timeout --kill-after=15s 3h .venv/bin/python tools/m0_probe.py --limit "$limit" "${flags[@]}" --output "$state/$id.partial"
         ) 9>&-
-        "$probe/.venv/bin/python" -c 'import json,sys; sys.exit(json.load(open(sys.argv[1])).get("complete") is not True)' "$state/$id.partial"
+        "$probe/.venv/bin/python" -c 'import json,sys; from pathlib import Path; sys.exit(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")).get("complete") is not True)' "$state/$id.partial"
         mv "$state/$id.partial" "$state/$id.json"
     fi
     if git diff --quiet origin/main HEAD -- "$output"; then

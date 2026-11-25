@@ -61,7 +61,7 @@ class DiscoveryTests(unittest.TestCase):
                 db.execute("INSERT INTO imported_media VALUES(?,?,?)", ("file", "clip", json.dumps(metadata)))
                 self.assertEqual(inventory_keys(db), asset_keys(metadata))
             receive_bundles(pipeline, root, datetime.now(timezone.utc), None)
-            self.assertEqual(set(json.loads((root / "inventory.json").read_text())), asset_keys(metadata))
+            self.assertEqual(set(json.loads((root / "inventory.json").read_text(encoding="utf-8"))), asset_keys(metadata))
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "FFmpeg required")
@@ -128,5 +128,5 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual(entry["source"], entries[1]["source"])
             self.assertEqual(entry["content"], "physical_training")
             self.assertTrue(entry["vision"]["accepted"])
-            report = json.loads(output.with_suffix(".discovery.json").read_text())
+            report = json.loads(output.with_suffix(".discovery.json").read_text(encoding="utf-8"))
             self.assertFalse(report["candidates"][0]["vision"]["accepted"])

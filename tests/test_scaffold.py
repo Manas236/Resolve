@@ -48,11 +48,11 @@ class ScaffoldTests(unittest.TestCase):
             self.assertEqual({item.name for item in state.iterdir()}, {"downloads", "media", "cache"})
             marker = state / "media" / "existing"
             if marker.exists():
-                self.assertEqual(marker.read_text(), "preserved")
-            marker.write_text("preserved")
+                self.assertEqual(marker.read_text(encoding="utf-8"), "preserved")
+            marker.write_text("preserved", encoding="utf-8")
 
     def test_environment_overrides_file_relative_to_its_location(self):
-        self.env_file.write_text("RESOLVE_STATE_DIR=from-file\n")
+        self.env_file.write_text("RESOLVE_STATE_DIR=from-file\n", encoding="utf-8")
         config = Config.load(self.env_file, {"RESOLVE_STATE_DIR": "from-environment"})
         self.assertEqual(config.state_dir, self.root / "from-environment")
 
@@ -63,7 +63,7 @@ class ScaffoldTests(unittest.TestCase):
         self.assertFalse((self.root / "state").exists())
 
     def test_malformed_file_does_not_leak_value(self):
-        self.env_file.write_text("unparsed-sensitive-value\n")
+        self.env_file.write_text("unparsed-sensitive-value\n", encoding="utf-8")
         result = self.run_cli()
         self.assertEqual(result.returncode, 1)
         self.assertIn("line 1", result.stderr)
@@ -74,6 +74,6 @@ class ScaffoldTests(unittest.TestCase):
         self.assertEqual(self.run_cli().returncode, 1)
 
     def test_duplicate_settings_fail(self):
-        self.env_file.write_text("RESOLVE_LOG_LEVEL=INFO\nRESOLVE_LOG_LEVEL=ERROR\n")
+        self.env_file.write_text("RESOLVE_LOG_LEVEL=INFO\nRESOLVE_LOG_LEVEL=ERROR\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Duplicate environment key on line 2"):
             Config.load(self.env_file, {})

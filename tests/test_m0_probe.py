@@ -153,7 +153,7 @@ class ServerJobSelectionTests(unittest.TestCase):
         from tempfile import TemporaryDirectory
 
         root = Path(__file__).resolve().parents[1]
-        runner = (root / "tools/server_runner.sh").read_text()
+        runner = (root / "tools/server_runner.sh").read_text(encoding="utf-8")
         checker = runner.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
         job = {"id": "fixture", "limit": 2, "no_browser": False,
                "providers": ["mp7", "cnvmp3", "ythd", "piped", "invidious", "cobalt",
@@ -162,7 +162,7 @@ class ServerJobSelectionTests(unittest.TestCase):
             path = Path(directory) / "job.json"
             for providers in (job["providers"], ["--output"], ["mp7", "mp7"], [None]):
                 with self.subTest(providers=providers):
-                    path.write_text(json.dumps(job | {"providers": providers}))
+                    path.write_text(json.dumps(job | {"providers": providers}), encoding="utf-8")
                     checked = subprocess.run([sys.executable, "-", str(path)], input=checker,
                                              capture_output=True, text=True, check=False)
                     self.assertEqual(checked.returncode == 0, providers == job["providers"])

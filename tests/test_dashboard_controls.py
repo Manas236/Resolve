@@ -101,7 +101,7 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("site-toggle", site="mp7"), 303)
                     self.assertFalse(Pipeline(root / "state", [source]).sites()["mp7"])
                     self.assertEqual(post("site-retest"), 303)
-                    initial_job = json.loads(job.read_text())
+                    initial_job = json.loads(job.read_text(encoding="utf-8"))
                     self.assertEqual(set(initial_job), {"id", "limit", "no_browser"})
                     settings = dict(posting_slots="18:00,09:00", volume=2, mode="auto",
                                     refresh_cadence="monthly", format_weights="3,2,1")
@@ -153,7 +153,7 @@ class DashboardControlsTest(unittest.TestCase):
                     self.assertEqual(post("site-toggle", site="mp7"), 303)
                     self.assertTrue(pipeline.sites()["mp7"])
                     self.assertEqual(post("site-retest"), 303)
-                    self.assertNotEqual(json.loads(job.read_text())["id"], initial_job["id"])
+                    self.assertNotEqual(json.loads(job.read_text(encoding="utf-8"))["id"], initial_job["id"])
                     self.assertEqual(post("regenerate", id=2), 303)
                     self.assertEqual(pipeline.list_reels()[0], (4, "review", None))
                     self.assertEqual(post("delete", id=4), 303)

@@ -42,7 +42,7 @@ class AcquisitionTests(unittest.TestCase):
             report = Path(folder) / "probe.json"
             with patch.object(pc_acquisition, "checked_asset", side_effect=ValueError("provider_challenge")) as acquire:
                 pc_acquisition.probe(report)
-            result = json.loads(report.read_text())
+            result = json.loads(report.read_text(encoding="utf-8"))
             acquire.assert_called_once()
             self.assertTrue(result["complete"])
             self.assertEqual(result["summary"], {kind: {"verified": 0, "target": 10}
