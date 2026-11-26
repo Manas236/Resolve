@@ -4,6 +4,8 @@
 
 Hourly continuation enabled in the new conversation and verified. Previous Resolve schedules are paused.
 
+Creator Review now reads optional local seed and candidate JSONL. Approval, creator cap and recent-creator exclusion have fixture coverage. Measured a 110-word FFmpeg/libass frame at 1080×1920: 12 visible rows, 901 pixels wide, y=493–1216, 50 ASS units with 125% scaling. Reading time 37.3 seconds. Source remains internal.
+
 Open acceptance gates, in implementation order:
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.

@@ -84,9 +84,12 @@ class Pipeline:
             return dict(db.execute("SELECT id,state FROM quote_state"))
 
     def set_quote_state(self, identifier, state):
-        if identifier not in quotes.catalog() or state not in {"pinned", "retired", "active"}:
+        if identifier not in quotes.genre_catalog() or state not in {"pinned", "retired", "active"}:
             raise ValueError("Unknown quote or state.")
         with self.render_lock, closing(sqlite3.connect(self.database)) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            states = dict(db.execute("SELECT id,state FROM quote_state"))
+            quotes.check_cap(quotes.genre_catalog(), states | {identifier: state})
             db.execute("INSERT OR REPLACE INTO quote_state VALUES (?,?)", (identifier, state))
 
     def sites(self):
@@ -263,8 +266,8 @@ class Pipeline:
                 db.execute("BEGIN IMMEDIATE")
                 history = [json.loads(raw or "{}") for raw, in db.execute(
                     "SELECT video_text FROM reels WHERE id!=? ORDER BY id DESC LIMIT 200", (reel_id,))]
-                text = quotes.select(format_id, {q.get("id") for q in history},
-                                     {q.get("speaker") for q in history[:5]},
+                text = quotes.select_genre(format_id, {q.get("id") for q in history},
+                                     {q.get("creator") for q in history[:4]},
                                      dict(db.execute("SELECT id,state FROM quote_state")))
                 db.execute("UPDATE reels SET video_text=? WHERE id=?", (json.dumps(text), reel_id))
             return text

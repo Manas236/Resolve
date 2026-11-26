@@ -208,7 +208,7 @@ def handler_for(pipeline, report, auth=None, job_file=None, performance=None, zo
                 self.send_error(404)
                 return
             if page == "Review":
-                content = view.review(pipeline, form)
+                content = view.review(pipeline, form) + "<h2>Creator text Review</h2>" + view.quotes_page(pipeline, form, {})
             elif page == "Quotes":
                 content = view.quotes_page(pipeline, form, parse_qs(self.path.partition("?")[2]))
             elif page == "Make":

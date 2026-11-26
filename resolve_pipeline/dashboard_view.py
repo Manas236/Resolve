@@ -220,24 +220,24 @@ def logs(pipeline):
             + (empty("Dashboard actions and render failures will appear here.") if not rows else ""))
 
 def quotes_page(pipeline, form, fields):
-    from .quotes import catalog
+    from .quotes import genre_catalog
     states = pipeline.quote_states()
     filters = {key: fields.get(key, [""])[0].strip() for key in ("text", "speaker", "theme", "format")}
     controls = "".join(f'<label>{key.title()} <input name="{key}" value="{escape(value)}"></label>'
                        for key, value in filters.items())
     items = [f'<form method="get" action="/quotes">{controls}<button>Search</button></form>']
-    for q in catalog().values():
+    for q in genre_catalog().values():
         if any(value.casefold() not in q[key].casefold() for key, value in filters.items() if key != "format"):
             continue
         if filters["format"] and filters["format"].upper() not in q["formats"]:
             continue
-        state = states.get(q["id"], "active")
-        field = f'<input type="hidden" name="id" value="{q["id"]}">'
+        state = states.get(q["id"], "candidate")
+        field = f'<input type="hidden" name="id" value="{escape(q["id"])}">'
         items.append(f'<article><p>{escape(q["text"])}</p><a href="{escape(q["url"])}">'
                      f'{escape(q["speaker"])} · {escape(q["source"])}</a> · {state}')
         for target in ("pinned", "retired", "active"):
             if target != state:
                 items.append(form("quote-state", field + f'<input type="hidden" name="state" value="{target}">',
-                                  {"pinned":"Pin","retired":"Retire","active":"Restore"}[target]))
+                                  {"pinned":"Pin","retired":"Retire","active":"Approve"}[target]))
         items.append("</article>")
     return "".join(items)

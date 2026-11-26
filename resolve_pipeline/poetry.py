@@ -12,7 +12,7 @@ SENTENCES = re.compile(r"(?<=[.!?])\s+")
 
 
 def reading_seconds(text, fmt):
-    low, high = (20, 35) if fmt == "P" else (10, 15)
+    low, high = (20, 45) if fmt == "P" else (10, 15)
     return min(high, max(low, len(text.split()) / 3.3 + 4))
 
 

@@ -52,7 +52,7 @@ def render_reel(
         raise ValueError("Use format F1, F2, F3 or F4")
     if not all(math.isfinite(value) and value >= 0 for value in (video_start, song_start, duration)):
         raise ValueError("Invalid render interval")
-    if not (10 if quiet else 20) <= duration <= (35 if quiet else 25) or format_id == "F1" and duration < 20:
+    if not (10 if quiet else 20) <= duration <= (45 if format_id == "P" else 35 if quiet else 25) or format_id == "F1" and duration < 20:
         raise ValueError("F1 reels must last 20–35 seconds; other formats last 20–25 seconds")
     if not hook.strip() and format_id != "F1":
         raise ValueError("Hook text is required")
