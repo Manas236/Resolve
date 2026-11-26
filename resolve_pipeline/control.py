@@ -399,6 +399,7 @@ class Pipeline:
         options = []
         for identifier, name, raw in db.execute("""SELECT library.id,library.path,metadata FROM library
                 LEFT JOIN imported_media USING(path) WHERE library.kind='clip' AND retired=0
+                AND library.id NOT IN (SELECT clip_id FROM measured_reels ORDER BY reel_id DESC LIMIT 10)
                 AND (?=0 OR metadata IS NOT NULL)""", (int(production),)):
             meta = json.loads(raw) if raw else {}
             tags = meta.get("vision", {}).get("mood", {})
@@ -428,7 +429,8 @@ class Pipeline:
     def _match_song(self, db, reel_id, speech, production):
         rows = db.execute("""SELECT library.id,library.path,imported_media.metadata FROM library
                              LEFT JOIN imported_media USING(path)
-                             WHERE library.kind='song' AND retired=0 AND (?=0 OR metadata IS NOT NULL)
+                             WHERE library.kind='song' AND retired=0
+                             AND library.id NOT IN (SELECT song_id FROM measured_reels ORDER BY reel_id DESC LIMIT 5) AND (?=0 OR metadata IS NOT NULL)
                              ORDER BY pinned DESC,id""", (int(production),)).fetchall()
         matches = []
         for asset_id, name, raw in rows:

@@ -11,6 +11,7 @@ from array import array
 from datetime import datetime, timezone
 import json
 import os
+import sqlite3
 import math
 import re
 from shutil import which
@@ -20,7 +21,7 @@ from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 from urllib.request import build_opener
 
-from resolve_pipeline.bundles import fetch_inventory, sync_bundle, write_bundle
+from resolve_pipeline.bundles import fetch_inventory, import_bundle, inventory_keys, sync_bundle, write_bundle
 from resolve_pipeline.config import read_env_file
 from resolve_pipeline.downloader import CONTAINERS, DownloadRequest, validate_media
 from tools import pc_discovery, pc_vision
@@ -237,7 +238,7 @@ def source_html(url):
     return html
 
 
-def refresh(catalog, output, env_file, send, limits, threshold, sources):
+def refresh(catalog, output, env_file, send, limits, threshold, sources, local=None):
     settings = read_env_file(env_file) | dict(os.environ)
     pins = []
     if catalog:
@@ -251,6 +252,9 @@ def refresh(catalog, output, env_file, send, limits, threshold, sources):
     with TemporaryDirectory() as staging:
         root = Path(staging)
         existing = fetch_inventory(settings, root / "inventory.json") if send else set()
+        if local:
+            with sqlite3.connect(local.database) as db:
+                existing = inventory_keys(db)
         entries = pc_discovery.discover(json.loads(sources.read_text(encoding="utf-8")),
                                         pins, existing, source_html)
         report = []
@@ -290,6 +294,8 @@ def refresh(catalog, output, env_file, send, limits, threshold, sources):
             print(f"No new eligible media. See {report_path}.")
             return
         write_bundle(output, batch)
+    if local:
+        import_bundle(local, output)
     if send:
         sync_bundle(output, settings)
 
@@ -308,13 +314,21 @@ def check_deno():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("probe", "refresh"))
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("command", choices=("probe", "refresh", "local"))
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--state", type=Path)
     parser.add_argument("--catalog", type=Path, help="Optional pins")
     parser.add_argument("--sources", type=Path, default=pc_discovery.ROOT / "tools/pc_sources.json")
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     parser.add_argument("--send", action="store_true")
     args = parser.parse_args()
+    home = Path(os.environ.get("RESOLVE_HOME", Path(os.getenv("LOCALAPPDATA", Path.home())) / "Resolve"))
+    if args.command == "local":
+        if args.send:
+            parser.error("Local acquisition uses the dashboard on this machine.")
+        args.output = args.output or home / "acquisition.zip"
+    if not args.output:
+        parser.error("--output is required")
     if os.name != "nt":
         parser.error("Acquisition runs on the designated Windows PC.")
     if find_spec("yt_dlp") is None:
@@ -340,7 +354,20 @@ def main():
                 raise ValueError
         except ValueError:
             parser.error("Acquisition limits must be 0–50 and the vision threshold must be in (0, 1].")
-        refresh(args.catalog, args.output, args.env_file, args.send, limits, threshold, args.sources)
+        local = None
+        if args.command == "local":
+            from resolve_pipeline.control import Pipeline
+            local = Pipeline(args.state or home / "dashboard", [])
+            with sqlite3.connect(local.database) as db:
+                counts = dict(db.execute("SELECT kind,count(*) FROM imported_media GROUP BY kind"))
+            limits = {kind: max(0, target-counts.get(kind,0)) for kind,target in (("clip",30),("song",20),("speech",0))}
+        refresh(args.catalog, args.output, args.env_file, args.send, limits, threshold, args.sources, local)
+        if local:
+            with sqlite3.connect(local.database) as db:
+                counts = dict(db.execute("SELECT kind,count(*) FROM imported_media GROUP BY kind"))
+            print("Verified local inventory:", counts)
+            if counts.get("clip",0)<30 or counts.get("song",0)<20:
+                raise SystemExit("Local library targets remain open. See the discovery report.")
 
 
 if __name__ == "__main__":

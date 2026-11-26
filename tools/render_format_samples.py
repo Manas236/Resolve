@@ -12,7 +12,7 @@ from resolve_pipeline.reels import configured_builder
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("state", "video", "song"):
-        parser.add_argument(f"--{name}", type=Path, required=True)
+        parser.add_argument(f"--{name}", type=Path, required=name == "state")
     parser.add_argument("--speech", type=Path)
     parser.add_argument("--formats", nargs="+", choices=("P","L","F1","F4"), default=["P","L","F1","F4"])
     parser.add_argument("--whisper-model", type=Path)
@@ -21,8 +21,11 @@ def main():
     args = parser.parse_args()
     builder = configured_builder(read_env_file(args.env_file) | dict(os.environ), whisper_model=args.whisper_model,
                                  voice_script=args.voice_script)
-    pipeline = Pipeline(args.state, [args.video], reel_builder=builder)
-    pipeline.add_song(args.song)
+    if bool(args.video) != bool(args.song):
+        parser.error("Supply both --video and --song or use the imported library.")
+    pipeline = Pipeline(args.state, [args.video] if args.video else [], reel_builder=builder)
+    if args.song:
+        pipeline.add_song(args.song)
     if args.speech:
         pipeline.add_speech(args.speech)
     samples = {}

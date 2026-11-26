@@ -8,6 +8,8 @@ Creator Review now reads optional local seed and candidate JSONL. Approval, crea
 
 Shorts harvester and editable seed list implemented. Three fixtures passed for detector short-circuit, literal cleanup, deduplication, quota persistence and pending-item restart. Live OCR reproduction and discovery counts require the Windows PC. No measured new-creator count yet.
 
+Windows local acquisition now imports verified bundles directly into an external dashboard state and reads that inventory on subsequent runs. Ten consecutive Review jobs completed with a mock encoder: ten distinct clips and no song repeated in its preceding five jobs. Real 30/20 inventory counts are pending.
+
 Open acceptance gates, in implementation order:
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
