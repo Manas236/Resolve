@@ -58,3 +58,38 @@ class HarvestTests(unittest.TestCase):
                 "tools.harvest_text.reserve_call", return_value=False):
             data, path = reader.read(None)
         self.assertEqual((path, data["text"]), ("easyocr", text))
+
+    def test_restart_after_first_candidate_committed(self):
+        from tools import harvest_text as h
+        import json
+        import os
+        from contextlib import ExitStack
+        with tempfile.TemporaryDirectory() as tmp, ExitStack() as st:
+            root = Path(tmp)
+            seed = root/"seeds.json"
+            seed.write_text("[]")
+            bank = root/"candidates.jsonl"
+            db = sqlite3.connect(root/"harvest.sqlite3")
+            db.executescript(SCHEMA)
+            db.execute("INSERT INTO channels(url,priority,done) VALUES('fixture',2,1)")
+            db.executemany("INSERT INTO videos(id,channel,meta) VALUES(?,'fixture',?)", [
+                (str(i), json.dumps(dict(uploader_id="tester", view_count=5, upload_date="20260101"))) for i in range(2)])
+            db.commit()
+            db.close()
+            st.enter_context(patch.dict(os.environ,RESOLVE_GENRE_BANK=str(bank)))
+            st.enter_context(patch("sys.argv", ["harvest","--root",tmp,"--seeds",str(seed)]))
+            st.enter_context(patch.object(h,"discover",side_effect=lambda db,target,p:
+                db.execute("UPDATE channels SET done=1 WHERE url=?",(target,))))
+            st.enter_context(patch.object(h,"images", side_effect=lambda vid,root: [("thumbnail",vid)]))
+            read = st.enter_context(patch.object(h.Reader,"read",side_effect=lambda i: (
+                dict(text=f"Already recorded fixture {i}.",english=True,confident=True,scores=dict.fromkeys(h.AXES,4)), "fixture")))
+            def interrupted(vid, root):
+                if vid == "1":
+                    raise KeyboardInterrupt()
+                return [("thumbnail", vid)]
+            with patch.object(h,"images",side_effect=interrupted), self.assertRaises(KeyboardInterrupt):
+                h.main()
+            with patch.object(h,"images",side_effect=lambda vid,root:[("thumbnail", vid)]):
+                h.main()
+            self.assertEqual(read.call_count,2)
+            self.assertEqual(len(bank.read_text().splitlines()),2)

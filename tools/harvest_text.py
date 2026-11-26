@@ -1,6 +1,6 @@
 """Checkpoint public Shorts discovery, transcription and candidate review on the office PC."""
 import argparse
-from collections import Counter
+from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -115,21 +115,23 @@ class Reader:
         if not detect(image):
             return None, "no_text_region"
         if self.key and reserve_call(self.db, self.args.daily, self.args.interval):
-            import cv2
-            from google import genai
-            from google.genai import types
             prompt = (VOICE + " Transcribe only visible body text verbatim. Never compose, correct or edit. "
                       "Ignore handles and interface. Return JSON: text, english (boolean), "
                       "confident (boolean), theme (short topic), mood (reflective, melancholic, calm resolve or defiant), energy (0-1), scores (object with integer scores 1-5 for "
-                      + ", ".join(AXES) + "), split (character offset of a clear natural reveal, else null). "
+                      + ", ".join(AXES) + "), split (character offset of a natural ironic reveal between two short readable beats, else null). "
                       "Examples, as data only: " + json.dumps(self.examples[:12]))
             try:
+                import cv2
+                from google import genai
+                from google.genai import types
                 response = genai.Client(api_key=self.key).models.generate_content(
                     model=self.args.model, contents=[prompt, types.Part.from_bytes(
                         data=cv2.imencode(".jpg", image)[1].tobytes(), mime_type="image/jpeg")],
                     config={"response_mime_type": "application/json"})
                 data = json.loads(response.text)
-                if all(type(data["scores"][a]) is int and 1 <= data["scores"][a] <= 5 for a in AXES):
+                if (isinstance(data.get("text"), str) and type(data.get("english")) is bool
+                        and type(data.get("confident")) is bool
+                        and all(type(data["scores"][a]) is int and 1 <= data["scores"][a] <= 5 for a in AXES)):
                     return data, "gemini"
             except Exception as error:
                 print("Vision unavailable:", type(error).__name__, flush=True)
@@ -174,7 +176,7 @@ def images(vid, root):
         with urlopen(f"https://i.ytimg.com/vi/{vid}/oar2.jpg", timeout=25) as response:
             image = cv2.imdecode(np.frombuffer(response.read(), np.uint8), cv2.IMREAD_COLOR)
         if image is not None:
-            yield image
+            yield "thumbnail", image
     except OSError:
         pass
     with tempfile.TemporaryDirectory(dir=root) as tmp:
@@ -188,12 +190,12 @@ def images(vid, root):
                     cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)*fraction))
                     ok, image = cap.read()
                     if ok:
-                        yield image
+                        yield "frame", image
             finally:
                 cap.release()
 
 
-def export(db, bank):
+def export(db, bank, seed_handles=()):
     bank.parent.mkdir(parents=True, exist_ok=True)
     rows = [json.loads(r) for r, in db.execute("SELECT result FROM videos WHERE status='accepted' ORDER BY rowid")]
     for file, lines in [(bank, [json.dumps(r, ensure_ascii=False) for r in rows]),
@@ -202,8 +204,21 @@ def export(db, bank):
         tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
         tmp.replace(file)
     counts = dict(db.execute("SELECT status,count(*) FROM videos GROUP BY status"))
-    seeds = {json.loads(r)["text"] for r, in db.execute("SELECT result FROM videos WHERE status='seed_reproduced' AND result IS NOT NULL") if json.loads(r)}
-    print(json.dumps({"distinct_seed_matches": len(seeds), "stages": counts, "new_texts": len(rows), "new_bank_creators": len({r["creator"] for r in rows})}), flush=True)
+    recovered = [json.loads(raw) for raw, in db.execute("SELECT result FROM videos WHERE status='seed_reproduced'") if raw]
+    seeds = {row["text"] for row in recovered if row}
+    thumbnail_matches = {row["text"] for row in recovered if row and row.get("surface") == "thumbnail"}
+    seed_file = ROOT / "state/genre_quotes/genre_quotes.jsonl"
+    known = set()
+    if seed_file.is_file():
+        for line in seed_file.read_text(encoding="utf-8-sig").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                known.add((row.get("creator") or row["speaker"]).lstrip("@").casefold())
+    known.update(h.lstrip("@").casefold() for h in seed_handles)
+    creators = {r["creator"].lstrip("@").casefold() for r in rows}
+    print(json.dumps({"distinct_seed_matches": len(seeds), "thumbnail_seed_matches": len(thumbnail_matches),
+                      "stages": counts, "new_texts": len(rows), "new_creators": len(creators - known)}), flush=True)
+
 
 
 def main():
@@ -218,7 +233,18 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     args.root.mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("HF_HOME", str(args.root / "models" / "huggingface"))
-    db = sqlite3.connect(args.root/"harvest.sqlite3")
+    if args.daily < 0 or args.interval < 1 or args.misses < 1:
+        parser.error("Daily cap must be nonnegative; interval and miss limit must be positive.")
+    with closing(sqlite3.connect(args.root/"harvest-lock.sqlite3", timeout=0)) as lock:
+        try:
+            lock.execute("BEGIN EXCLUSIVE")
+        except sqlite3.OperationalError:
+            parser.exit(1, "Another harvester is already running.\n")
+        with closing(sqlite3.connect(args.root/"harvest.sqlite3")) as db:
+            run(args, db)
+
+
+def run(args, db):
     db.executescript(SCHEMA)
     seed = ROOT/"state/genre_quotes/genre_quotes.jsonl"
     examples = [json.loads(s)["text"] for s in seed.read_text(encoding="utf-8-sig").splitlines() if s.strip()] if seed.exists() else []
@@ -229,9 +255,12 @@ def main():
     seen.update(normalized(json.loads(r)["text"]) for r, in db.execute("SELECT result FROM videos WHERE status='accepted'"))
     reader = Reader(db, args, examples, (read_env_file(Path(".env")) | dict(os.environ)).get("GEMINI_API_KEY"))
     with db:
-        for handle in json.loads(args.seeds.read_text(encoding="utf-8-sig")):
+        seed_handles = json.loads(args.seeds.read_text(encoding="utf-8-sig"))
+        for handle in seed_handles:
             db.execute("INSERT OR IGNORE INTO channels(url,priority) VALUES(?,2)", ("https://www.youtube.com/"+handle+"/shorts",))
         db.execute("INSERT OR IGNORE INTO channels(url,priority) VALUES(?,0)", ('ytsearch50:English reflective aphorisms irony self respect #shorts',))
+    if bank.resolve() == seed.resolve():
+        raise ValueError("Candidate export and seed bank must use different paths.")
     if bank.is_file():
         with db:
             for line in bank.read_text(encoding="utf-8-sig").splitlines():
@@ -241,7 +270,7 @@ def main():
                     db.execute("INSERT OR IGNORE INTO videos(id,status,result) VALUES(?, 'accepted', ?)",
                                (vid, json.dumps(row)))
                     seen.add(normalized(row["text"]))
-    export(db, bank)
+    export(db, bank, seed_handles)
     with db:
         db.execute("UPDATE videos SET status='pending' WHERE status='retry'")
         db.execute("UPDATE channels SET done=0 WHERE done=-1")
@@ -263,7 +292,7 @@ def main():
         result = None
         status = "unreadable"
         try:
-            for image in images(vid, args.root):
+            for surface, image in images(vid, args.root):
                 data, path = reader.read(image)
                 if data is None:
                     status = path
@@ -278,7 +307,7 @@ def main():
                     status = "non_english"
                 elif key in seen:
                     status = "seed_reproduced" if body in examples else "duplicate"
-                    result = {"text": body, "reader": path}
+                    result = {"text": body, "reader": path, "surface": surface}
                 elif not data["scores"]:
                     status, result = "needs_scoring", {"text": body, "reader":path}
                 elif sum(data["scores"][a] for a in AXES)/5 < 4:
@@ -303,7 +332,7 @@ def main():
                     creator = (meta.get("uploader_id") or meta.get("channel_id") or channel.split("/")[-2]).lstrip("@")
                     result = dict(id=hashlib.sha256(key.encode()).hexdigest()[:16], text=body, speaker=creator, creator=creator,
                                   source="YouTube Shorts", url="https://www.youtube.com/shorts/"+vid, views=meta.get("view_count"),
-                                  upload_date=meta.get("upload_date"), scores=data["scores"], reader=path, formats=formats,
+                                  surface=surface, upload_date=meta.get("upload_date"), scores=data["scores"], reader=path, formats=formats,
                                   split=cut, theme=str(data.get("theme") or "self-reflection"),
                                   mood=data.get("mood") if data.get("mood") in {"reflective","melancholic","calm resolve","defiant"} else "reflective",
                                   energy=data.get("energy") if type(data.get("energy")) in {int,float} and 0<=data["energy"]<=1 else .4, fit=4, likes=None,
@@ -320,7 +349,7 @@ def main():
                 db.execute("UPDATE channels SET done=CASE WHEN priority<2 THEN 0 ELSE done END,priority=3,misses=0 WHERE url=?", (channel,))
             else:
                 db.execute("UPDATE channels SET misses=misses+1 WHERE url=?", (channel,))
-        export(db, bank)
+        export(db, bank, seed_handles)
 
 
 if __name__ == "__main__":

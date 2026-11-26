@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from resolve_pipeline.bundles import import_bundle, write_bundle
 from resolve_pipeline.control import Pipeline
@@ -50,8 +51,14 @@ class DryRunFlowTest(unittest.TestCase):
             by_kind = {row[2]: Path(row[1]) for row in pipeline.library()}
             self.assertEqual(set(by_kind), {"song", "clip"})
             self.assertFalse(import_bundle(pipeline, bundle))
-            reel_id, = pipeline.enqueue(1, production_only=True, production_day="2026-11-22")
-            self.assertEqual(pipeline.enqueue(1, production_only=True, production_day="2026-11-22"), [])
+            fixture = dict(id="test-only", creator="fixture", speaker="fixture", formats=["L"],
+                           text="An existing fixture sentence.", mood="reflective", energy=.4, theme="fixture")
+            bank = patch("resolve_pipeline.quotes.genre_catalog", return_value={fixture["id"]: fixture})
+            bank.start()
+            self.addCleanup(bank.stop)
+            pipeline.set_quote_state(fixture["id"], "active")
+            reel_id, = pipeline.enqueue(1, "L", production_only=True, production_day="2026-11-22")
+            self.assertEqual(pipeline.enqueue(1, "L", production_only=True, production_day="2026-11-22"), [])
             pipeline._render(reel_id)
             path = pipeline.directory / f"{reel_id}.mp4"
             self.assertGreater(path.stat().st_size, 0)

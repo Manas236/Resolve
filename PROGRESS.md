@@ -14,7 +14,9 @@ Five harvester fixtures now pass, including real blank/text image detection and 
 
 Local acquisition now screens a separate dark-cinematic search pool with CLIP and measures song mood during import. Five acquisition/vision tests passed. NEEDS_MANAS.md starts with external Python 3.11 setup, local inventory, detached harvester/log, Review approval and the six-output batch.
 
-Open acceptance gates, in implementation order:
+The encoder integration test produced ten consecutive Review MP4s using FFmpeg and fixture media. All ten clip IDs differed and the five-song exclusion held. The 110-word stress MP4 measured 37.333 seconds. Source P boundary fixtures accept 35 and 115 words and reject 34 and 116. Six harvester tests passed, including interruption immediately after the first candidate was committed. Restart processed only the remaining candidate. The log counts distinct seed matches recovered specifically from thumbnails and new creators outside the seed handles.
+
+The following acceptance criteria remain the contract. The remaining evidence requires the Windows office PC and editorial approval: nine independently recovered thumbnail texts, observed new creator/text counts, verified footage/song inventory and six approved-source Review renders. See the first section of NEEDS_MANAS.md. No office outcome has been inferred from fixtures.
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
 2. Creator-centric Shorts harvester, restart checkpoints, detection-first thumbnail vision/OCR, limited Gemini calls with backoff and local fallback, frame recovery, verbatim cleaning, English five-axis classification, candidate review list and stage counts. Test skip, cleaning, dedupe, restart and quota fallback.

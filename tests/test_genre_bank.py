@@ -24,3 +24,20 @@ class GenreBankTests(unittest.TestCase):
                     quotes.select_genre("L", [], recent, states)
             self.assertEqual(quotes.select_genre("L", [], [], {"1": "active"})["hook"], row["text"])
         self.assertNotIn("invisible", quiet_ass("L", row["text"], [], [], 10000, speaker="invisible"))
+
+    def test_source_paragraph_boundaries(self):
+        from resolve_pipeline.caption_style import paragraph_layout
+        from resolve_pipeline.poetry import reading_seconds
+        for words in (34,35,115,116):
+            text = "Read this. " + " ".join(["fixture"]*(words-3)) + " carefully."
+            row = dict(id="fixture",creator="one",text=text,formats=["P"])
+            with patch.object(quotes,"genre_catalog",return_value={"fixture":row}):
+                if words in (35,115):
+                    chosen = quotes.select_genre("P",[],[],{"fixture":"active"})
+                    self.assertEqual(chosen["hook"],text)
+                    size, lines = paragraph_layout(text)
+                    self.assertTrue(size > 0 and len(lines) <= 12)
+                else:
+                    with self.assertRaises(ValueError):
+                        quotes.select_genre("P",[],[],{"fixture":"active"})
+        self.assertGreater(reading_seconds("word "*115,"P"),38)

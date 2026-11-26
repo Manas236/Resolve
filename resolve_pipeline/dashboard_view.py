@@ -235,7 +235,13 @@ def quotes_page(pipeline, form, fields):
         field = f'<input type="hidden" name="id" value="{escape(q["id"])}">'
         items.append(f'<article><p>{escape(q["text"])}</p><a href="{escape(q["url"])}">'
                      f'{escape(q["speaker"])} · {escape(q["source"])}</a> · {state}')
-        for target in ("pinned", "retired", "active"):
+        if q.get("scores"):
+            details = ", ".join(f"{key} {value}/5" for key, value in q["scores"].items())
+            items.append(f'<p>{escape(details)} · {escape(str(q.get("reader", "")))}</p>')
+        if "F4" in q["formats"] and isinstance(q.get("split"), int):
+            setup, payoff = q["text"][:q["split"]], q["text"][q["split"]:]
+            items.append(f'<p>F4 setup · {escape(setup)}</p><p>Reveal · {escape(payoff)}</p>')
+        for target in (("active", "retired") if state == "candidate" else ("pinned", "retired", "active")):
             if target != state:
                 items.append(form("quote-state", field + f'<input type="hidden" name="state" value="{target}">',
                                   {"pinned":"Pin","retired":"Retire","active":"Approve"}[target]))
