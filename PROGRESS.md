@@ -16,6 +16,8 @@ Local acquisition now screens a separate dark-cinematic search pool with CLIP an
 
 The encoder integration test produced ten consecutive Review MP4s using FFmpeg and fixture media. All ten clip IDs differed and the five-song exclusion held. The 110-word stress MP4 measured 37.333 seconds. Source P boundary fixtures accept 35 and 115 words and reject 34 and 116. Six harvester tests passed, including interruption immediately after the first candidate was committed. Restart processed only the remaining candidate. The log counts distinct seed matches recovered specifically from thumbnails and new creators outside the seed handles.
 
+Full regression suite: 111 tests, 2 skipped, zero failures. The optional ten-encode test passed separately. A clean install initially crashed inside librosa beat tracking with Numba 0.68.1. Pinning Numba 0.63.1 passed all seven music/caption tests and the full suite. Windows installation remains an office-PC gate.
+
 The following acceptance criteria remain the contract. The remaining evidence requires the Windows office PC and editorial approval: nine independently recovered thumbnail texts, observed new creator/text counts, verified footage/song inventory and six approved-source Review renders. See the first section of NEEDS_MANAS.md. No office outcome has been inferred from fixtures.
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
