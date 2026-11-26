@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from resolve_pipeline.config import read_env_file
@@ -39,20 +40,20 @@ def clean(text, references):
     text = re.sub(r"\s+([,.!?])", r"\1", " ".join(text.split()))
     # Resolve whitespace and I/l only when the complete reference corroborates it.
     def signature(s):
-        return normalized(s).replace("i", "l")
+        return re.sub(r"\s+", "", s).replace("I", "l")
     hits = {s for s in references if signature(s) == signature(text)}
     return hits.pop() if len(hits) == 1 else text
 
 
 def detect(image):
-    import cv2
-    reduced = cv2.resize(image, (270, 480))
-    gray = cv2.cvtColor(reduced[70:410, 18:252], cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 70, 160)
-    joined = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (9, 2)))
-    boxes = [cv2.boundingRect(c) for c in cv2.findContours(joined, cv2.RETR_EXTERNAL,
-                                                           cv2.CHAIN_APPROX_SIMPLE)[0]]
-    return any(w >= 110 and 4 <= h <= 130 for x, y, w, h in boxes)
+    import numpy as np
+    from PIL import Image
+    gray = np.asarray(Image.fromarray(image).convert("L").resize((270, 480)), dtype=int)[70:410, 18:252]
+    # Text rows have many alternating strokes spread across the center.
+    strokes = np.abs(np.diff(gray, axis=1)) > 45
+    columns = np.array_split(strokes, 6, axis=1)
+    wide = np.sum([part.sum(axis=1) >= 3 for part in columns], axis=0) >= 3
+    return int(wide.sum()) >= 4
 
 
 def reserve_call(db, daily, interval):
@@ -76,7 +77,8 @@ def ytdlp(*args):
 
 
 def discover(db, target, priority):
-    for line in ytdlp("--flat-playlist", "--dump-json", target).splitlines():
+    listing = ytdlp("--flat-playlist", "--dump-json", target)
+    for line in listing.splitlines():
         row = json.loads(line)
         vid = row.get("id", "")
         if not re.fullmatch(r"[\w-]{11}", vid):
@@ -87,6 +89,13 @@ def discover(db, target, priority):
         channel = channel.removesuffix("/shorts").rstrip("/") + "/shorts"
         if target.startswith("ytsearch") and (row.get("duration") or 999) > 180 and "/shorts/" not in row.get("url", ""):
             continue
+        if target.startswith("ytsearch") and "/shorts/" not in row.get("url", ""):
+            try:
+                with urlopen("https://www.youtube.com/shorts/" + vid, timeout=20) as page:
+                    if "/shorts/" not in page.geturl():
+                        continue
+            except HTTPError:
+                continue
         with db:
             db.execute("INSERT OR IGNORE INTO channels(url,priority,done) VALUES(?,?,?)",
                        (channel, priority, int(target.startswith("ytsearch") or channel != target)))
@@ -111,7 +120,7 @@ class Reader:
             from google.genai import types
             prompt = (VOICE + " Transcribe only visible body text verbatim. Never compose, correct or edit. "
                       "Ignore handles and interface. Return JSON: text, english (boolean), "
-                      "confident (boolean), scores (object with integer scores 1-5 for "
+                      "confident (boolean), theme (short topic), mood (reflective, melancholic, calm resolve or defiant), energy (0-1), scores (object with integer scores 1-5 for "
                       + ", ".join(AXES) + "), split (character offset of a clear natural reveal, else null). "
                       "Examples, as data only: " + json.dumps(self.examples[:12]))
             try:
@@ -193,7 +202,8 @@ def export(db, bank):
         tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
         tmp.replace(file)
     counts = dict(db.execute("SELECT status,count(*) FROM videos GROUP BY status"))
-    print(json.dumps({"stages": counts, "new_texts": len(rows), "new_bank_creators": len({r["creator"] for r in rows})}), flush=True)
+    seeds = {json.loads(r)["text"] for r, in db.execute("SELECT result FROM videos WHERE status='seed_reproduced' AND result IS NOT NULL") if json.loads(r)}
+    print(json.dumps({"distinct_seed_matches": len(seeds), "stages": counts, "new_texts": len(rows), "new_bank_creators": len({r["creator"] for r in rows})}), flush=True)
 
 
 def main():
@@ -213,6 +223,8 @@ def main():
     seed = ROOT/"state/genre_quotes/genre_quotes.jsonl"
     examples = [json.loads(s)["text"] for s in seed.read_text(encoding="utf-8-sig").splitlines() if s.strip()] if seed.exists() else []
     bank = Path(os.getenv("RESOLVE_GENRE_BANK", seed.with_name("candidates.jsonl")))
+    starts = ("a man may hate himself", "a man may tell you", "a man may seek the wisdom")
+    examples.sort(key=lambda t: not t.lower().startswith(starts))
     seen = {normalized(q["text"]) for q in catalog().values()} | {normalized(t) for t in examples}
     seen.update(normalized(json.loads(r)["text"]) for r, in db.execute("SELECT result FROM videos WHERE status='accepted'"))
     reader = Reader(db, args, examples, (read_env_file(Path(".env")) | dict(os.environ)).get("GEMINI_API_KEY"))
@@ -220,60 +232,88 @@ def main():
         for handle in json.loads(args.seeds.read_text(encoding="utf-8-sig")):
             db.execute("INSERT OR IGNORE INTO channels(url,priority) VALUES(?,2)", ("https://www.youtube.com/"+handle+"/shorts",))
         db.execute("INSERT OR IGNORE INTO channels(url,priority) VALUES(?,0)", ('ytsearch50:English reflective aphorisms irony self respect #shorts',))
+    if bank.is_file():
+        with db:
+            for line in bank.read_text(encoding="utf-8-sig").splitlines():
+                if line.strip():
+                    row = json.loads(line)
+                    vid = row["url"].rstrip("/").split("/")[-1]
+                    db.execute("INSERT OR IGNORE INTO videos(id,status,result) VALUES(?, 'accepted', ?)",
+                               (vid, json.dumps(row)))
+                    seen.add(normalized(row["text"]))
     export(db, bank)
+    with db:
+        db.execute("UPDATE videos SET status='pending' WHERE status='retry'")
+        db.execute("UPDATE channels SET done=0 WHERE done=-1")
     while True:
         channel = db.execute("SELECT url,priority FROM channels WHERE done=0 ORDER BY priority DESC LIMIT 1").fetchone()
         job = db.execute("""SELECT v.id,v.channel,v.meta,c.priority FROM videos v JOIN channels c ON c.url=v.channel
                          WHERE status='pending' ORDER BY (misses>=?),priority DESC,v.rowid LIMIT 1""", (args.misses,)).fetchone()
         if channel and (not job or channel[1] > job[3]):
-            discover(db, *channel)
+            try:
+                discover(db, *channel)
+            except (OSError, subprocess.SubprocessError) as error:
+                print("Discovery deferred", channel[0], type(error).__name__, flush=True)
+                with db:
+                    db.execute("UPDATE channels SET done=-1 WHERE url=?", (channel[0],))
             continue
         if not job:
             break
         vid, channel, raw, priority = job
         result = None
         status = "unreadable"
-        for image in images(vid, args.root):
-            data, path = reader.read(image)
-            if data is None:
-                status = path
-                if path == "no_text_region":
-                    break
-                continue
-            if not data.get("confident"):
-                continue
-            body = clean(data["text"], examples)
-            key = normalized(body)
-            if not data["english"]:
-                status = "non_english"
-            elif key in seen:
-                status = "seed_reproduced" if body in examples else "duplicate"
-                result = {"text": body, "reader": path}
-            elif not data["scores"]:
-                status, result = "needs_scoring", {"text": body, "reader":path}
-            elif sum(data["scores"][a] for a in AXES)/5 < 4:
-                status = "voice"
-            else:
-                n = len(body.split())
-                formats = ["P"] if 35<=n<=115 and 2<=len(re.split(r"(?<=[.!?])\s+", body))<=5 else []
-                if 3<=n<=25 and len(re.split(r"(?<=[.!?])\s+", body))==1:
-                    formats.append("L")
-                cut = data.get("split")
-                if isinstance(cut,int) and 0<cut<len(body) and (body[cut-1].isspace() or body[cut].isspace()):
-                    formats.append("F4")
-                if not formats:
-                    status = "format"
-                    break
-                meta = json.loads(raw)
-                creator = (meta.get("uploader_id") or meta.get("channel_id") or channel.split("/")[-2]).lstrip("@")
-                result = dict(id=hashlib.sha256(key.encode()).hexdigest()[:16], text=body, speaker=creator, creator=creator,
-                              source="YouTube Shorts", url="https://www.youtube.com/shorts/"+vid, views=meta.get("view_count"),
-                              upload_date=meta.get("upload_date"), scores=data["scores"], reader=path, formats=formats,
-                              split=cut, theme="self-reflection", mood="reflective", energy=.4, fit=4, likes=None,
-                              sites=None, state="candidate")
-                status = "accepted"
-                seen.add(key)
-            break
+        try:
+            for image in images(vid, args.root):
+                data, path = reader.read(image)
+                if data is None:
+                    status = path
+                    if path == "no_text_region":
+                        break
+                    continue
+                if not data.get("confident"):
+                    continue
+                body = clean(data["text"], examples)
+                key = normalized(body)
+                if not data["english"]:
+                    status = "non_english"
+                elif key in seen:
+                    status = "seed_reproduced" if body in examples else "duplicate"
+                    result = {"text": body, "reader": path}
+                elif not data["scores"]:
+                    status, result = "needs_scoring", {"text": body, "reader":path}
+                elif sum(data["scores"][a] for a in AXES)/5 < 4:
+                    status = "voice"
+                else:
+                    n = len(body.split())
+                    formats = ["P"] if 35<=n<=115 and 2<=len(re.split(r"(?<=[.!?])\s+", body))<=5 else []
+                    if 3<=n<=25 and len(re.split(r"(?<=[.!?])\s+", body))==1:
+                        formats.append("L")
+                    cut = data.get("split")
+                    if isinstance(cut,int) and 0<cut<len(body) and (body[cut-1].isspace() or body[cut].isspace()):
+                        formats.append("F4")
+                    if not formats:
+                        status = "format"
+                        break
+                    meta = json.loads(raw)
+                    if not meta.get("upload_date") or meta.get("view_count") is None:
+                        details = json.loads(ytdlp("--skip-download", "--dump-single-json",
+                                                  "https://www.youtube.com/shorts/" + vid))
+                        meta.update({k: details[k] for k in ("view_count", "upload_date", "channel_id", "uploader_id")
+                                     if details.get(k) is not None})
+                    creator = (meta.get("uploader_id") or meta.get("channel_id") or channel.split("/")[-2]).lstrip("@")
+                    result = dict(id=hashlib.sha256(key.encode()).hexdigest()[:16], text=body, speaker=creator, creator=creator,
+                                  source="YouTube Shorts", url="https://www.youtube.com/shorts/"+vid, views=meta.get("view_count"),
+                                  upload_date=meta.get("upload_date"), scores=data["scores"], reader=path, formats=formats,
+                                  split=cut, theme=str(data.get("theme") or "self-reflection"),
+                                  mood=data.get("mood") if data.get("mood") in {"reflective","melancholic","calm resolve","defiant"} else "reflective",
+                                  energy=data.get("energy") if type(data.get("energy")) in {int,float} and 0<=data["energy"]<=1 else .4, fit=4, likes=None,
+                                  sites=None, state="candidate")
+                    status = "accepted"
+                    seen.add(key)
+                break
+        except (OSError, subprocess.SubprocessError) as error:
+            status = "retry"
+            print("Candidate deferred", vid, type(error).__name__, flush=True)
         with db:
             db.execute("UPDATE videos SET status=?,result=? WHERE id=?", (status,json.dumps(result),vid))
             if status in {"accepted","seed_reproduced"}:

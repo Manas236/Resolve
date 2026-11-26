@@ -10,6 +10,8 @@ Shorts harvester and editable seed list implemented. Three fixtures passed for d
 
 Windows local acquisition now imports verified bundles directly into an external dashboard state and reads that inventory on subsequent runs. Ten consecutive Review jobs completed with a mock encoder: ten distinct clips and no song repeated in its preceding five jobs. Real 30/20 inventory counts are pending.
 
+Five harvester fixtures now pass, including real blank/text image detection and capped Gemini dispatch to EasyOCR. Failed network jobs are deferred to the next invocation. Discovery now checks Shorts redirects for search hits and distinguishes recovered seed texts from new candidates.
+
 Open acceptance gates, in implementation order:
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
