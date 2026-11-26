@@ -1,5 +1,41 @@
 # Needs Manas
 
+## 26 November — Windows office PC
+
+Run each line in PowerShell from the Resolve clone. Prerequisites are Python 3.11, FFmpeg, ffprobe and Deno 2.3+ on PATH. Keep the existing nine-row seed in state/genre_quotes/genre_quotes.jsonl. The external dashboard state below holds the media, render history and approvals for this workflow.
+
+**Windows office PC — pull and install.**
+
+```powershell
+$ErrorActionPreference='Stop'; $env:GIT_TERMINAL_PROMPT='0'; git pull --ff-only origin main; if ($LASTEXITCODE) { throw 'Pull failed' }; $r=Join-Path $env:LOCALAPPDATA Resolve; py -3.11 -m venv "$r\venv"; if ($LASTEXITCODE) { throw 'Python 3.11 venv failed' }; & "$r\venv\Scripts\python.exe" -m pip --no-input install -r requirements-pc.txt; if ($LASTEXITCODE) { throw 'PC install failed' }; py -3.11 -m venv "$r\ocr"; if ($LASTEXITCODE) { throw 'OCR venv failed' }; & "$r\ocr\Scripts\python.exe" -m pip --no-input install -r requirements-harvest.txt; if ($LASTEXITCODE) { throw 'OCR install failed' }
+```
+
+**Windows office PC — build the local library.** Record the printed verified clip and song counts and the mix in library.discovery.json. Targets are 30 clips and 20 songs.
+
+```powershell
+$r=Join-Path $env:LOCALAPPDATA Resolve; $env:HF_HOME="$r\models"; $env:PYTHONIOENCODING='utf-8'; & "$r\venv\Scripts\python.exe" -m tools.pc_acquisition local --output "$r\library.zip" --state "$r\dashboard"
+```
+
+**Windows office PC — start the text harvester in the background.** stdout and stderr go to harvest.log and harvest.err.log under %LOCALAPPDATA%\Resolve. Run the same line after an interrupted run. Configure GEMINI_API_KEY in the existing .env for vision scoring.
+
+```powershell
+$r=Join-Path $env:LOCALAPPDATA Resolve; $env:HF_HOME="$r\models"; $env:PYTHONIOENCODING='utf-8'; Start-Process -FilePath "$r\ocr\Scripts\python.exe" -ArgumentList '-u','-m','tools.harvest_text' -WorkingDirectory (Get-Location).Path -WindowStyle Hidden -RedirectStandardOutput "$r\harvest.log" -RedirectStandardError "$r\harvest.err.log" -PassThru
+```
+
+**Windows office PC — open Review.** Uses the dashboard password hash in .env. Use the setup instructions below to create a password if needed. Approve candidate texts with enough distinct creators for the sequence and enough approved natural reveals for F4. The nine rows from one creator alone cannot fill the batch.
+
+```powershell
+$r=Join-Path $env:LOCALAPPDATA Resolve; Start-Process 'http://127.0.0.1:8765/review'; & "$r\venv\Scripts\python.exe" -m resolve_pipeline.dashboard research/m0_server_results.json --zone Asia/Kolkata --state "$r\dashboard"
+```
+
+**Windows office PC — render two each of P, L and F4.** Run from a second PowerShell in the clone after approval and library import. Record the six Review IDs alongside actual source recovery counts, new texts and distinct new creators. Keep harvested text and media local.
+
+```powershell
+$r=Join-Path $env:LOCALAPPDATA Resolve; $env:META_DRY_RUN='true'; & "$r\venv\Scripts\python.exe" -m tools.render_format_samples --state "$r\dashboard" --formats P L F4
+```
+
+
+
 ## Office PC morning Review run
 
 Use PowerShell from the Resolve clone on the **Windows office PC**. These commands assume Python 3.11, FFmpeg and ffprobe are on PATH. The video, song, separate speech recording and unpacked faster-whisper model must exist locally. Set the paths in the two assignment lines to your actual files. All output goes to the local Review dashboard.

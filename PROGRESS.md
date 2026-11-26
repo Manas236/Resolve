@@ -12,6 +12,8 @@ Windows local acquisition now imports verified bundles directly into an external
 
 Five harvester fixtures now pass, including real blank/text image detection and capped Gemini dispatch to EasyOCR. Failed network jobs are deferred to the next invocation. Discovery now checks Shorts redirects for search hits and distinguishes recovered seed texts from new candidates.
 
+Local acquisition now screens a separate dark-cinematic search pool with CLIP and measures song mood during import. Five acquisition/vision tests passed. NEEDS_MANAS.md starts with external Python 3.11 setup, local inventory, detached harvester/log, Review approval and the six-output batch.
+
 Open acceptance gates, in implementation order:
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.

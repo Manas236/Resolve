@@ -123,6 +123,11 @@ def discover(config, pins, existing, fetch, search=youtube, *, track_limit=45):
             item = video_item(row, "clip", f"youtube-search:{query}")
             if item:
                 candidates.append(item)
+    for query in config.get("cinematic_searches", []):
+        for row in search(f"ytsearch15:{query}"):
+            item = video_item(row, "clip", f"youtube-search:{query}")
+            if item:
+                candidates.append({**item, "content": "dark_cinematic"})
     merged = {}
     for item in candidates:
         item["source"] = watch_url(item["source"]) or item["source"]

@@ -74,8 +74,8 @@ def import_bundle(pipeline, bundle):
             if (not re.fullmatch(r"media/[0-9]+\.(mp4|webm|mp3|wav|m4a|flac|ogg)", name)
                     or name in seen or kind not in {"song", "clip", "speech"}):
                 raise ValueError("Invalid bundle asset")
-            if kind == "clip" and row.get("content") != "physical_training":
-                raise ValueError("Production clips must be physical training footage")
+            if kind == "clip" and row.get("content") not in {"physical_training", "dark_cinematic"}:
+                raise ValueError("Production clips require a supported footage category")
             if not isinstance(row.get("source"), str) or not row["source"].strip():
                 raise ValueError("Bundle asset requires source metadata")
             seen.add(name)

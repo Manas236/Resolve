@@ -265,7 +265,7 @@ class Pipeline:
             with db:
                 db.execute("BEGIN IMMEDIATE")
                 history = [json.loads(raw or "{}") for raw, in db.execute(
-                    "SELECT video_text FROM reels WHERE id!=? ORDER BY id DESC LIMIT 200", (reel_id,))]
+                    "SELECT video_text FROM reels WHERE id!=? AND status NOT IN ('queued','skipped','failed') ORDER BY id DESC LIMIT 200", (reel_id,))]
                 text = quotes.select_genre(format_id, {q.get("id") for q in history},
                                      {q.get("creator") for q in history[:4]},
                                      dict(db.execute("SELECT id,state FROM quote_state")))
@@ -443,7 +443,7 @@ class Pipeline:
                 fingerprint = f"poetic:{metadata.get('genre', '')}:{stat.st_mtime_ns}:{stat.st_size}:{title}:{bool(key)}"
                 cached = db.execute("SELECT tags FROM song_moods WHERE path=? AND fingerprint=?",
                                     (name, fingerprint)).fetchone()
-                tags = json.loads(cached[0]) if cached else song_tags(path, title + " " + metadata.get("genre", ""), key)
+                tags = json.loads(cached[0]) if cached else metadata.get("music_tags") or song_tags(path, title + " " + metadata.get("genre", ""), key)
                 if not cached:
                     with db:
                         db.execute("INSERT OR REPLACE INTO song_moods VALUES(?,?,?)",

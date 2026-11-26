@@ -11,6 +11,8 @@ TRAINING = (
     "a photo of a person boxing or hitting a punching bag",
     "a photo of people doing an athletic workout or sports training",
 )
+CINEMATIC = ("a cinematic street at night in the rain", "a solitary figure in a dark atmospheric landscape",
+             "a moody empty city at dusk")
 OTHER = (
     "a screenshot of a cartoon or animated character",
     "a photo of a talking head or podcast interview",
@@ -30,7 +32,7 @@ class TrainingVision:
         self.classify = pipeline("zero-shot-image-classification", model=MODEL, revision=REVISION,
                                  model_kwargs={"use_safetensors": False}, device=-1)
 
-    def screen(self, path, duration, timestamp, folder):
+    def screen(self, path, duration, timestamp, folder, *, cinematic=False):
         start = max(0, min(timestamp, duration - 25))
         end = min(duration, start + 25)
         frames = []
@@ -44,7 +46,7 @@ class TrainingVision:
                  "-threads", "1", str(frame)], check=True, timeout=20)
             if frame.is_file():
                 frames.append((second, frame))
-        result = score_frames(frames, self.classify, self.threshold, self.model)
+        result = score_frames(frames, self.classify, self.threshold, self.model, CINEMATIC if cinematic else TRAINING)
         if result["accepted"]:
             from resolve_pipeline.visual_energy import measure
             _, motion = measure(path, start, end-start)
@@ -52,16 +54,16 @@ class TrainingVision:
         return result
 
 
-def score_frames(frames, classify, threshold, model=MODEL):
+def score_frames(frames, classify, threshold, model=MODEL, positives=TRAINING):
     scored = []
     for second, frame in frames:
         labels = {row["label"]: float(row["score"]) for row in
-                  classify(str(frame), candidate_labels=list(TRAINING + OTHER), hypothesis_template="{}")}
-        positive = sum(labels[label] for label in TRAINING)
+                  classify(str(frame), candidate_labels=list(positives + OTHER), hypothesis_template="{}")}
+        positive = sum(labels[label] for label in positives)
         scored.append({"second": round(second, 3), "training": round(positive, 5),
                        "best_label": max(labels, key=labels.get),
                        "scores": {label: round(score, 5) for label, score in labels.items()},
-                       "passed": positive >= threshold and max(labels, key=labels.get) in TRAINING})
+                       "passed": positive >= threshold and max(labels, key=labels.get) in positives})
     return {"model": model, "threshold": threshold,
             "accepted": len(scored) == 5 and sum(frame["passed"] for frame in scored) >= 3,
             "frames": scored}

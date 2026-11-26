@@ -260,10 +260,20 @@ def refresh(catalog, output, env_file, send, limits, threshold, sources, local=N
         report = []
         vision = None
         counts, attempts = Counter(), Counter()
+        if local:
+            with sqlite3.connect(local.database) as db:
+                old = Counter(json.loads(raw).get("content") for raw, in
+                              db.execute("SELECT metadata FROM imported_media WHERE kind='clip'"))
+            group_limits = {group: max(0,15-old[group]) for group in ("physical_training","dark_cinematic")}
+            limits["clip"] = sum(group_limits.values())
         batch = []
         for index, item in enumerate(entries):
             kind = item["kind"]
             if counts[kind] >= limits[kind] or attempts[kind] >= limits[kind] * 5:
+                continue
+            cinematic = item.get("content") == "dark_cinematic"
+            group = "dark_cinematic" if cinematic else "physical_training"
+            if local and kind == "clip" and counts[group] >= group_limits[group]:
                 continue
             attempts[kind] += 1
             folder = root / str(index)
@@ -273,16 +283,21 @@ def refresh(catalog, output, env_file, send, limits, threshold, sources, local=N
                 if kind == "clip":
                     if vision is None:
                         vision = pc_vision.TrainingVision(threshold)
-                    score = vision.screen(path, metadata["duration"], metadata["timestamp"], folder)
+                    score = vision.screen(path, metadata["duration"], metadata["timestamp"], folder,
+                                          **({"cinematic": True} if cinematic else {}))
                     report.append({"source": item["source"], "vision": score})
                     if not score["accepted"]:
                         continue
-                    metadata.update(content="physical_training", vision=score)
+                    metadata.update(content=group, vision=score)
+                    counts[group] += 1
             except (ValueError, OSError, subprocess.SubprocessError) as error:
                 report.append({"source": item["source"], "error": str(error)})
                 if str(error) == "provider_challenge":
                     break
                 continue
+            if local and kind == "song":
+                from resolve_pipeline.speech_edit import song_tags
+                metadata["music_tags"] = song_tags(path, item.get("title","") + " " + item.get("genre",""), "")
             if kind == "song" and item.get("title") and item.get("duration"):
                 metadata["previews"] = catalog_previews(
                     {**item, "id": str(index), "reference_seconds": item["duration"]},
