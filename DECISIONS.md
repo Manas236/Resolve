@@ -1,13 +1,14 @@
 # Resolve decisions
 
-## Published quotations, 25 November 2026
+## Reflective creator reels, 26 November 2026
 
-Manas requires published, attributable wording for P, L and F4. Gemini may classify mood. The generated manuscript and model writer are archival. Store the speaker, exact wording, work and source URL. Exclude disputed, misattributed and unsourced material. Prefer observed Goodreads likes and independently verified coverage, then theme fit. Preserve unknown popularity as unknown. Use a 200-reel quote window and five-reel speaker window. Show the speaker below the quote and reserve the largest type for one-liners.
+P, L and F4 use verbatim text from already-posted reflective creator reels. Keep the literary catalog for historical records and deduplication. Generated text is excluded. Retain handle and source URL internally and omit on-screen attribution. Use everyday English with a setup, contradiction and ironic payoff that reads clearly the first time. Submit harvested rows for Manas to approve before activation.
 
+At 60 or more active rows, each creator may supply at most 15%. Five consecutive reels must have distinct creators. Source P paragraphs have 2–5 sentences and 35–115 words. Fit the full paragraph within safe margins and hold it for reading. Use only source-supported L and natural F4 reveals. Match mood across text, music and footage. Exclude the last ten clips and five songs.
 
 - Repo is the sole build handoff. No reuse of other project code. Push completed, tested units to main.
 - Keep working in the same turn across completed units. Test, update PROGRESS.md, commit, push and begin the next unblocked unit. End only at the usage limit, when all remaining work is blocked on NEEDS_MANAS.md, or when the build is done.
-- On 24 November 2026 the hourly **Continue the Resolve build** follow-up was enabled in the current build conversation. First scheduled follow-up is 10:37 IST. The previous conversation’s schedule is paused. Prompt: “Continue the Resolve build. Read PROGRESS.md, pick the first unblocked open item and keep working. Do not end your turn while unblocked work exists and usage remains. No partial-status replies.” Manage it in ChatGPT Scheduled.
+- On 26 November 2026 the hourly **Continue the Resolve build** follow-up was enabled in the current build conversation. First scheduled follow-up is 12:17 IST. The previous conversation’s schedule is paused. Prompt: “Continue the Resolve build. Read PROGRESS.md, pick the first unblocked open item and keep working. Do not end your turn while unblocked work exists and usage remains. No partial-status replies.” Manage it in ChatGPT Scheduled.
 - Default audience: English-speaking recreational lifters building consistent strength-training habits. Training footage, specific gym hooks and actionable short cues fit a faceless format. Competitor sampling in M0 must validate reach and format assumptions. Keep the default configurable.
 - Keep deployment packaging and resource limits undecided. Design for headless Linux and make configuration transport-independent.
 - Start with Python 3.11+ and standard-library runtime configuration and tests. This keeps the first scaffold runnable on headless Ubuntu without package or deployment choices.

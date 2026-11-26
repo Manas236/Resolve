@@ -1,6 +1,19 @@
 # Resolve progress
 
-## Current priority
+## Current priority — 26 November
+
+Hourly continuation enabled in the new conversation and verified. Previous Resolve schedules are paused.
+
+Open acceptance gates, in implementation order:
+
+1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
+2. Creator-centric Shorts harvester, restart checkpoints, detection-first thumbnail vision/OCR, limited Gemini calls with backoff and local fallback, frame recovery, verbatim cleaning, English five-axis classification, candidate review list and stage counts. Test skip, cleaning, dedupe, restart and quota fallback.
+3. Office thumbnail evidence: reproduce all nine known rows independently and report actual new creator and text counts.
+4. Local acquisition and dashboard import outside OneDrive, no SSH. Verify at least 30 gym/cinematic clips and 20 mood-tagged slowed/melancholic or phonk songs on the PC. Test ten renders with clip and song exclusions.
+5. Remove visible credit, support sourced paragraphs at both limits, measure actual 110-word render line count, width and type size. Verify natural F4 only.
+6. Windows single-line install, library, detached harvester/log, six varied Review renders and dashboard commands in NEEDS_MANAS.md. No harvested content in git.
+
+## Historical priority — 25 November
 
 Build the sourced quotation library and Quotes dashboard under the 25 November published-quotation decision. Verify 1,000+ distinct entries, format and speaker counts, attribution rejection counts and six new Review renders. Prior generated-copy evidence is historical.
 
