@@ -1,0 +1,6 @@
+yt-dlp[default]
+easyocr
+opencv-python-headless
+google-genai
+langdetect
+transformers>=4.49,<5

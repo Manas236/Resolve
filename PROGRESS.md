@@ -6,6 +6,8 @@ Hourly continuation enabled in the new conversation and verified. Previous Resol
 
 Creator Review now reads optional local seed and candidate JSONL. Approval, creator cap and recent-creator exclusion have fixture coverage. Measured a 110-word FFmpeg/libass frame at 1080×1920: 12 visible rows, 901 pixels wide, y=493–1216, 50 ASS units with 125% scaling. Reading time 37.3 seconds. Source remains internal.
 
+Shorts harvester and editable seed list implemented. Three fixtures passed for detector short-circuit, literal cleanup, deduplication, quota persistence and pending-item restart. Live OCR reproduction and discovery counts require the Windows PC. No measured new-creator count yet.
+
 Open acceptance gates, in implementation order:
 
 1. Local candidate bank and authenticated Review approval, archival catalog excluded, optional nine-row seed import, normalized dedupe, 15% active-bank cap at 60+ and five-reel creator window.
